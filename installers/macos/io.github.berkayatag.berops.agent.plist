@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>io.github.berkayatag.ber.agent</string>
+	<string>io.github.berkayatag.berops.agent</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/local/bin/ber-agent</string>
+		<string>/usr/local/bin/berops-agent</string>
 		<string>run</string>
 	</array>
 	<key>RunAtLoad</key>
@@ -20,6 +20,6 @@
 	<key>LowPriorityIO</key>
 	<true/>
 	<key>StandardErrorPath</key>
-	<string>/Library/Application Support/BER/Agent/logs/launchd.err</string>
+	<string>/Library/Application Support/BerOps/Agent/logs/launchd.err</string>
 </dict>
 </plist>

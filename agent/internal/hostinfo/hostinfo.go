@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
-	"github.com/BerkayAtag/automation-ber/shared/version"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/version"
 )
 
 // OSInfo, işletim sistemi adı, sürümü ve yama seviyesidir.

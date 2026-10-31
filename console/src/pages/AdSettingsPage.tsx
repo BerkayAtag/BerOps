@@ -273,7 +273,7 @@ function Mappings() {
             <input
               className="input input-sm mono"
               required
-              placeholder="CN=BER-Teknisyen,OU=Gruplar,DC=corp,DC=example"
+              placeholder="CN=BerOps-Teknisyen,OU=Gruplar,DC=corp,DC=example"
               value={f.group_dn}
               onChange={(e) => setF({ ...f, group_dn: e.target.value })}
             />

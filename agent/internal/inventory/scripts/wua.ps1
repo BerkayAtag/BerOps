@@ -1,17 +1,17 @@
-# Automation BER — Windows Update Agent ile eksik güncelleme taraması.
+# BerOps — Windows Update Agent ile eksik güncelleme taraması.
 # BER_WSUS_CAB tanımlıysa çevrimdışı tarama sunucudan indirilen wsusscn2.cab ile yapılır;
 # değilse makinenin yapılandırılmış kaynağı (Windows Update veya WSUS) kullanılır.
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $session = New-Object -ComObject Microsoft.Update.Session
-$session.ClientApplicationID = 'Automation BER'
+$session.ClientApplicationID = 'BerOps'
 $searcher = $session.CreateUpdateSearcher()
 $source = 'online'
 $service = $null
 if ($env:BER_WSUS_CAB) {
     $manager = New-Object -ComObject Microsoft.Update.ServiceManager
-    $service = $manager.AddScanPackageService('Automation BER Offline', $env:BER_WSUS_CAB, 1)
+    $service = $manager.AddScanPackageService('BerOps Offline', $env:BER_WSUS_CAB, 1)
     $searcher.ServerSelection = 3   # ssOthers
     $searcher.ServiceID = $service.ServiceID
     $source = 'offline'

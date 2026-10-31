@@ -1,6 +1,6 @@
 # Tanıtım Sayfası
 
-GitHub Pages'te yayımlanan statik tanıtım sayfası: <https://berkayatag.github.io/automation-ber/>
+GitHub Pages'te yayımlanan statik tanıtım sayfası: <https://berkayatag.github.io/BerOps/>
 
 - `index.html`, `landing.css`, `landing.js`: sayfa (Türkçe varsayılan, İngilizce seçenekli; karanlık mod).
 - Renkler konsolla aynı `design/tokens.css` dosyasından gelir; yayında `tokens.css` olarak kopyalanır.

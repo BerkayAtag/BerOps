@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // RemoteSettings, uzaktan yönetimin genel ayarlarıdır.

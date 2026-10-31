@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // Machine, kayıtlı bir ajanın sunucudaki kaydıdır.

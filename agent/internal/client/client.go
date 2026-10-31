@@ -15,8 +15,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
-	"github.com/BerkayAtag/automation-ber/shared/tlspin"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/tlspin"
 )
 
 // APIError, sunucunun döndürdüğü hata yanıtıdır.

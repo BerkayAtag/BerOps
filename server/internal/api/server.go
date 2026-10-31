@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/config"
-	"github.com/BerkayAtag/automation-ber/server/internal/cve"
-	"github.com/BerkayAtag/automation-ber/server/internal/pki"
-	"github.com/BerkayAtag/automation-ber/server/internal/secret"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/config"
+	"github.com/BerkayAtag/BerOps/server/internal/cve"
+	"github.com/BerkayAtag/BerOps/server/internal/pki"
+	"github.com/BerkayAtag/BerOps/server/internal/secret"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/vuln"
 )
 
 //go:embed openapi.yaml

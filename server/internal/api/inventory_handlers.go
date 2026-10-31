@@ -14,9 +14,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/ad"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/server/internal/ad"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // maxInventoryBody, açılmış envanter gövdesinin üst sınırıdır.

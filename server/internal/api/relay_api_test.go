@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/relay/relay"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/relay/relay"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 func TestRelayProxiesAndCaches(t *testing.T) {
@@ -28,7 +28,7 @@ func TestRelayProxiesAndCaches(t *testing.T) {
 	e.createUser("admin", "admin")
 	secret := e.adminCreateKey(map[string]any{"name": "sube"})
 
-	// Relay kaydı ve sertifikası (ber-server relay create ile aynı adımlar).
+	// Relay kaydı ve sertifikası (berops-server relay create ile aynı adımlar).
 	const relayID = "11111111-2222-4333-8444-555555555555"
 	rc, err := e.ca.IssueRelayCert(relayID, []string{"127.0.0.1"}, time.Hour)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/cve"
+	"github.com/BerkayAtag/BerOps/server/internal/cve"
 )
 
 // --- Kaynak durumu ---

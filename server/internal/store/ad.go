@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/ad"
+	"github.com/BerkayAtag/BerOps/server/internal/ad"
 )
 
 // ADSettings, AD bağlantı ayarlarıdır. Parola şifreli saklanır ve API'den dönmez.

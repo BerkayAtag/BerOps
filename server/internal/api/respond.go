@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // Hata kodları. Konsol bunları "errors.<kod>" çeviri anahtarına eşler.

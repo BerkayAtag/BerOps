@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 env:
-  LDPKG: github.com/BerkayAtag/automation-ber/shared/version
+  LDPKG: github.com/BerkayAtag/BerOps/shared/version
 
 jobs:
   meta:
@@ -65,9 +65,9 @@ jobs:
           mkdir -p out
           for target in linux/amd64 linux/arm64; do
             os=${target%/*}; arch=${target#*/}
-            d=work/automation-ber-server-$VERSION-$os-$arch
+            d=work/berops-server-$VERSION-$os-$arch
             mkdir -p "$d"
-            GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$LD" -o "$d/ber-server" ./server/cmd/ber-server
+            GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$LD" -o "$d/berops-server" ./server/cmd/berops-server
             cp -r console/dist "$d/console"
             cp LICENSE NOTICE "$d/"
             cp docs/kurulum-sunucu.md "$d/KURULUM.md"
@@ -75,9 +75,9 @@ jobs:
           done
           for target in linux/amd64 linux/arm64 windows/amd64 darwin/arm64 darwin/amd64; do
             os=${target%/*}; arch=${target#*/}; ext=""; [ "$os" = windows ] && ext=.exe
-            d=work/ber-relay-$VERSION-$os-$arch
+            d=work/berops-relay-$VERSION-$os-$arch
             mkdir -p "$d"
-            GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$LD" -o "$d/ber-relay$ext" ./relay/cmd/ber-relay
+            GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$LD" -o "$d/berops-relay$ext" ./relay/cmd/berops-relay
             cp LICENSE relay/README.md "$d/"
             if [ "$os" = windows ]; then (cd work && zip -qr "../out/$(basename "$d").zip" "$(basename "$d")")
             else tar -C work -czf "out/$(basename "$d").tar.gz" "$(basename "$d")"; fi
@@ -110,8 +110,8 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           $ld = "-s -w -X $env:LDPKG.Version=$env:VERSION -X $env:LDPKG.Commit=$env:GITHUB_SHA"
-          go build -trimpath -ldflags $ld -o dist/ber-agent.exe ./agent/cmd/ber-agent
-          go build -trimpath -ldflags $ld -o dist/ber-server.exe ./server/cmd/ber-server
+          go build -trimpath -ldflags $ld -o dist/berops-agent.exe ./agent/cmd/berops-agent
+          go build -trimpath -ldflags $ld -o dist/berops-server.exe ./server/cmd/berops-server
       - name: İmzalama aracı
         id: sign
         shell: pwsh
@@ -125,12 +125,12 @@ jobs:
           $signtool = (Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' | Sort-Object FullName -Descending | Select-Object -First 1).FullName
           "SIGNTOOL=$signtool" >> $env:GITHUB_ENV
           "PFX=$pfx" >> $env:GITHUB_ENV
-          & $signtool sign /f $pfx /p $env:CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist/ber-agent.exe dist/ber-server.exe
+          & $signtool sign /f $pfx /p $env:CERT_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist/berops-agent.exe dist/berops-server.exe
           if ($LASTEXITCODE -ne 0) { throw 'imzalama başarısız' }
           "signed=true" >> $env:GITHUB_OUTPUT
       - name: MSI paketleri
         shell: pwsh
-        run: ./installers/windows/build.ps1 -Version $env:VERSION -AgentExe dist/ber-agent.exe -ServerExe dist/ber-server.exe -ConsoleDir console/dist -OutDir out
+        run: ./installers/windows/build.ps1 -Version $env:VERSION -AgentExe dist/berops-agent.exe -ServerExe dist/berops-server.exe -ConsoleDir console/dist -OutDir out
       - name: MSI imzalama
         if: steps.sign.outputs.signed == 'true'
         shell: pwsh
@@ -141,7 +141,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'MSI imzalama başarısız' }
       - name: Ajan ikili dosyası (MSI dışı kullanım için)
         shell: pwsh
-        run: Compress-Archive -Path dist/ber-agent.exe, LICENSE -DestinationPath "out/ber-agent-$env:VERSION-windows-amd64.zip"
+        run: Compress-Archive -Path dist/berops-agent.exe, LICENSE -DestinationPath "out/berops-agent-$env:VERSION-windows-amd64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -165,9 +165,9 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           LD="-s -w -X $LDPKG.Version=$VERSION -X $LDPKG.Commit=$GITHUB_SHA"
-          GOARCH=arm64 go build -trimpath -ldflags "$LD" -o dist/ber-agent-arm64 ./agent/cmd/ber-agent
-          GOARCH=amd64 go build -trimpath -ldflags "$LD" -o dist/ber-agent-amd64 ./agent/cmd/ber-agent
-          lipo -create -output dist/ber-agent dist/ber-agent-arm64 dist/ber-agent-amd64
+          GOARCH=arm64 go build -trimpath -ldflags "$LD" -o dist/berops-agent-arm64 ./agent/cmd/berops-agent
+          GOARCH=amd64 go build -trimpath -ldflags "$LD" -o dist/berops-agent-amd64 ./agent/cmd/berops-agent
+          lipo -create -output dist/berops-agent dist/berops-agent-arm64 dist/berops-agent-amd64
       - name: İmza anahtar zinciri
         id: keychain
         env:
@@ -200,9 +200,9 @@ jobs:
           MACOS_INSTALLER_IDENTITY: ${{ steps.keychain.outputs.signed == 'true' && secrets.MACOS_INSTALLER_IDENTITY || '' }}
         run: |
           mkdir -p out
-          installers/macos/build-pkg.sh "$VERSION" dist/ber-agent "out/AutomationBER-Agent-$VERSION.pkg"
-          cp installers/macos/pppc-ber-agent.mobileconfig out/
-          (cd dist && zip -q "../out/ber-agent-$VERSION-darwin-universal.zip" ber-agent)
+          installers/macos/build-pkg.sh "$VERSION" dist/berops-agent "out/BerOps-Agent-$VERSION.pkg"
+          cp installers/macos/pppc-berops-agent.mobileconfig out/
+          (cd dist && zip -q "../out/berops-agent-$VERSION-darwin-universal.zip" berops-agent)
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -233,10 +233,10 @@ jobs:
             VERSION=${{ needs.meta.outputs.version }}
             COMMIT=${{ github.sha }}
           tags: |
-            ghcr.io/berkayatag/automation-ber-server:${{ needs.meta.outputs.version }}
-            ${{ !contains(needs.meta.outputs.version, '-') && 'ghcr.io/berkayatag/automation-ber-server:latest' || '' }}
+            ghcr.io/berkayatag/berops-server:${{ needs.meta.outputs.version }}
+            ${{ !contains(needs.meta.outputs.version, '-') && 'ghcr.io/berkayatag/berops-server:latest' || '' }}
           labels: |
-            org.opencontainers.image.title=Automation BER Server
+            org.opencontainers.image.title=BerOps Server
             org.opencontainers.image.vendor=Berkay Atağ
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.licenses=Apache-2.0
@@ -263,17 +263,17 @@ jobs:
         run: |
           cd artifacts && sha256sum * > SHA256SUMS.txt && cd ..
           {
-            echo "## Automation BER $VERSION"
+            echo "## BerOps $VERSION"
             echo
             echo "| Dosya | Açıklama |"
             echo "|---|---|"
-            echo "| \`AutomationBER-Server-$VERSION-x64.msi\` | **Sunucu kurulumu** (Windows Server, sihirbazlı) |"
-            echo "| \`automation-ber-server-$VERSION-linux-*.tar.gz\` | Sunucu (Linux) + konsol |"
-            echo "| \`ghcr.io/berkayatag/automation-ber-server:$VERSION\` | Sunucu Docker imajı (\`deploy/docker-compose.yml\`) |"
-            echo "| \`AutomationBER-Agent-$VERSION-x64.msi\` | Windows ajanı (sessiz kurulum: \`SERVER\`, \`REGKEY\`, \`CAHASH\`) |"
-            echo "| \`AutomationBER-Agent-$VERSION.pkg\` | macOS ajanı (Intel + Apple Silicon) |"
-            echo "| \`pppc-ber-agent.mobileconfig\` | macOS Tam Disk Erişimi örnek MDM profili |"
-            echo "| \`ber-relay-$VERSION-*\` | Şube relay'i |"
+            echo "| \`BerOps-Server-$VERSION-x64.msi\` | **Sunucu kurulumu** (Windows Server, sihirbazlı) |"
+            echo "| \`berops-server-$VERSION-linux-*.tar.gz\` | Sunucu (Linux) + konsol |"
+            echo "| \`ghcr.io/berkayatag/berops-server:$VERSION\` | Sunucu Docker imajı (\`deploy/docker-compose.yml\`) |"
+            echo "| \`BerOps-Agent-$VERSION-x64.msi\` | Windows ajanı (sessiz kurulum: \`SERVER\`, \`REGKEY\`, \`CAHASH\`) |"
+            echo "| \`BerOps-Agent-$VERSION.pkg\` | macOS ajanı (Intel + Apple Silicon) |"
+            echo "| \`pppc-berops-agent.mobileconfig\` | macOS Tam Disk Erişimi örnek MDM profili |"
+            echo "| \`berops-relay-$VERSION-*\` | Şube relay'i |"
             echo "| \`SHA256SUMS.txt\` | SHA-256 özetleri |"
             echo
             echo "### Kod imzalama"
@@ -295,4 +295,4 @@ jobs:
         run: |
           flags=""
           case "$VERSION" in *-*) flags="--prerelease";; esac
-          gh release create "$GITHUB_REF_NAME" artifacts/* --title "Automation BER $VERSION" --notes-file notes.md $flags
+          gh release create "$GITHUB_REF_NAME" artifacts/* --title "BerOps $VERSION" --notes-file notes.md $flags

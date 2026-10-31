@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // utf8BOM, Windows PowerShell 5.1'in betiği UTF-8 olarak okuması için gereklidir.

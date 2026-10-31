@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // Uzaktan yönetim zaman sınırları (testlerde kısaltılır).

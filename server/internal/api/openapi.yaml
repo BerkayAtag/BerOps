@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Automation BER API
+  title: BerOps API
   version: 0.6.0
   description: |
-    Automation BER konsol ve ajan API'si.
+    BerOps konsol ve ajan API'si.
 
     **Kimlik doğrulama (konsol):** `POST /api/v1/auth/login` başarılı olduğunda `__Host-ber_session`
     çerezi ayarlanır. Durum değiştiren tüm isteklerde (POST/PUT/PATCH/DELETE) yanıtla dönen
@@ -44,7 +44,7 @@ components:
       description: "Ajan sertifikası. Relay üzerinden gelen isteklerde relay, ajanın sertifikasını X-Ber-Agent-Cert başlığında iletir; sunucu bu başlığa yalnızca relay sertifikalı bağlantılarda güvenir."
     relayCert:
       type: mutualTLS
-      description: "Relay sertifikası (CN relay:<id>), ber-server relay create ile üretilir."
+      description: "Relay sertifikası (CN relay:<id>), berops-server relay create ile üretilir."
   parameters:
     CSRF:
       name: X-CSRF-Token

@@ -5,6 +5,6 @@ package service
 
 // Windows servis adları.
 const (
-	AgentName  = "BERAgent"
-	ServerName = "BERServer"
+	AgentName  = "BerOpsAgent"
+	ServerName = "BerOpsServer"
 )

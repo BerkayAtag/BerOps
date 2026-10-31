@@ -13,7 +13,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 // EnvVar, test veritabanı sunucusunun adresini taşıyan ortam değişkenidir.

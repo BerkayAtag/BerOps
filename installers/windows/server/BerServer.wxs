@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Automation BER Server — Windows Server MSI (WiX Toolset v5).
+  BerOps Server — Windows Server MSI (WiX Toolset v5).
 
   Sihirbaz: kurulum dizini → sunucu ayarları (PostgreSQL, portlar, ad, TLS) → ilk yönetici.
   Sessiz kurulum:
-    msiexec /i AutomationBER-Server.msi /qn DATABASE_URL="postgres://ber:...@db:5432/ber" ^
+    msiexec /i BerOps-Server.msi /qn DATABASE_URL="postgres://ber:...@db:5432/ber" ^
             HOSTNAMES=ber.ornek.local ADMIN_USERNAME=admin ADMIN_PASSWORD="..."
 
-  Kurulum, "ber-server setup" ile yapılandırmayı %ProgramData%\BER\Server\ber-server.yaml
+  Kurulum, "berops-server setup" ile yapılandırmayı %ProgramData%\BerOps\Server\berops-server.yaml
   dosyasına yazar, migration'ları uygular ve ilk yöneticiyi oluşturur. Veri klasörü (iç CA,
   paketler) kaldırmada korunur.
 -->
@@ -15,7 +15,7 @@
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
      xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
-  <Package Name="Automation BER Server"
+  <Package Name="BerOps Server"
            Manufacturer="Berkay Atağ"
            Version="$(Version)"
            UpgradeCode="CCA3AC1A-22B1-4863-AB28-2C1ACDF54640"
@@ -23,14 +23,14 @@
            Language="1055"
            Codepage="1254"
            InstallerVersion="500">
-    <SummaryInformation Description="Automation BER Server" Manufacturer="Berkay Atağ" Codepage="1254" />
+    <SummaryInformation Description="BerOps Server" Manufacturer="Berkay Atağ" Codepage="1254" />
 
     <MajorUpgrade DowngradeErrorMessage="Bu ürünün daha yeni bir sürümü zaten kurulu." />
     <MediaTemplate EmbedCab="yes" />
 
     <Property Id="ARPCONTACT" Value="Berkay Atağ" />
-    <Property Id="ARPHELPLINK" Value="https://github.com/BerkayAtag/automation-ber" />
-    <Property Id="ARPURLINFOABOUT" Value="https://berkayatag.github.io/automation-ber/" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/BerkayAtag/BerOps" />
+    <Property Id="ARPURLINFOABOUT" Value="https://berkayatag.github.io/BerOps/" />
     <!-- ARPNOMODIFY, WixUI_InstallDir tarafından zaten tanımlanır. -->
 
     <Property Id="DATABASE_URL" Secure="yes" Hidden="yes" />
@@ -44,7 +44,7 @@
     <Property Id="ADMIN_PASSWORD_CONFIRM" Hidden="yes" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="ManufacturerFolder" Name="Automation BER">
+      <Directory Id="ManufacturerFolder" Name="BerOps">
         <Directory Id="INSTALLFOLDER" Name="Server">
           <Directory Id="CONSOLEFOLDER" Name="console" />
         </Directory>
@@ -53,16 +53,16 @@
 
     <ComponentGroup Id="ServerComponents" Directory="INSTALLFOLDER">
       <Component Id="ServerService" Bitness="always64">
-        <File Id="BerServerExe" Name="ber-server.exe" Source="$(ServerExe)" KeyPath="yes" />
+        <File Id="BerServerExe" Name="berops-server.exe" Source="$(ServerExe)" KeyPath="yes" />
         <ServiceInstall Id="BerServerService"
-                        Name="BERServer"
-                        DisplayName="Automation BER Server"
-                        Description="Automation BER yama yönetimi sunucusu (konsol ve ajan API'si)"
+                        Name="BerOpsServer"
+                        DisplayName="BerOps Server"
+                        Description="BerOps yama yönetimi sunucusu (konsol ve ajan API'si)"
                         Type="ownProcess"
                         Start="auto"
                         Account="LocalSystem"
                         ErrorControl="normal"
-                        Arguments="serve -config &quot;[CommonAppDataFolder]BER\Server\ber-server.yaml&quot;"
+                        Arguments="serve -config &quot;[CommonAppDataFolder]BerOps\Server\berops-server.yaml&quot;"
                         Vital="yes">
           <util:ServiceConfig FirstFailureActionType="restart"
                               SecondFailureActionType="restart"
@@ -70,20 +70,20 @@
                               RestartServiceDelayInSeconds="30"
                               ResetPeriodInDays="1" />
         </ServiceInstall>
-        <ServiceControl Id="BerServerServiceControl" Name="BERServer" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
-        <fw:FirewallException Id="BerConsolePort" Name="Automation BER Console" Port="[CONSOLE_PORT]" Protocol="tcp" Scope="any" />
-        <fw:FirewallException Id="BerAgentPort" Name="Automation BER Agent API" Port="[AGENT_PORT]" Protocol="tcp" Scope="any" />
+        <ServiceControl Id="BerServerServiceControl" Name="BerOpsServer" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+        <fw:FirewallException Id="BerConsolePort" Name="BerOps Console" Port="[CONSOLE_PORT]" Protocol="tcp" Scope="any" />
+        <fw:FirewallException Id="BerAgentPort" Name="BerOps Agent API" Port="[AGENT_PORT]" Protocol="tcp" Scope="any" />
       </Component>
       <Files Directory="CONSOLEFOLDER" Include="$(ConsoleDir)\**" />
     </ComponentGroup>
 
-    <Feature Id="Main" Title="Automation BER Server" Level="1">
+    <Feature Id="Main" Title="BerOps Server" Level="1">
       <ComponentGroupRef Id="ServerComponents" />
     </Feature>
 
     <!-- İlk kurulum / yükseltme: yapılandırma, migration, ilk yönetici. Parolalar günlüğe yazılmaz. -->
     <SetProperty Id="SetupServer"
-                 Value="&quot;[INSTALLFOLDER]ber-server.exe&quot; setup -config &quot;[CommonAppDataFolder]BER\Server\ber-server.yaml&quot; -data-dir &quot;[CommonAppDataFolder]BER\Server\data&quot; -database-url &quot;[DATABASE_URL]&quot; -console-port [CONSOLE_PORT] -agent-port [AGENT_PORT] -hostnames &quot;[HOSTNAMES]&quot; -tls-cert &quot;[TLS_CERT]&quot; -tls-key &quot;[TLS_KEY]&quot; -static-dir &quot;[CONSOLEFOLDER].&quot; -admin-username &quot;[ADMIN_USERNAME]&quot; -admin-password &quot;[ADMIN_PASSWORD]&quot;"
+                 Value="&quot;[INSTALLFOLDER]berops-server.exe&quot; setup -config &quot;[CommonAppDataFolder]BerOps\Server\berops-server.yaml&quot; -data-dir &quot;[CommonAppDataFolder]BerOps\Server\data&quot; -database-url &quot;[DATABASE_URL]&quot; -console-port [CONSOLE_PORT] -agent-port [AGENT_PORT] -hostnames &quot;[HOSTNAMES]&quot; -tls-cert &quot;[TLS_CERT]&quot; -tls-key &quot;[TLS_KEY]&quot; -static-dir &quot;[CONSOLEFOLDER].&quot; -admin-username &quot;[ADMIN_USERNAME]&quot; -admin-password &quot;[ADMIN_PASSWORD]&quot;"
                  Before="SetupServer" Sequence="execute"
                  Condition="NOT REMOVE" />
     <CustomAction Id="SetupServer" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
@@ -102,7 +102,7 @@
       <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="BerSettingsDlg" Order="10" Condition="WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="BerAdminDlg" Order="10" Condition="NOT Installed" />
 
-      <Dialog Id="BerSettingsDlg" Width="370" Height="270" Title="Automation BER Server Kurulumu">
+      <Dialog Id="BerSettingsDlg" Width="370" Height="270" Title="BerOps Server Kurulumu">
         <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
         <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
         <Control Id="Title" Type="Text" X="15" Y="6" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Sunucu ayarları" />
@@ -133,7 +133,7 @@
         </Control>
       </Dialog>
 
-      <Dialog Id="BerAdminDlg" Width="370" Height="270" Title="Automation BER Server Kurulumu">
+      <Dialog Id="BerAdminDlg" Width="370" Height="270" Title="BerOps Server Kurulumu">
         <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
         <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
         <Control Id="Title" Type="Text" X="15" Y="6" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}İlk yönetici hesabı" />

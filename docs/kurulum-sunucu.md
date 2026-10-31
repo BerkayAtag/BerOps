@@ -1,8 +1,8 @@
 # Sunucu kurulumu
 
-Automation BER sunucusu (`ber-server`) tek bir programdır. Hem konsolu (HTTPS, varsayılan 8443) hem ajan API'sini (karşılıklı TLS, varsayılan 52311) sunar ve veriyi PostgreSQL'de tutar.
+BerOps sunucusu (`berops-server`) tek bir programdır. Hem konsolu (HTTPS, varsayılan 8443) hem ajan API'sini (karşılıklı TLS, varsayılan 52311) sunar ve veriyi PostgreSQL'de tutar.
 
-Üç kurulum yolu vardır. Paketlerin tümü [GitHub Releases](https://github.com/BerkayAtag/automation-ber/releases/latest) sayfasındadır.
+Üç kurulum yolu vardır. Paketlerin tümü [GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest) sayfasındadır.
 
 | Yol | Ne zaman? |
 |---|---|
@@ -20,9 +20,9 @@ Automation BER sunucusu (`ber-server`) tek bir programdır. Hem konsolu (HTTPS, 
 
 ## Windows Server MSI
 
-`AutomationBER-Server-<sürüm>-x64.msi` dosyasını yönetici olarak çalıştırın. Sihirbazın adımları:
+`BerOps-Server-<sürüm>-x64.msi` dosyasını yönetici olarak çalıştırın. Sihirbazın adımları:
 
-1. **Lisans** (Apache 2.0) ve **kurulum dizini.** Varsayılan: `C:\Program Files\Automation BER\Server`.
+1. **Lisans** (Apache 2.0) ve **kurulum dizini.** Varsayılan: `C:\Program Files\BerOps\Server`.
 2. **Sunucu ayarları:**
    - PostgreSQL bağlantı adresi: `postgres://kullanıcı:parola@sunucu:5432/ber`.
    - Konsol ve ajan portları.
@@ -30,8 +30,8 @@ Automation BER sunucusu (`ber-server`) tek bir programdır. Hem konsolu (HTTPS, 
    - İsteğe bağlı konsol TLS sertifikası ve anahtarı (PEM). Boş bırakılırsa iç CA ile kendinden imzalı sertifika üretilir.
 3. **İlk yönetici:** Kullanıcı adı ve en az 12 karakterlik parola. Bu hesap yerel **kurtarma hesabıdır**; Active Directory erişilemezse de giriş yapılabilir.
 4. **Kurulum.** Sihirbaz şunları yapar:
-   - `ber-server setup` ile yapılandırma dosyasını yazar, migration'ları uygular ve ilk yöneticiyi oluşturur.
-   - `BERServer` servisini kurup başlatır.
+   - `berops-server setup` ile yapılandırma dosyasını yazar, migration'ları uygular ve ilk yöneticiyi oluşturur.
+   - `BerOpsServer` servisini kurup başlatır.
    - Windows Güvenlik Duvarı'nda iki portu açar.
 
 Veritabanına bağlanılamazsa kurulum hata verir ve geri alınır. Ayrıntılı günlük için `msiexec /i ... /l*v kurulum.log` kullanın. Parolalar günlüğe yazılmaz.
@@ -39,7 +39,7 @@ Veritabanına bağlanılamazsa kurulum hata verir ve geri alınır. Ayrıntılı
 ### Sessiz kurulum
 
 ```bat
-msiexec /i AutomationBER-Server-1.0.0-x64.msi /qn ^
+msiexec /i BerOps-Server-1.0.0-x64.msi /qn ^
   DATABASE_URL="postgres://ber:PAROLA@db.ornek.local:5432/ber" ^
   HOSTNAMES=ber.ornek.local ADMIN_USERNAME=admin ADMIN_PASSWORD="EN-AZ-12-KARAKTER"
 ```
@@ -52,57 +52,57 @@ msiexec /i AutomationBER-Server-1.0.0-x64.msi /qn ^
 | `AGENT_PORT` | `52311` | Ajan portu |
 | `TLS_CERT`, `TLS_KEY` | — | Konsol sertifikası ve anahtarı (PEM dosya yolları) |
 | `ADMIN_USERNAME`, `ADMIN_PASSWORD` | `admin`, — | İlk yönetici (yalnızca hiç kullanıcı yoksa oluşturulur) |
-| `INSTALLFOLDER` | `C:\Program Files\Automation BER\Server` | Program dizini |
+| `INSTALLFOLDER` | `C:\Program Files\BerOps\Server` | Program dizini |
 
 ### Dosya konumları
 
 | Yol | İçerik |
 |---|---|
-| `C:\Program Files\Automation BER\Server\` | `ber-server.exe`, `console\` (konsol dosyaları) |
-| `C:\ProgramData\BER\Server\ber-server.yaml` | Yapılandırma (veritabanı parolasını içerir; yalnızca yöneticiler okuyabilir) |
-| `C:\ProgramData\BER\Server\data\pki\` | İç CA, aksiyon imza anahtarı, gizli değer anahtarı — **yedekleyin** |
-| `C:\ProgramData\BER\Server\data\packages\` | Paket kütüphanesi dosyaları |
-| `C:\ProgramData\BER\Server\data\logs\` | Servis günlükleri (döner, 20 MB × 5) |
+| `C:\Program Files\BerOps\Server\` | `berops-server.exe`, `console\` (konsol dosyaları) |
+| `C:\ProgramData\BerOps\Server\berops-server.yaml` | Yapılandırma (veritabanı parolasını içerir; yalnızca yöneticiler okuyabilir) |
+| `C:\ProgramData\BerOps\Server\data\pki\` | İç CA, aksiyon imza anahtarı, gizli değer anahtarı — **yedekleyin** |
+| `C:\ProgramData\BerOps\Server\data\packages\` | Paket kütüphanesi dosyaları |
+| `C:\ProgramData\BerOps\Server\data\logs\` | Servis günlükleri (döner, 20 MB × 5) |
 
 **Yükseltme:** Yeni MSI'ı çalıştırmanız yeterlidir. Yapılandırma ve kullanıcılar korunur, migration'lar uygulanır.
 
-**Kaldırma:** Programlar ve Özellikler'den kaldırılır. `C:\ProgramData\BER\Server` klasörü (iç CA dahil) bilerek korunur. Yeniden kurulumda ajanlar aynı CA ile çalışmaya devam eder. Tamamen silmek için klasörü elle kaldırın.
+**Kaldırma:** Programlar ve Özellikler'den kaldırılır. `C:\ProgramData\BerOps\Server` klasörü (iç CA dahil) bilerek korunur. Yeniden kurulumda ajanlar aynı CA ile çalışmaya devam eder. Tamamen silmek için klasörü elle kaldırın.
 
 ## Docker Compose (Linux)
 
 ```bash
-git clone https://github.com/BerkayAtag/automation-ber.git && cd automation-ber
+git clone https://github.com/BerkayAtag/BerOps.git && cd berops
 cp deploy/.env.example deploy/.env      # BER_DB_PASSWORD ve BER_HOSTNAMES değerlerini düzenleyin
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env exec server ber-server admin create -username admin -recovery
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env exec server berops-server admin create -username admin -recovery
 ```
 
-- İmaj: `ghcr.io/berkayatag/automation-ber-server:<sürüm>`. `BER_IMAGE` ile sürüm sabitleyin.
+- İmaj: `ghcr.io/berkayatag/berops-server:<sürüm>`. `BER_IMAGE` ile sürüm sabitleyin.
 - Veri `berdata` biriminde (`/var/lib/ber`), veritabanı `pgdata` biriminde tutulur.
 - CA parmak izi: `docker compose ... logs server | grep parmak_izi`.
 
 ## Linux arşivi ve systemd
 
 ```bash
-tar -xzf automation-ber-server-1.0.0-linux-amd64.tar.gz -C /opt
+tar -xzf berops-server-1.0.0-linux-amd64.tar.gz -C /opt
 sudo useradd --system --home /var/lib/ber --create-home ber
-sudo -u ber /opt/automation-ber-server-1.0.0-linux-amd64/ber-server setup \
-  -config /etc/ber/ber-server.yaml -data-dir /var/lib/ber \
+sudo -u ber /opt/berops-server-1.0.0-linux-amd64/berops-server setup \
+  -config /etc/ber/berops-server.yaml -data-dir /var/lib/ber \
   -database-url 'postgres://ber:PAROLA@localhost:5432/ber' \
-  -hostnames ber.ornek.local -static-dir /opt/automation-ber-server-1.0.0-linux-amd64/console \
+  -hostnames ber.ornek.local -static-dir /opt/berops-server-1.0.0-linux-amd64/console \
   -admin-username admin            # parola BER_ADMIN_PASSWORD ortam değişkeninden okunur
 ```
 
-`/etc/systemd/system/ber-server.service`:
+`/etc/systemd/system/berops-server.service`:
 
 ```ini
 [Unit]
-Description=Automation BER Server
+Description=BerOps Server
 After=network-online.target postgresql.service
 
 [Service]
 User=ber
-ExecStart=/opt/automation-ber-server-1.0.0-linux-amd64/ber-server serve -config /etc/ber/ber-server.yaml
+ExecStart=/opt/berops-server-1.0.0-linux-amd64/berops-server serve -config /etc/ber/berops-server.yaml
 Restart=on-failure
 AmbientCapabilities=
 NoNewPrivileges=true
@@ -123,7 +123,7 @@ WantedBy=multi-user.target
 
 ## Yapılandırma başvurusu
 
-`ber-server.yaml` (tüm alanlar isteğe bağlıdır, varsayılanlar gösterilmiştir):
+`berops-server.yaml` (tüm alanlar isteğe bağlıdır, varsayılanlar gösterilmiştir):
 
 ```yaml
 data_dir: data

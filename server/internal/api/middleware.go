@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 // SessionCookie, oturum çerezinin adıdır. "__Host-" öneki çerezin yalnızca HTTPS üzerinden,

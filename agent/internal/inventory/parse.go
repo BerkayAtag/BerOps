@@ -19,7 +19,7 @@ import (
 
 	"howett.net/plist"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // --- Windows: Uninstall kayıt defteri girdileri ---

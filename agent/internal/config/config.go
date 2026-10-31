@@ -33,7 +33,7 @@ func Load(dir string) (Config, error) {
 	var c Config
 	b, err := os.ReadFile(filepath.Join(dir, FileName))
 	if errors.Is(err, os.ErrNotExist) {
-		return c, fmt.Errorf("%w (%s yok); önce 'ber-agent enroll' veya 'ber-agent configure' çalıştırın",
+		return c, fmt.Errorf("%w (%s yok); önce 'berops-agent enroll' veya 'berops-agent configure' çalıştırın",
 			ErrNotConfigured, filepath.Join(dir, FileName))
 	}
 	if err != nil {

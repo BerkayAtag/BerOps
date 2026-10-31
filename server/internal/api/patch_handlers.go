@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 var (
@@ -24,7 +24,7 @@ var (
 const windowsPatchScript = `$ErrorActionPreference = 'Stop'
 $ids = @(%s)
 $session = New-Object -ComObject Microsoft.Update.Session
-$session.ClientApplicationID = 'Automation BER'
+$session.ClientApplicationID = 'BerOps'
 $result = $session.CreateUpdateSearcher().Search("IsInstalled=0 and IsHidden=0")
 $updates = New-Object -ComObject Microsoft.Update.UpdateColl
 foreach ($u in $result.Updates) {

@@ -19,13 +19,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/config"
-	"github.com/BerkayAtag/automation-ber/server/internal/pki"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/server/internal/store/storetest"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
-	"github.com/BerkayAtag/automation-ber/shared/tlspin"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/config"
+	"github.com/BerkayAtag/BerOps/server/internal/pki"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/store/storetest"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/tlspin"
 )
 
 const testPassword = "test-parolasi-uzun-123"

@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 func scriptCommand(ctx context.Context, s Spec) (*exec.Cmd, error) {

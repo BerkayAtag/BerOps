@@ -8,8 +8,8 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 type appDef struct {

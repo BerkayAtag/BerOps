@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 var labelRe = regexp.MustCompile(`^[A-Za-z0-9._-]{1,200}$`)

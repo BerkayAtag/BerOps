@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoadFileAndEnv(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "ber-server.yaml")
+	path := filepath.Join(t.TempDir(), "berops-server.yaml")
 	if err := os.WriteFile(path, []byte(`
 database_url: postgres://dosya
 console:
@@ -41,7 +41,7 @@ session:
 }
 
 func TestLoadRejectsUnknownFields(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "ber-server.yaml")
+	path := filepath.Join(t.TempDir(), "berops-server.yaml")
 	if err := os.WriteFile(path, []byte("database_url: x\nconsle:\n  listen: x\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

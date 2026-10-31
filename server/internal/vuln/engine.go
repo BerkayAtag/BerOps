@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/cve"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/cve"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 // Engine, korelasyon kuyruğudur. Envanteri değişen makineler Enqueue ile, kaynak

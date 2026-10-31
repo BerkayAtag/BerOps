@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-ldap/ldap/v3"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/ad"
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/ad"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 // adPasswordLabel, AD hizmet hesabı parolasının şifreleme etiketidir.
@@ -199,7 +199,7 @@ func (s *Server) handleCreateADMapping(w http.ResponseWriter, r *http.Request, s
 	}
 	m.GroupDN = strings.TrimSpace(m.GroupDN)
 	if _, err := ldap.ParseDN(m.GroupDN); err != nil || m.GroupDN == "" || len(m.GroupDN) > 500 {
-		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Grup DN'i geçersiz (ör. CN=BER-Teknisyen,OU=Gruplar,DC=corp,DC=example)")
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Grup DN'i geçersiz (ör. CN=BerOps-Teknisyen,OU=Gruplar,DC=corp,DC=example)")
 		return
 	}
 	if !auth.ValidRole(auth.Role(m.Role)) {

@@ -1,19 +1,19 @@
-# Automation BER
+# BerOps
 
 **Ajan tabanlı yama ve üçüncü parti uygulama yönetim platformu.** Windows ve macOS istemcilerdeki eksik işletim sistemi yamalarını, üçüncü parti uygulamaları ve güvenlik açıklarını tek bir tarayıcı tabanlı konsoldan izleyin ve dağıtımı kontrollü şekilde yapın.
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Spesifikasyondaki sekiz aşamanın tümü tamamlandı. Kurulum paketleri [GitHub Releases](https://github.com/BerkayAtag/automation-ber/releases/latest)'ta, tanıtım sayfası <https://berkayatag.github.io/automation-ber/> adresinde yayımlanır.
+> **Durum:** Spesifikasyondaki sekiz aşamanın tümü tamamlandı. Kurulum paketleri [GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest)'ta, tanıtım sayfası <https://berkayatag.github.io/BerOps/> adresinde yayımlanır.
 
 ## Kurulum
 
 | Ne? | Nasıl? |
 |---|---|
-| **Sunucu** | Windows Server için sihirbazlı MSI (`AutomationBER-Server-<sürüm>-x64.msi`), Linux için Docker Compose veya arşiv → [docs/kurulum-sunucu.md](docs/kurulum-sunucu.md) |
-| **Windows ajanı** | `msiexec /i AutomationBER-Agent-<sürüm>-x64.msi /qn SERVER=… REGKEY=… CAHASH=…` → [docs/kurulum-ajan-windows.md](docs/kurulum-ajan-windows.md) |
-| **macOS ajanı** | `AutomationBER-Agent-<sürüm>.pkg` (Intel + Apple Silicon), MDM tercihleri, PPPC profili → [docs/kurulum-ajan-macos.md](docs/kurulum-ajan-macos.md) |
-| **Şube relay'i** | `ber-relay` arşivleri → [relay/README.md](relay/README.md) |
+| **Sunucu** | Windows Server için sihirbazlı MSI (`BerOps-Server-<sürüm>-x64.msi`), Linux için Docker Compose veya arşiv → [docs/kurulum-sunucu.md](docs/kurulum-sunucu.md) |
+| **Windows ajanı** | `msiexec /i BerOps-Agent-<sürüm>-x64.msi /qn SERVER=… REGKEY=… CAHASH=…` → [docs/kurulum-ajan-windows.md](docs/kurulum-ajan-windows.md) |
+| **macOS ajanı** | `BerOps-Agent-<sürüm>.pkg` (Intel + Apple Silicon), MDM tercihleri, PPPC profili → [docs/kurulum-ajan-macos.md](docs/kurulum-ajan-macos.md) |
+| **Şube relay'i** | `berops-relay` arşivleri → [relay/README.md](relay/README.md) |
 
 Kurulum komutlarını konsoldaki **Ajan indir** sayfası sunucu adresi, kayıt anahtarı ve CA parmak izi gömülü olarak üretir.
 
@@ -21,10 +21,10 @@ Kurulum komutlarını konsoldaki **Ajan indir** sayfası sunucu adresi, kayıt a
 
 | Bileşen | Açıklama |
 |---|---|
-| **BER Server** | Merkezi API, PostgreSQL veritabanı, iç sertifika otoritesi, ajan kaydı, iş kuyruğu |
-| **BER Relay** | Şubeler için önbellekleyen dağıtım noktası ([relay/README.md](relay/README.md)) |
-| **BER Agent** | Windows servisi / macOS `launchd` daemon'ı olarak çalışan hafif Go ajanı |
-| **BER Console** | React + TypeScript tarayıcı konsolu; Türkçe/İngilizce, açık/karanlık tema |
+| **BerOps Server** | Merkezi API, PostgreSQL veritabanı, iç sertifika otoritesi, ajan kaydı, iş kuyruğu |
+| **BerOps Relay** | Şubeler için önbellekleyen dağıtım noktası ([relay/README.md](relay/README.md)) |
+| **BerOps Agent** | Windows servisi / macOS `launchd` daemon'ı olarak çalışan hafif Go ajanı |
+| **BerOps Console** | React + TypeScript tarayıcı konsolu; Türkçe/İngilizce, açık/karanlık tema |
 
 Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 
@@ -36,7 +36,7 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 - **RBAC temeli:** Granüler izinler ve Admin / Teknisyen / Salt Okunur rolleri, her uç noktada sunucu tarafında zorunlu.
 - **Değiştirilemez denetim kaydı:** `audit_log` tablosunda UPDATE, DELETE ve TRUNCATE veritabanı trigger'larıyla engelli.
 - **Konsol:** Giriş ekranı, gösterge paneli iskeleti, Türkçe varsayılan + İngilizce, işletim sistemi tercihini izleyen ve seçimi hatırlayan karanlık mod.
-- **Sanal ajan simülatörü:** Yüzlerce ajanı tek süreçte simüle eden `ber-agentsim`.
+- **Sanal ajan simülatörü:** Yüzlerce ajanı tek süreçte simüle eden `berops-agentsim`.
 
 ## Aşama 2'de neler var?
 
@@ -45,7 +45,7 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 - **Kaynak kısıtlama:** Windows'ta Job Object ile sert CPU sınırı ve IDLE öncelik, macOS'ta arka plan QoS; ajan içi işler için CPU bütçesi; pil ve kullanıcı etkinliğinde erteleme.
 - **Delta gönderim:** Bölüm özetleriyle yalnızca değişen bölümler gönderilir; sunucu tutarsızlık görürse tam envanter ister.
 - **Konsol:** Arama, filtre, sıralama, sayfalama ve toplu seçimli makine listesi; eksik/kurulu yama ve uygulama sekmeli makine detay sayfası; gösterge panelinde uyumluluk ve dağılım; ajan ayarları sayfası; konsoldan yeniden tarama.
-- **Tanılama:** `ber-agent inventory [-full] [-json]` envanteri makinede toplayıp yazdırır.
+- **Tanılama:** `berops-agent inventory [-full] [-json]` envanteri makinede toplayıp yazdırır.
 
 ## Aşama 3'te neler var?
 
@@ -108,7 +108,7 @@ Ayrıntılar: [docs/uzaktan-yonetim.md](docs/uzaktan-yonetim.md). Ölçüm (ger�
 
 ## Aşama 7'de neler var?
 
-- **Relay:** Şube ajanları relay'e bağlanır. Relay ajan kimliğini doğrulayıp sunucuya iletir, paketleri bir kez indirip SHA-256 ile doğrular ve önbellekten verir (LRU, varsayılan 50 GB). Sertifika `ber-server relay create` ile üretilir, konsoldan iptal edilir.
+- **Relay:** Şube ajanları relay'e bağlanır. Relay ajan kimliğini doğrulayıp sunucuya iletir, paketleri bir kez indirip SHA-256 ile doğrular ve önbellekten verir (LRU, varsayılan 50 GB). Sertifika `berops-server relay create` ile üretilir, konsoldan iptal edilir.
 - **Bakım pencereleri:** Gün, saat, süre, saat dilimi ve OU kapsamı tanımlanır. "Bakım penceresine uy" seçilen aksiyonların işleri yalnızca pencere açıkken verilir.
 - **Kademeli dağıtım:** Pilot ve halka hazır ayarlarıyla 2–5 aşama kurulur. Sonraki aşama, gecikmesi dolunca ve başarı oranı eşiği geçince kendiliğinden açılır; eşik altında dağıtım duraklar. Duraklatılmış aşama elle de açılabilir.
 - **Bildirimler:** E-posta (SMTP) ve webhook (genel JSON, Teams, Slack, HMAC imzası). Olaylar: aksiyon tamamlandı, filoda yeni KEV açığı, CVE kaynağı eşitlenemedi. Her olay bir kez gönderilir.
@@ -136,7 +136,7 @@ Ayrıntılar: [docs/gelismis-dagitim.md](docs/gelismis-dagitim.md).
   - Çok mimarili Docker imajı (GHCR) ve `SHA256SUMS.txt`.
   - İmza sertifikaları GitHub Secrets'ta yoksa paketler imzasız derlenir ve bu, sürüm notunda belirtilir.
 - **Ajan indir sayfası:** Kayıt anahtarı üretir ve kurulum komutlarını hazırlar.
-- **`ber-server setup`:** İlk kurulum komutu (yapılandırma, migration, ilk yönetici).
+- **`berops-server setup`:** İlk kurulum komutu (yapılandırma, migration, ilk yönetici).
 - **Tanıtım sayfası:** `landing/`, GitHub Pages'e otomatik yayımlanır. Türkçe ve İngilizce, karanlık mod, mimari şeması, demo verili ekran görüntüleri.
 - **Belgeler:** [kurulum-sunucu](docs/kurulum-sunucu.md), [kurulum-ajan-windows](docs/kurulum-ajan-windows.md), [kurulum-ajan-macos](docs/kurulum-ajan-macos.md), [guvenlik](docs/guvenlik.md).
 
@@ -172,7 +172,7 @@ PostgreSQL'i başlatın:
 docker compose -f deploy/docker-compose.dev.yml up -d --wait
 ```
 
-Sunucu yapılandırmasını oluşturun (`ber-server.yaml`, git'e eklenmez):
+Sunucu yapılandırmasını oluşturun (`berops-server.yaml`, git'e eklenmez):
 
 ```yaml
 data_dir: ./data
@@ -182,11 +182,11 @@ database_url: postgres://ber:ber@localhost:5432/ber_dev?sslmode=disable
 İlk admin hesabını oluşturun ve sunucuyu başlatın:
 
 ```bash
-go run ./server/cmd/ber-server admin create -username admin
+go run ./server/cmd/berops-server admin create -username admin
 ```
 
 ```bash
-go run ./server/cmd/ber-server serve
+go run ./server/cmd/berops-server serve
 ```
 
 Konsolu geliştirme modunda açın (API istekleri `https://localhost:8443` adresine aktarılır):
@@ -202,17 +202,17 @@ Tarayıcıda `http://localhost:5173` adresine gidin.
 Kayıt anahtarı oluşturun; komut CA parmak izini de yazdırır:
 
 ```bash
-go run ./server/cmd/ber-server regkey create -name "Geliştirme"
+go run ./server/cmd/berops-server regkey create -name "Geliştirme"
 ```
 
 Ajanı kaydedip çalıştırın (yönetici yetkisi gerekmez, `-data-dir` ile yerel bir klasör kullanılır):
 
 ```bash
-go run ./agent/cmd/ber-agent enroll -data-dir ./agent-data -server https://localhost:52311 -key <anahtar> -ca-hash <parmak-izi>
+go run ./agent/cmd/berops-agent enroll -data-dir ./agent-data -server https://localhost:52311 -key <anahtar> -ca-hash <parmak-izi>
 ```
 
 ```bash
-go run ./agent/cmd/ber-agent run -data-dir ./agent-data
+go run ./agent/cmd/berops-agent run -data-dir ./agent-data
 ```
 
 ### Envanteri yerelde denemek
@@ -220,7 +220,7 @@ go run ./agent/cmd/ber-agent run -data-dir ./agent-data
 Sunucuya göndermeden bu makinenin envanterini görmek için (`-full` eksik güncelleme taramasını da yapar):
 
 ```bash
-go run ./agent/cmd/ber-agent inventory -full
+go run ./agent/cmd/berops-agent inventory -full
 ```
 
 ### CVE verisini eşitlemek
@@ -228,7 +228,7 @@ go run ./agent/cmd/ber-agent inventory -full
 Sunucu açıldıktan bir dakika sonra kaynakları kendisi eşitler. Hemen eşitlemek için:
 
 ```bash
-go run ./server/cmd/ber-server cve sync
+go run ./server/cmd/berops-server cve sync
 ```
 
 ### Sanal ajanlar
@@ -236,7 +236,7 @@ go run ./server/cmd/ber-server cve sync
 Gerçek ajanla aynı zamanlayıcıyı kullanan, gerçekçi sahte envanter (eksik KB'ler, CVE'ler, güncel olmayan uygulamalar, AD OU'ları) gönderen sanal ajanlar:
 
 ```bash
-go run ./agent/cmd/ber-agentsim -server https://localhost:52311 -key <anahtar> -ca-hash <parmak-izi> -n 100 -first-scan 30s
+go run ./agent/cmd/berops-agentsim -server https://localhost:52311 -key <anahtar> -ca-hash <parmak-izi> -n 100 -first-scan 30s
 ```
 
 ## Testler

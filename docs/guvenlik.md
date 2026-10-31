@@ -1,6 +1,6 @@
 # Güvenlik modeli
 
-Bu belge Automation BER'in güvenlik kararlarını ve sınırlarını özetler. Güvenlik açığı bildirimi için [SECURITY.md](../SECURITY.md) dosyasına bakın.
+Bu belge BerOps'in güvenlik kararlarını ve sınırlarını özetler. Güvenlik açığı bildirimi için [SECURITY.md](../SECURITY.md) dosyasına bakın.
 
 ## Güven zinciri
 

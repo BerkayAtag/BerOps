@@ -1,7 +1,7 @@
 #!/bin/sh
-# Automation BER Agent macOS paketini (.pkg) üretir.
+# BerOps Agent macOS paketini (.pkg) üretir.
 #
-# Kullanım: installers/macos/build-pkg.sh <sürüm> <universal ber-agent> <çıktı.pkg>
+# Kullanım: installers/macos/build-pkg.sh <sürüm> <universal berops-agent> <çıktı.pkg>
 #
 # İsteğe bağlı ortam değişkenleri (CI'da GitHub Secrets'tan gelir):
 #   MACOS_INSTALLER_IDENTITY  "Developer ID Installer: ..." — verilirse paket imzalanır
@@ -17,21 +17,21 @@ trap 'rm -rf "$WORK"' EXIT
 
 ROOT="$WORK/root"
 mkdir -p "$ROOT/usr/local/bin" "$ROOT/Library/LaunchDaemons"
-cp "$BINARY" "$ROOT/usr/local/bin/ber-agent"
-cp "$HERE/uninstall.sh" "$ROOT/usr/local/bin/ber-agent-uninstall"
-cp "$HERE/io.github.berkayatag.ber.agent.plist" "$ROOT/Library/LaunchDaemons/"
-chmod 755 "$ROOT/usr/local/bin/ber-agent" "$ROOT/usr/local/bin/ber-agent-uninstall"
-chmod 644 "$ROOT/Library/LaunchDaemons/io.github.berkayatag.ber.agent.plist"
+cp "$BINARY" "$ROOT/usr/local/bin/berops-agent"
+cp "$HERE/uninstall.sh" "$ROOT/usr/local/bin/berops-agent-uninstall"
+cp "$HERE/io.github.berkayatag.berops.agent.plist" "$ROOT/Library/LaunchDaemons/"
+chmod 755 "$ROOT/usr/local/bin/berops-agent" "$ROOT/usr/local/bin/berops-agent-uninstall"
+chmod 644 "$ROOT/Library/LaunchDaemons/io.github.berkayatag.berops.agent.plist"
 
 if [ -n "${MACOS_APP_IDENTITY:-}" ]; then
-	codesign --force --options runtime --timestamp --identifier ber-agent \
-		--sign "$MACOS_APP_IDENTITY" "$ROOT/usr/local/bin/ber-agent"
+	codesign --force --options runtime --timestamp --identifier berops-agent \
+		--sign "$MACOS_APP_IDENTITY" "$ROOT/usr/local/bin/berops-agent"
 fi
 
 pkgbuild --root "$ROOT" --scripts "$HERE/scripts" \
-	--identifier io.github.berkayatag.ber.agent.pkg --version "$VERSION" \
+	--identifier io.github.berkayatag.berops.agent.pkg --version "$VERSION" \
 	--install-location / --ownership recommended \
-	"$WORK/ber-agent-component.pkg"
+	"$WORK/berops-agent-component.pkg"
 
 mkdir -p "$WORK/resources"
 cp "$HERE"/resources/*.html "$WORK/resources/"

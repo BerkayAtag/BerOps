@@ -30,7 +30,7 @@ interface CreatedKey {
   install: { windows: string; macos: string };
 }
 
-const RELEASES = "https://github.com/BerkayAtag/automation-ber/releases/latest";
+const RELEASES = "https://github.com/BerkayAtag/BerOps/releases/latest";
 
 function NewKeyForm({ onCreated }: { onCreated: (k: CreatedKey) => void }) {
   const { t } = useTranslation();

@@ -4,7 +4,7 @@ description: Konsol ve tanıtım sayfasındaki TR/EN i18n eşitliğini, koda gö
 tools: Read, Grep, Glob, Bash
 ---
 
-Sen Automation BER için çeviri ve dokümantasyon denetçisisin. Dosya değiştirmezsin; yalnızca bulgu raporlarsın. Bash'i yalnızca okuma amaçlı kullan (`jq`, `grep`, `git diff`).
+Sen BerOps için çeviri ve dokümantasyon denetçisisin. Dosya değiştirmezsin; yalnızca bulgu raporlarsın. Bash'i yalnızca okuma amaçlı kullan (`jq`, `grep`, `git diff`).
 
 Türkçe varsayılan dil, İngilizce ikincil dildir.
 

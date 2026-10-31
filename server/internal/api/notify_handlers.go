@@ -23,8 +23,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/report"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/report"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 const channelSecretLabel = "notification_channels.secret"
@@ -173,7 +173,7 @@ func sendWebhook(ctx context.Context, c webhookConfig, secret string, n Notifica
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "automation-ber-notify")
+	req.Header.Set("User-Agent", "berops-notify")
 	if secret != "" {
 		mac := hmac.New(sha256.New, []byte(secret))
 		mac.Write(b)
@@ -196,7 +196,7 @@ func buildEmail(from string, to []string, n Notification, now time.Time) []byte 
 	boundary := "ber-" + strconv.FormatInt(now.UnixNano(), 36)
 	fmt.Fprintf(&b, "From: %s\r\nTo: %s\r\nSubject: %s\r\nDate: %s\r\nMIME-Version: 1.0\r\n",
 		from, strings.Join(to, ", "), mime.QEncoding.Encode("utf-8", n.Title), now.Format(time.RFC1123Z))
-	text := base64.StdEncoding.EncodeToString([]byte(n.Text + "\n\n— Automation BER\n"))
+	text := base64.StdEncoding.EncodeToString([]byte(n.Text + "\n\n— BerOps\n"))
 	if n.Attachment == nil {
 		fmt.Fprintf(&b, "Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: base64\r\n\r\n%s\r\n", wrap76(text))
 		return b.Bytes()
@@ -384,7 +384,7 @@ func (s *Server) runSchedules(ctx context.Context) {
 // buildScheduledReport, raporu kapsamsız (tüm filo) üretir.
 func (s *Server) buildScheduledReport(ctx context.Context, sc store.ReportSchedule, loc *time.Location) (*report.Table, error) {
 	r, _ := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
-	t := &report.Table{GeneratedAt: s.now(), GeneratedBy: "Automation BER", Lang: sc.Lang, Location: loc, Title: rt(sc.Lang, sc.Report+".title")}
+	t := &report.Table{GeneratedAt: s.now(), GeneratedBy: "BerOps", Lang: sc.Lang, Location: loc, Title: rt(sc.Lang, sc.Report+".title")}
 	var err error
 	switch sc.Report {
 	case reportCompliance:
@@ -505,8 +505,8 @@ func (s *Server) handleTestChannel(w http.ResponseWriter, r *http.Request, _ *st
 		writeError(w, http.StatusNotFound, codeNotFound, "Kanal bulunamadı")
 		return
 	}
-	err = s.send(r.Context(), ch, Notification{Event: "test", Title: "Automation BER deneme bildirimi",
-		Text: "Bu kanal Automation BER bildirimlerini alabiliyor.", Payload: map[string]string{"channel": ch.Name}})
+	err = s.send(r.Context(), ch, Notification{Event: "test", Title: "BerOps deneme bildirimi",
+		Text: "Bu kanal BerOps bildirimlerini alabiliyor.", Payload: map[string]string{"channel": ch.Name}})
 	_ = s.store.ChannelResult(r.Context(), ch.ID, s.now(), err)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})

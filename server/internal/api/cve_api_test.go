@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // offlineFeeds, cve paketinin gerçek kaynaklardan kesilmiş test dosyalarıyla çevrimdışı bir

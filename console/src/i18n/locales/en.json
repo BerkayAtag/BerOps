@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Automation BER",
+    "name": "BerOps",
     "tagline": "Patch and third-party application management"
   },
   "common": {
@@ -56,7 +56,7 @@
       "forbidden": "You are not allowed to perform this action.",
       "csrf": "Security check failed. Refresh the page and try again.",
       "directory_unavailable": "The directory service (Active Directory) is unreachable. You can sign in with the local recovery account.",
-      "no_role_mapping": "Your account is not in an AD group authorised to use Automation BER. Contact your administrator."
+      "no_role_mapping": "Your account is not in an AD group authorised to use BerOps. Contact your administrator."
     },
     "request": {
       "invalid": "The request is invalid."
@@ -877,7 +877,7 @@
     "title": "Relays",
     "subtitle": "Agents at branch offices connect to the server through a relay; packages are cached on the relay to reduce WAN traffic.",
     "howTitle": "New relay",
-    "how": "Relay certificates are issued from the server command line. Copy the generated folder to the relay host, start it with ber-relay -server https://server:52311 -dir <folder>, and point agents at the relay as their server address.",
+    "how": "Relay certificates are issued from the server command line. Copy the generated folder to the relay host, start it with berops-relay -server https://server:52311 -dir <folder>, and point agents at the relay as their server address.",
     "empty": "No relays yet.",
     "revoke": "Revoke certificate",
     "confirmRevoke": "Revoke the certificate of relay {{name}}? Agents connecting through it will no longer reach the server.",

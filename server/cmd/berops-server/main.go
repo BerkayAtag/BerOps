@@ -1,12 +1,12 @@
-// ber-server, Automation BER merkezi sunucusudur.
+// berops-server, BerOps merkezi sunucusudur.
 //
-//	ber-server serve        -config ber-server.yaml
-//	ber-server migrate      -config ber-server.yaml
-//	ber-server admin create -config ber-server.yaml -username admin [-role admin] [-recovery]
-//	ber-server regkey create -config ber-server.yaml -name "Pilot" [-approval] [-max-uses 10] [-expires-hours 72]
-//	ber-server cve sync     -config ber-server.yaml [-feeds kev,epss,msrc,nvd]
-//	ber-server relay create -config ber-server.yaml -name İzmir -hostnames relay-izmir.corp.example -out ./relay-izmir
-//	ber-server version
+//	berops-server serve        -config berops-server.yaml
+//	berops-server migrate      -config berops-server.yaml
+//	berops-server admin create -config berops-server.yaml -username admin [-role admin] [-recovery]
+//	berops-server regkey create -config berops-server.yaml -name "Pilot" [-approval] [-max-uses 10] [-expires-hours 72]
+//	berops-server cve sync     -config berops-server.yaml [-feeds kev,epss,msrc,nvd]
+//	berops-server relay create -config berops-server.yaml -name İzmir -hostnames relay-izmir.corp.example -out ./relay-izmir
+//	berops-server version
 package main
 
 import (
@@ -32,16 +32,16 @@ import (
 	"golang.org/x/term"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/api"
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/config"
-	"github.com/BerkayAtag/automation-ber/server/internal/cve"
-	"github.com/BerkayAtag/automation-ber/server/internal/pki"
-	"github.com/BerkayAtag/automation-ber/server/internal/secret"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
-	"github.com/BerkayAtag/automation-ber/shared/service"
-	"github.com/BerkayAtag/automation-ber/shared/version"
+	"github.com/BerkayAtag/BerOps/server/internal/api"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/config"
+	"github.com/BerkayAtag/BerOps/server/internal/cve"
+	"github.com/BerkayAtag/BerOps/server/internal/pki"
+	"github.com/BerkayAtag/BerOps/server/internal/secret"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/vuln"
+	"github.com/BerkayAtag/BerOps/shared/service"
+	"github.com/BerkayAtag/BerOps/shared/version"
 )
 
 func main() {
@@ -52,7 +52,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `Kullanım: ber-server <komut> [seçenekler]
+	fmt.Fprint(os.Stderr, `Kullanım: berops-server <komut> [seçenekler]
 
 Komutlar:
   serve          Sunucuyu başlatır (varsayılan)
@@ -64,7 +64,7 @@ Komutlar:
   cve sync       CVE kaynaklarını (KEV, EPSS, MSRC, NVD) hemen eşitler ve bulguları yeniden hesaplar
   version        Sürümü yazdırır
 
-Her komut için ayrıntı: ber-server <komut> -h
+Her komut için ayrıntı: berops-server <komut> -h
 `)
 }
 
@@ -82,26 +82,26 @@ func run(args []string) error {
 		return cmdMigrate(args)
 	case "admin":
 		if len(args) == 0 || args[0] != "create" {
-			return errors.New("kullanım: ber-server admin create -username <ad>")
+			return errors.New("kullanım: berops-server admin create -username <ad>")
 		}
 		return cmdAdminCreate(args[1:])
 	case "regkey":
 		if len(args) == 0 || args[0] != "create" {
-			return errors.New("kullanım: ber-server regkey create -name <ad>")
+			return errors.New("kullanım: berops-server regkey create -name <ad>")
 		}
 		return cmdRegKeyCreate(args[1:])
 	case "relay":
 		if len(args) == 0 || args[0] != "create" {
-			return errors.New("kullanım: ber-server relay create -name <ad> -hostnames <ad1,ad2> -out <klasör>")
+			return errors.New("kullanım: berops-server relay create -name <ad> -hostnames <ad1,ad2> -out <klasör>")
 		}
 		return cmdRelayCreate(args[1:])
 	case "cve":
 		if len(args) == 0 || args[0] != "sync" {
-			return errors.New("kullanım: ber-server cve sync [-feeds kev,epss,msrc,nvd]")
+			return errors.New("kullanım: berops-server cve sync [-feeds kev,epss,msrc,nvd]")
 		}
 		return cmdCVESync(args[1:])
 	case "version":
-		fmt.Printf("ber-server %s (%s)\n", version.Version, version.Commit)
+		fmt.Printf("berops-server %s (%s)\n", version.Version, version.Commit)
 		return nil
 	case "help", "-h", "--help":
 		usage()
@@ -123,7 +123,7 @@ func newLoggerTo(w io.Writer, level string) *slog.Logger {
 }
 
 func loadConfig(fs *flag.FlagSet, args []string) (config.Config, error) {
-	path := fs.String("config", "ber-server.yaml", "yapılandırma dosyası")
+	path := fs.String("config", "berops-server.yaml", "yapılandırma dosyası")
 	if err := fs.Parse(args); err != nil {
 		return config.Config{}, err
 	}
@@ -149,7 +149,7 @@ func cmdServe(args []string) error {
 	}
 	if service.IsService() {
 		// Windows servisi olarak standart çıktı kaybolur; günlük veri dizinine yazılır.
-		lj := &lumberjack.Logger{Filename: filepath.Join(cfg.DataDir, "logs", "ber-server.log"), MaxSize: 20, MaxBackups: 5}
+		lj := &lumberjack.Logger{Filename: filepath.Join(cfg.DataDir, "logs", "berops-server.log"), MaxSize: 20, MaxBackups: 5}
 		defer lj.Close()
 		log := newLoggerTo(lj, cfg.LogLevel)
 		return service.Run(service.ServerName, func(ctx context.Context) error {
@@ -183,7 +183,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		log.Info("migration uygulandı", "migration", m)
 	}
 
-	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "Automation BER Root CA")
+	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "BerOps Root CA")
 	if err != nil {
 		return err
 	}
@@ -332,7 +332,7 @@ func readPassword() (string, error) {
 
 // setupConfigTemplate, kurulumda yazılan yapılandırma dosyasıdır. Değerler YAML için
 // tırnaklanarak yerleştirilir.
-const setupConfigTemplate = `# Automation BER sunucu yapılandırması (ber-server setup tarafından oluşturuldu).
+const setupConfigTemplate = `# BerOps sunucu yapılandırması (berops-server setup tarafından oluşturuldu).
 # Tüm seçenekler: docs/kurulum-sunucu.md
 data_dir: %s
 database_url: %s
@@ -353,7 +353,7 @@ agent:
 // mevcut yapılandırma ve kullanıcılar korunur (yükseltme).
 func cmdSetup(args []string) error {
 	fs := flag.NewFlagSet("setup", flag.ExitOnError)
-	path := fs.String("config", "ber-server.yaml", "yazılacak yapılandırma dosyası")
+	path := fs.String("config", "berops-server.yaml", "yazılacak yapılandırma dosyası")
 	dataDir := fs.String("data-dir", "data", "veri dizini (CA, paketler, günlükler)")
 	dbURL := fs.String("database-url", "", "PostgreSQL bağlantı adresi (postgres://kullanıcı:parola@sunucu:5432/ber)")
 	consolePort := fs.Int("console-port", 8443, "konsol HTTPS portu")
@@ -415,7 +415,7 @@ func cmdSetup(args []string) error {
 		return fmt.Errorf("veritabanına bağlanılamadı: %w", err)
 	}
 	defer st.Close()
-	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "Automation BER Root CA")
+	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "BerOps Root CA")
 	if err != nil {
 		return err
 	}
@@ -448,7 +448,7 @@ func cmdSetup(args []string) error {
 		return err
 	}
 	_ = st.AppendAudit(ctx, store.AuditEntry{
-		ActorType: store.ActorSystem, ActorName: "ber-server setup", Action: "user.create",
+		ActorType: store.ActorSystem, ActorName: "berops-server setup", Action: "user.create",
 		TargetType: "user", TargetID: u.ID, Result: store.ResultSuccess,
 		Params: map[string]any{"username": u.Username, "role": u.Role, "recovery": true},
 	})
@@ -497,7 +497,7 @@ func cmdAdminCreate(args []string) error {
 		return err
 	}
 	_ = st.AppendAudit(ctx, store.AuditEntry{
-		ActorType: store.ActorSystem, ActorName: "ber-server cli", Action: "user.create",
+		ActorType: store.ActorSystem, ActorName: "berops-server cli", Action: "user.create",
 		TargetType: "user", TargetID: u.ID, Result: store.ResultSuccess,
 		Params: map[string]any{"username": u.Username, "role": u.Role, "recovery": u.IsRecovery},
 	})
@@ -538,7 +538,7 @@ func cmdRegKeyCreate(args []string) error {
 		return err
 	}
 	defer st.Close()
-	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "Automation BER Root CA")
+	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "BerOps Root CA")
 	if err != nil {
 		return err
 	}
@@ -547,7 +547,7 @@ func cmdRegKeyCreate(args []string) error {
 		return err
 	}
 	_ = st.AppendAudit(ctx, store.AuditEntry{
-		ActorType: store.ActorSystem, ActorName: "ber-server cli", Action: "regkey.create",
+		ActorType: store.ActorSystem, ActorName: "berops-server cli", Action: "regkey.create",
 		TargetType: "registration_key", TargetID: k.ID, Result: store.ResultSuccess,
 		Params: map[string]any{"name": k.Name, "require_approval": k.RequireApproval},
 	})
@@ -626,7 +626,7 @@ func cmdRelayCreate(args []string) error {
 		return err
 	}
 	defer st.Close()
-	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "Automation BER Root CA")
+	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "BerOps Root CA")
 	if err != nil {
 		return err
 	}
@@ -655,13 +655,13 @@ func cmdRelayCreate(args []string) error {
 		return err
 	}
 	_ = st.AppendAudit(ctx, store.AuditEntry{
-		ActorType: store.ActorSystem, ActorName: "ber-server cli", Action: "relay.create",
+		ActorType: store.ActorSystem, ActorName: "berops-server cli", Action: "relay.create",
 		TargetType: "relay", TargetID: r.ID, Result: store.ResultSuccess,
 		Params: map[string]any{"name": r.Name, "hostnames": hostList},
 	})
 	fmt.Printf("Relay oluşturuldu: %s (%s)\n", r.Name, r.ID)
 	fmt.Printf("Dosyalar: %s (relay.key gizlidir; yalnızca relay makinesine kopyalayın)\n", *out)
-	fmt.Println("Relay makinesinde: ber-relay -server <sunucu ajan adresi> -dir <klasör>")
+	fmt.Println("Relay makinesinde: berops-relay -server <sunucu ajan adresi> -dir <klasör>")
 	fmt.Println("Ajanlarda sunucu adresi olarak relay adresini verin; CA parmak izi aynı kalır.")
 	return nil
 }

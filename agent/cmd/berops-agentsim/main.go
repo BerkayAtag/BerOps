@@ -1,8 +1,8 @@
-// ber-agentsim, test ve demo için çok sayıda sanal ajanı aynı süreçte simüle eder.
+// berops-agentsim, test ve demo için çok sayıda sanal ajanı aynı süreçte simüle eder.
 // Her sanal ajan gerçek ajanla aynı istemci ve heartbeat kodunu kullanır; yalnızca
 // makine bilgisi sahte üretilir ve kimlik bellekte tutulur.
 //
-//	go run ./agent/cmd/ber-agentsim -server https://localhost:52311 -key berreg_... -ca-hash sha256:... -n 50
+//	go run ./agent/cmd/berops-agentsim -server https://localhost:52311 -key berreg_... -ca-hash sha256:... -n 50
 package main
 
 import (
@@ -26,14 +26,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/client"
-	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
-	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
-	"github.com/BerkayAtag/automation-ber/agent/internal/jobs"
-	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/simdata"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/client"
+	"github.com/BerkayAtag/BerOps/agent/internal/identity"
+	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
+	"github.com/BerkayAtag/BerOps/agent/internal/jobs"
+	"github.com/BerkayAtag/BerOps/agent/internal/runner"
+	"github.com/BerkayAtag/BerOps/agent/internal/scanner"
+	"github.com/BerkayAtag/BerOps/agent/internal/simdata"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 var profiles = []simdata.Profile{
@@ -64,7 +64,7 @@ func main() {
 	defer stop()
 
 	// Her sanal ajanın envanter durumu geçici bir dizinde tutulur ve çıkışta silinir.
-	root, err := os.MkdirTemp("", "ber-agentsim-*")
+	root, err := os.MkdirTemp("", "berops-agentsim-*")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "hata:", err)
 		os.Exit(1)

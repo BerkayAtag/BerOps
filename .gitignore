@@ -15,7 +15,7 @@ coverage.out
 !**/testdata/**/*.pem
 
 # Yerel yapılandırma
-ber-server.yaml
+berops-server.yaml
 agent.yaml
 .env
 .env.*

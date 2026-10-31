@@ -1,8 +1,8 @@
-# Automation BER — Linux için Docker Compose kurulumu (sunucu + PostgreSQL).
+# BerOps — Linux için Docker Compose kurulumu (sunucu + PostgreSQL).
 #
 #   cp deploy/.env.example deploy/.env   # parolaları ve sunucu adını düzenleyin
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
-#   docker compose -f deploy/docker-compose.yml exec server ber-server admin create -username admin
+#   docker compose -f deploy/docker-compose.yml exec server berops-server admin create -username admin
 #
 # Ayrıntılar: docs/kurulum-sunucu.md
 services:
@@ -22,7 +22,7 @@ services:
       retries: 20
 
   server:
-    image: ${BER_IMAGE:-ghcr.io/berkayatag/automation-ber-server:latest}
+    image: ${BER_IMAGE:-ghcr.io/berkayatag/berops-server:latest}
     restart: unless-stopped
     depends_on:
       postgres:

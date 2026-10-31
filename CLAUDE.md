@@ -1,4 +1,4 @@
-# Automation BER — Claude Code notları
+# BerOps — Claude Code notları
 
 Ajan tabanlı yama yönetim platformu. Spesifikasyonun aşamaları README'deki yol haritasındadır; mimari: `docs/mimari.md`, varsayımlar: `docs/varsayimlar.md`.
 

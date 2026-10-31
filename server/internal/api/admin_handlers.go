@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
-	"github.com/BerkayAtag/automation-ber/shared/version"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/version"
 )
 
 type serverInfoResponse struct {
@@ -119,8 +119,8 @@ func (s *Server) handleCreateRegKey(w http.ResponseWriter, r *http.Request, sess
 func (s *Server) installCommands(secret string) installCommands {
 	url, ca := s.agentURL(), s.ca.Fingerprint()
 	return installCommands{
-		Windows: fmt.Sprintf(`msiexec /i AutomationBER-Agent-x64.msi /qn SERVER="%s" REGKEY="%s" CAHASH="%s"`, url, secret, ca),
-		MacOS: fmt.Sprintf(`sudo installer -pkg AutomationBER-Agent.pkg -target / && sudo /usr/local/bin/ber-agent configure -server "%s" -key "%s" -ca-hash "%s"`,
+		Windows: fmt.Sprintf(`msiexec /i BerOps-Agent-x64.msi /qn SERVER="%s" REGKEY="%s" CAHASH="%s"`, url, secret, ca),
+		MacOS: fmt.Sprintf(`sudo installer -pkg BerOps-Agent.pkg -target / && sudo /usr/local/bin/berops-agent configure -server "%s" -key "%s" -ca-hash "%s"`,
 			url, secret, ca),
 	}
 }

@@ -1,6 +1,6 @@
 # Windows ajanı kurulumu
 
-Windows ajanı `BERAgent` adlı bir Windows servisi olarak `LocalSystem` hesabıyla çalışır. Kurulum paketi: `AutomationBER-Agent-<sürüm>-x64.msi` ([GitHub Releases](https://github.com/BerkayAtag/automation-ber/releases/latest)). Yayımcı alanı **Berkay Atağ**'dır.
+Windows ajanı `BerOpsAgent` adlı bir Windows servisi olarak `LocalSystem` hesabıyla çalışır. Kurulum paketi: `BerOps-Agent-<sürüm>-x64.msi` ([GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest)). Yayımcı alanı **Berkay Atağ**'dır.
 
 **Desteklenen sürümler:** Windows 10/11 ve Windows Server 2016 veya üstü (x64).
 
@@ -9,7 +9,7 @@ Windows ajanı `BERAgent` adlı bir Windows servisi olarak `LocalSystem` hesabı
 Konsoldaki **Ajan indir** sayfası komutu sunucu adresi, kayıt anahtarı ve CA parmak izi gömülü olarak üretir:
 
 ```bat
-msiexec /i AutomationBER-Agent-1.0.0-x64.msi /qn SERVER="https://ber.ornek.local:52311" REGKEY="berreg_..." CAHASH="sha256:..."
+msiexec /i BerOps-Agent-1.0.0-x64.msi /qn SERVER="https://ber.ornek.local:52311" REGKEY="berreg_..." CAHASH="sha256:..."
 ```
 
 | Özellik | Açıklama |
@@ -21,7 +21,7 @@ msiexec /i AutomationBER-Agent-1.0.0-x64.msi /qn SERVER="https://ber.ornek.local
 `REGKEY` verilmezse servis kurulur ve yapılandırma bekler. Yapılandırma sonradan şu komutla yazılabilir; servis 30 saniye içinde kaydı başlatır:
 
 ```bat
-"C:\Program Files\Automation BER\Agent\ber-agent.exe" configure -server https://ber.ornek.local:52311 -key berreg_... -ca-hash sha256:...
+"C:\Program Files\BerOps\Agent\berops-agent.exe" configure -server https://ber.ornek.local:52311 -key berreg_... -ca-hash sha256:...
 ```
 
 Kayıt anahtarı **onay gerektirecek** şekilde oluşturulduysa makine konsolda *Onay bekleyen* olarak görünür; yönetici onaylayınca çalışmaya başlar.
@@ -43,17 +43,17 @@ Aynı kayıt anahtarını birçok makinede kullanabilirsiniz. Kullanım sınır�
 
 | Yol | İçerik |
 |---|---|
-| `C:\Program Files\Automation BER\Agent\ber-agent.exe` | Ajan |
-| `C:\ProgramData\BER\Agent\` | Yapılandırma, ajan sertifikası ve anahtarı, iş günlüğü, `logs\` |
+| `C:\Program Files\BerOps\Agent\berops-agent.exe` | Ajan |
+| `C:\ProgramData\BerOps\Agent\` | Yapılandırma, ajan sertifikası ve anahtarı, iş günlüğü, `logs\` |
 
 - Servis hata verirse 60 saniye sonra kendiliğinden yeniden başlar.
-- Durum: `ber-agent.exe status`.
-- Tanılama envanteri: `ber-agent.exe inventory -full`.
+- Durum: `berops-agent.exe status`.
+- Tanılama envanteri: `berops-agent.exe inventory -full`.
 
 ## Güncelleme ve kaldırma
 
 - **Güncelleme:** Yeni MSI'ı aynı şekilde kurun. Kimlik ve yapılandırma korunur, ajan yeniden kayıt yapmaz.
-- **Kaldırma:** Programlar ve Özellikler'den ya da `msiexec /x AutomationBER-Agent-1.0.0-x64.msi /qn` ile. Servis, program dosyaları ve `C:\ProgramData\BER\Agent` (kimlik, günlükler) silinir; iz kalmaz. Makine konsolda çevrimdışı görünür ve oradan silinebilir.
+- **Kaldırma:** Programlar ve Özellikler'den ya da `msiexec /x BerOps-Agent-1.0.0-x64.msi /qn` ile. Servis, program dosyaları ve `C:\ProgramData\BerOps\Agent` (kimlik, günlükler) silinir; iz kalmaz. Makine konsolda çevrimdışı görünür ve oradan silinebilir.
 
 Kaldırma için yerel yönetici yetkisi gerekir. Sunucu tarafında ayrı bir kurcalama koruması yoktur; bkz. [varsayimlar.md](varsayimlar.md) 8.4.
 

@@ -1,6 +1,6 @@
 # Roller ve Yetkiler
 
-Automation BER'de her API uç noktası **sunucu tarafında** granüler bir izinle korunur. Konsol yalnızca kullanıcının izinlerine göre düğmeleri gizler ve devre dışı bırakır; asıl denetim sunucudadır. Reddedilen her istek denetim kaydına `authz.denied` olarak yazılır.
+BerOps'de her API uç noktası **sunucu tarafında** granüler bir izinle korunur. Konsol yalnızca kullanıcının izinlerine göre düğmeleri gizler ve devre dışı bırakır; asıl denetim sunucudadır. Reddedilen her istek denetim kaydına `authz.denied` olarak yazılır.
 
 ## Yerleşik roller
 

@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-  Automation BER Windows MSI paketlerini (ajan ve sunucu) WiX Toolset v5 ile üretir.
+  BerOps Windows MSI paketlerini (ajan ve sunucu) WiX Toolset v5 ile üretir.
 
 .EXAMPLE
-  ./installers/windows/build.ps1 -Version 1.0.0 -AgentExe dist/ber-agent.exe `
-      -ServerExe dist/ber-server.exe -ConsoleDir console/dist -OutDir dist
+  ./installers/windows/build.ps1 -Version 1.0.0 -AgentExe dist/berops-agent.exe `
+      -ServerExe dist/berops-server.exe -ConsoleDir console/dist -OutDir dist
 #>
 param(
   [Parameter(Mandatory)] [string] $Version,
@@ -39,7 +39,7 @@ Set-Content -Path $rtf -Encoding ascii -Value "{\rtf1\ansi\deff0{\fonttbl{\f0 Co
 wix build -arch x64 -culture tr-TR `
   -ext WixToolset.Util.wixext `
   -d Version=$msiVersion -d AgentExe=$((Resolve-Path $AgentExe).Path) `
-  -o (Join-Path $OutDir "AutomationBER-Agent-$Version-x64.msi") `
+  -o (Join-Path $OutDir "BerOps-Agent-$Version-x64.msi") `
   (Join-Path $here 'agent\BerAgent.wxs')
 if ($LASTEXITCODE -ne 0) { throw "ajan MSI derlenemedi" }
 
@@ -47,7 +47,7 @@ wix build -arch x64 -culture tr-TR `
   -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext -ext WixToolset.Firewall.wixext `
   -d Version=$msiVersion -d ServerExe=$((Resolve-Path $ServerExe).Path) `
   -d ConsoleDir=$((Resolve-Path $ConsoleDir).Path) -d LicenseRtf=$rtf `
-  -o (Join-Path $OutDir "AutomationBER-Server-$Version-x64.msi") `
+  -o (Join-Path $OutDir "BerOps-Server-$Version-x64.msi") `
   (Join-Path $here 'server\BerServer.wxs') (Join-Path $here 'server\Firewall.tr-TR.wxl')
 if ($LASTEXITCODE -ne 0) { throw "sunucu MSI derlenemedi" }
 

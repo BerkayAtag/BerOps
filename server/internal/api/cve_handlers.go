@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/cve"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/cve"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 // trendDays, gösterge panelindeki uyumluluk eğiliminin gün sayısıdır.

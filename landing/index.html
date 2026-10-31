@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>Automation BER — Ajan tabanlı yama ve uygulama yönetimi</title>
+    <title>BerOps — Ajan tabanlı yama ve uygulama yönetimi</title>
     <meta
       name="description"
       content="Windows ve macOS için açık kaynak, ajan tabanlı yama, üçüncü parti uygulama ve güvenlik açığı yönetimi platformu."
@@ -18,12 +18,12 @@
     <a class="skip" href="#icerik" data-i18n="skip">İçeriğe geç</a>
     <header class="topbar">
       <div class="wrap topbar-inner">
-        <a class="brand" href="#" aria-label="Automation BER">
+        <a class="brand" href="#" aria-label="BerOps">
           <svg viewBox="0 0 32 32" aria-hidden="true">
             <path class="shield" d="M16 2.5 4.5 6.8v8.4c0 7 4.9 12.6 11.5 14.3 6.6-1.7 11.5-7.3 11.5-14.3V6.8L16 2.5Z" />
             <path class="check" d="m10.5 16.2 3.8 3.8 7.4-8" />
           </svg>
-          <span><span class="light">Automation</span> <strong>BER</strong></span>
+          <span><span class="light">Ber</span><strong>Ops</strong></span>
         </a>
         <nav class="nav" aria-label="Sayfa">
           <a href="#ozellikler" data-i18n="nav.features">Özellikler</a>
@@ -55,12 +55,12 @@
             <p class="eyebrow" data-i18n="hero.eyebrow">Açık kaynak · Windows ve macOS</p>
             <h1 data-i18n="hero.title">Yamaları, uygulamaları ve açıkları tek konsoldan yönetin</h1>
             <p class="lead" data-i18n="hero.lead">
-              Automation BER; filonuzdaki eksik yamaları, üçüncü parti uygulamaları ve CVE'leri ajanlarla toplar, riske göre
+              BerOps; filonuzdaki eksik yamaları, üçüncü parti uygulamaları ve CVE'leri ajanlarla toplar, riske göre
               önceliklendirir ve imzalı, hız sınırlı, kademeli dağıtımlarla kapatır.
             </p>
             <div class="cta">
-              <a class="btn btn-primary" href="https://github.com/BerkayAtag/automation-ber/releases/latest" data-i18n="hero.download">İndir (GitHub Releases)</a>
-              <a class="btn btn-ghost" href="https://github.com/BerkayAtag/automation-ber" data-i18n="hero.source">Kaynak kodu</a>
+              <a class="btn btn-primary" href="https://github.com/BerkayAtag/BerOps/releases/latest" data-i18n="hero.download">İndir (GitHub Releases)</a>
+              <a class="btn btn-ghost" href="https://github.com/BerkayAtag/BerOps" data-i18n="hero.source">Kaynak kodu</a>
             </div>
             <ul class="badges">
               <li data-i18n="hero.b1">mTLS + imzalı işler</li>
@@ -121,14 +121,14 @@
           <p class="section-lead" data-i18n="arch.lead">Tek Go sunucusu konsolu ve ajan API'sini sunar. Ajanlar sunucuya (veya şubedeki relay'e) karşılıklı TLS ile bağlanır; sunucu veriyi PostgreSQL'de tutar.</p>
           <figure class="diagram">
             <svg viewBox="0 0 880 330" role="img" aria-labelledby="arch-title">
-              <title id="arch-title">Automation BER mimari şeması</title>
+              <title id="arch-title">BerOps mimari şeması</title>
               <defs>
                 <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                   <path d="M0 0 10 5 0 10z" class="d-arrow" />
                 </marker>
               </defs>
               <g class="d-box"><rect x="20" y="30" width="190" height="70" rx="12" /><text x="115" y="60" data-i18n="arch.console">Konsol</text><text x="115" y="82" class="d-sub" data-i18n="arch.browser">Tarayıcı · HTTPS</text></g>
-              <g class="d-box d-main"><rect x="330" y="110" width="220" height="110" rx="14" /><text x="440" y="150">BER Server</text><text x="440" y="174" class="d-sub" data-i18n="arch.ports">:8443 konsol · :52311 ajan</text><text x="440" y="196" class="d-sub" data-i18n="arch.engine">CVE motoru · imzalı işler</text></g>
+              <g class="d-box d-main"><rect x="330" y="110" width="220" height="110" rx="14" /><text x="440" y="150">BerOps Server</text><text x="440" y="174" class="d-sub" data-i18n="arch.ports">:8443 konsol · :52311 ajan</text><text x="440" y="196" class="d-sub" data-i18n="arch.engine">CVE motoru · imzalı işler</text></g>
               <g class="d-box"><rect x="330" y="255" width="220" height="56" rx="12" /><text x="440" y="289">PostgreSQL</text></g>
               <g class="d-box"><rect x="660" y="30" width="200" height="70" rx="12" /><text x="760" y="60">NVD · MSRC</text><text x="760" y="82" class="d-sub">KEV · EPSS</text></g>
               <g class="d-box"><rect x="20" y="230" width="190" height="70" rx="12" /><text x="115" y="260">Active Directory</text><text x="115" y="282" class="d-sub">LDAPS :636</text></g>
@@ -168,7 +168,7 @@
             <li>
               <h3 data-i18n="s1.t">Sunucuyu kurun</h3>
               <p data-i18n="s1.d">Windows Server'da sihirbazlı MSI ile ya da Linux'ta Docker Compose ile. PostgreSQL 15 veya üstü gerekir.</p>
-              <pre><code>msiexec /i AutomationBER-Server-x64.msi</code></pre>
+              <pre><code>msiexec /i BerOps-Server-x64.msi</code></pre>
               <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d</code></pre>
             </li>
             <li>
@@ -178,8 +178,8 @@
             <li>
               <h3 data-i18n="s3.t">Ajanları dağıtın</h3>
               <p data-i18n="s3.d">Windows için sessiz MSI (GPO, SCCM, Intune), macOS için .pkg (MDM).</p>
-              <pre><code>msiexec /i AutomationBER-Agent-x64.msi /qn SERVER=https://ber.ornek.local:52311 REGKEY=berreg_… CAHASH=sha256:…</code></pre>
-              <pre><code>sudo installer -pkg AutomationBER-Agent.pkg -target / &amp;&amp; sudo ber-agent configure -server … -key … -ca-hash …</code></pre>
+              <pre><code>msiexec /i BerOps-Agent-x64.msi /qn SERVER=https://ber.ornek.local:52311 REGKEY=berreg_… CAHASH=sha256:…</code></pre>
+              <pre><code>sudo installer -pkg BerOps-Agent.pkg -target / &amp;&amp; sudo berops-agent configure -server … -key … -ca-hash …</code></pre>
             </li>
             <li>
               <h3 data-i18n="s4.t">Riskleri kapatın</h3>
@@ -187,8 +187,8 @@
             </li>
           </ol>
           <p class="center">
-            <a class="btn btn-primary" href="https://github.com/BerkayAtag/automation-ber/releases/latest" data-i18n="install.cta">Son sürümü indir</a>
-            <a class="btn btn-ghost" href="https://github.com/BerkayAtag/automation-ber/blob/main/docs/kurulum-sunucu.md" data-i18n="install.docs">Kurulum belgesi</a>
+            <a class="btn btn-primary" href="https://github.com/BerkayAtag/BerOps/releases/latest" data-i18n="install.cta">Son sürümü indir</a>
+            <a class="btn btn-ghost" href="https://github.com/BerkayAtag/BerOps/blob/main/docs/kurulum-sunucu.md" data-i18n="install.docs">Kurulum belgesi</a>
           </p>
         </div>
       </section>
@@ -228,9 +228,9 @@
       <div class="wrap footer-inner">
         <p><span data-i18n="footer.by">Geliştiren:</span> <strong>Berkay Atağ</strong></p>
         <p>
-          <a href="https://github.com/BerkayAtag/automation-ber">GitHub</a> ·
-          <a href="https://github.com/BerkayAtag/automation-ber/blob/main/LICENSE">Apache-2.0</a> ·
-          <a href="https://github.com/BerkayAtag/automation-ber/blob/main/SECURITY.md" data-i18n="footer.security">Güvenlik</a>
+          <a href="https://github.com/BerkayAtag/BerOps">GitHub</a> ·
+          <a href="https://github.com/BerkayAtag/BerOps/blob/main/LICENSE">Apache-2.0</a> ·
+          <a href="https://github.com/BerkayAtag/BerOps/blob/main/SECURITY.md" data-i18n="footer.security">Güvenlik</a>
         </p>
       </div>
     </footer>

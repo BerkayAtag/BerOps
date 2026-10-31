@@ -1,6 +1,6 @@
 # Yama, Paket Dağıtımı ve Komut Çalıştırma
 
-Automation BER, eksik işletim sistemi yamalarını, kütüphanedeki paketleri ve serbest komutları seçilen makinelere **aksiyon** olarak gönderir. Her aksiyon imzalanır, istemci başına hız sınırıyla aktarılır ve sonuçları (çıkış kodu, standart çıktı, hata çıktısı) makine başına konsolda görünür.
+BerOps, eksik işletim sistemi yamalarını, kütüphanedeki paketleri ve serbest komutları seçilen makinelere **aksiyon** olarak gönderir. Her aksiyon imzalanır, istemci başına hız sınırıyla aktarılır ve sonuçları (çıkış kodu, standart çıktı, hata çıktısı) makine başına konsolda görünür.
 
 ## Yetkiler
 

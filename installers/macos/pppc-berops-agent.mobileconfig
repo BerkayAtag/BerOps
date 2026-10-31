@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Automation BER Agent için örnek PPPC (Gizlilik Tercihleri Politika Denetimi) profili.
+  BerOps Agent için örnek PPPC (Gizlilik Tercihleri Politika Denetimi) profili.
   Ajana Tam Disk Erişimi (SystemPolicyAllFiles) verir; MDM ile dağıtılmalıdır (kullanıcı onaylı
   kurulumda PPPC yükü yok sayılır).
   Dağıtmadan önce:
@@ -16,9 +16,9 @@
 	<array>
 		<dict>
 			<key>PayloadDisplayName</key>
-			<string>Automation BER Agent — Tam Disk Erişimi</string>
+			<string>BerOps Agent — Tam Disk Erişimi</string>
 			<key>PayloadIdentifier</key>
-			<string>io.github.berkayatag.ber.agent.pppc.payload</string>
+			<string>io.github.berkayatag.berops.agent.pppc.payload</string>
 			<key>PayloadType</key>
 			<string>com.apple.TCC.configuration-profile-policy</string>
 			<key>PayloadUUID</key>
@@ -33,11 +33,11 @@
 						<key>Allowed</key>
 						<true/>
 						<key>CodeRequirement</key>
-						<string>identifier "ber-agent" and anchor apple generic and certificate leaf[subject.OU] = "TEAMID_DEGISTIR"</string>
+						<string>identifier "berops-agent" and anchor apple generic and certificate leaf[subject.OU] = "TEAMID_DEGISTIR"</string>
 						<key>Comment</key>
 						<string>Envanter taraması için uygulama ve kullanıcı klasörlerini okuma</string>
 						<key>Identifier</key>
-						<string>/usr/local/bin/ber-agent</string>
+						<string>/usr/local/bin/berops-agent</string>
 						<key>IdentifierType</key>
 						<string>path</string>
 					</dict>
@@ -46,11 +46,11 @@
 		</dict>
 	</array>
 	<key>PayloadDescription</key>
-	<string>Automation BER Agent'a Tam Disk Erişimi verir. Yayımcı: Berkay Atağ</string>
+	<string>BerOps Agent'a Tam Disk Erişimi verir. Yayımcı: Berkay Atağ</string>
 	<key>PayloadDisplayName</key>
-	<string>Automation BER Agent PPPC</string>
+	<string>BerOps Agent PPPC</string>
 	<key>PayloadIdentifier</key>
-	<string>io.github.berkayatag.ber.agent.pppc</string>
+	<string>io.github.berkayatag.berops.agent.pppc</string>
 	<key>PayloadOrganization</key>
 	<string>Berkay Atağ</string>
 	<key>PayloadScope</key>

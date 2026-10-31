@@ -1,10 +1,10 @@
-// ber-agent, Automation BER istemci ajanıdır (Windows servisi / macOS launchd daemon'ı).
+// berops-agent, BerOps istemci ajanıdır (Windows servisi / macOS launchd daemon'ı).
 //
-//	ber-agent configure -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
-//	ber-agent enroll    -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
-//	ber-agent run
-//	ber-agent status
-//	ber-agent version
+//	berops-agent configure -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
+//	berops-agent enroll    -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
+//	berops-agent run
+//	berops-agent status
+//	berops-agent version
 package main
 
 import (
@@ -26,20 +26,20 @@ import (
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/client"
-	"github.com/BerkayAtag/automation-ber/agent/internal/config"
-	"github.com/BerkayAtag/automation-ber/agent/internal/hostinfo"
-	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
-	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
-	"github.com/BerkayAtag/automation-ber/agent/internal/jobs"
-	"github.com/BerkayAtag/automation-ber/agent/internal/paths"
-	"github.com/BerkayAtag/automation-ber/agent/internal/remote"
-	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
-	"github.com/BerkayAtag/automation-ber/shared/service"
-	"github.com/BerkayAtag/automation-ber/shared/version"
+	"github.com/BerkayAtag/BerOps/agent/internal/client"
+	"github.com/BerkayAtag/BerOps/agent/internal/config"
+	"github.com/BerkayAtag/BerOps/agent/internal/hostinfo"
+	"github.com/BerkayAtag/BerOps/agent/internal/identity"
+	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
+	"github.com/BerkayAtag/BerOps/agent/internal/jobs"
+	"github.com/BerkayAtag/BerOps/agent/internal/paths"
+	"github.com/BerkayAtag/BerOps/agent/internal/remote"
+	"github.com/BerkayAtag/BerOps/agent/internal/runner"
+	"github.com/BerkayAtag/BerOps/agent/internal/scanner"
+	"github.com/BerkayAtag/BerOps/agent/internal/sysres"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/service"
+	"github.com/BerkayAtag/BerOps/shared/version"
 )
 
 func main() {
@@ -50,7 +50,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `Kullanım: ber-agent <komut> [seçenekler]
+	fmt.Fprint(os.Stderr, `Kullanım: berops-agent <komut> [seçenekler]
 
 Komutlar:
   run        Ajanı çalıştırır (servis olarak ya da ön planda)
@@ -85,7 +85,7 @@ func run(args []string) error {
 	case "inventory":
 		return cmdInventory(args)
 	case "version":
-		fmt.Printf("ber-agent %s (%s)\n", version.Version, version.Commit)
+		fmt.Printf("berops-agent %s (%s)\n", version.Version, version.Commit)
 		return nil
 	case "help", "-h", "--help":
 		usage()
@@ -239,7 +239,7 @@ var configPollInterval = 30 * time.Second
 // Bağlam iptal edilirse boş yapılandırmayla döner.
 func waitForRegistrationKey(ctx context.Context, dataDir string, log *slog.Logger) (config.Config, error) {
 	log.Warn("ajan kayıtlı değil ve kayıt anahtarı yok; yapılandırma bekleniyor",
-		"komut", "ber-agent configure -server <adres> -key <anahtar> -ca-hash <parmak izi>")
+		"komut", "berops-agent configure -server <adres> -key <anahtar> -ca-hash <parmak izi>")
 	for {
 		select {
 		case <-ctx.Done():

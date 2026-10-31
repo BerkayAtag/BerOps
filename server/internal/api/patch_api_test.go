@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 func TestPatchJobValidation(t *testing.T) {

@@ -1,8 +1,8 @@
-// ber-relay, şubeler için önbellekleyen dağıtım noktasıdır.
+// berops-relay, şubeler için önbellekleyen dağıtım noktasıdır.
 //
-//	ber-relay -server https://ber.corp.example:52311 -dir /etc/ber-relay [-listen :52311] [-cache /var/cache/ber-relay] [-cache-gb 50]
+//	berops-relay -server https://ber.corp.example:52311 -dir /etc/berops-relay [-listen :52311] [-cache /var/cache/berops-relay] [-cache-gb 50]
 //
-// -dir klasöründe sunucuda "ber-server relay create" ile üretilen relay.crt, relay.key ve ca.crt bulunur.
+// -dir klasöründe sunucuda "berops-server relay create" ile üretilen relay.crt, relay.key ve ca.crt bulunur.
 package main
 
 import (
@@ -19,8 +19,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/relay/relay"
-	"github.com/BerkayAtag/automation-ber/shared/version"
+	"github.com/BerkayAtag/BerOps/relay/relay"
+	"github.com/BerkayAtag/BerOps/shared/version"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 }
 
 func run() error {
-	server := flag.String("server", "", "BER sunucusunun ajan adresi (https://sunucu:52311)")
+	server := flag.String("server", "", "BerOps sunucusunun ajan adresi (https://sunucu:52311)")
 	dir := flag.String("dir", ".", "relay.crt, relay.key ve ca.crt dosyalarının klasörü")
 	listen := flag.String("listen", ":52311", "ajanların bağlanacağı adres")
 	cacheDir := flag.String("cache", "cache", "paket önbelleği klasörü")
@@ -39,7 +39,7 @@ func run() error {
 	showVersion := flag.Bool("version", false, "sürümü yazdır")
 	flag.Parse()
 	if *showVersion {
-		fmt.Printf("ber-relay %s (%s)\n", version.Version, version.Commit)
+		fmt.Printf("berops-relay %s (%s)\n", version.Version, version.Commit)
 		return nil
 	}
 	if *server == "" {

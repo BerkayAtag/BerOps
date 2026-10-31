@@ -1,12 +1,12 @@
-# Automation BER — Mimari
+# BerOps — Mimari
 
-Bu belge Automation BER'in bileşenlerini, aralarındaki iletişimi, güvenlik modelini ve veritabanı şemasını özetler. Ayrıntılı kararlar ve varsayımlar için [varsayimlar.md](varsayimlar.md) dosyasına bakın.
+Bu belge BerOps'in bileşenlerini, aralarındaki iletişimi, güvenlik modelini ve veritabanı şemasını özetler. Ayrıntılı kararlar ve varsayımlar için [varsayimlar.md](varsayimlar.md) dosyasına bakın.
 
 ## 1. Bileşenler
 
 ```
                         ┌──────────────────────────────┐
-   Tarayıcı (Konsol) ──▶│  BER Server                  │
+   Tarayıcı (Konsol) ──▶│  BerOps Server               │
    HTTPS :8443          │  ├─ Konsol API + statik UI   │
                         │  ├─ Ajan API (mTLS) :52311   │
                         │  ├─ İç CA (PKI)              │
@@ -17,23 +17,23 @@ Bu belge Automation BER'in bileşenlerini, aralarındaki iletişimi, güvenlik m
                                │ PostgreSQL    │ mTLS
                                ▼               ▼
                         ┌────────────┐   ┌───────────────┐
-                        │ PostgreSQL │   │ BER Relay     │ (opsiyonel, şube)
+                        │ PostgreSQL │   │ BerOps Relay  │ (opsiyonel, şube)
                         └────────────┘   │ önbellekli    │
                                          │ dağıtım       │
                                          └──────┬────────┘
                                                 │ mTLS
                                ┌────────────────┼────────────────┐
                                ▼                ▼                ▼
-                         BER Agent         BER Agent        BER Agent
-                         (Windows)         (macOS)          (Windows)
+                         BerOps Agent    BerOps Agent     BerOps Agent
+                          (Windows)        (macOS)         (Windows)
 ```
 
 | Bileşen | Dil / Teknoloji | Görev |
 |---|---|---|
-| **BER Server** (`server/`) | Go, `net/http`, PostgreSQL (pgx) | Merkezi API, kimlik doğrulama, RBAC, iç CA, ajan kaydı, iş kuyruğu, CVE motoru, paket deposu, raporlama |
-| **BER Relay** (`relay/`) | Go | Şube/segment için önbellekleyen dağıtım noktası; ajan TLS'ini sonlandırır, ajan kimliğini sunucuya iletir, paketleri SHA-256 ile doğrulayıp önbelleğe alır |
-| **BER Agent** (`agent/`) | Go, tek binary | Envanter, yama tespiti, iş yürütme, heartbeat. Windows servisi / macOS `launchd` daemon'ı |
-| **BER Console** (`console/`) | React + TypeScript + Vite | Tarayıcı tabanlı yönetim arayüzü |
+| **BerOps Server** (`server/`) | Go, `net/http`, PostgreSQL (pgx) | Merkezi API, kimlik doğrulama, RBAC, iç CA, ajan kaydı, iş kuyruğu, CVE motoru, paket deposu, raporlama |
+| **BerOps Relay** (`relay/`) | Go | Şube/segment için önbellekleyen dağıtım noktası; ajan TLS'ini sonlandırır, ajan kimliğini sunucuya iletir, paketleri SHA-256 ile doğrulayıp önbelleğe alır |
+| **BerOps Agent** (`agent/`) | Go, tek binary | Envanter, yama tespiti, iş yürütme, heartbeat. Windows servisi / macOS `launchd` daemon'ı |
+| **BerOps Console** (`console/`) | React + TypeScript + Vite | Tarayıcı tabanlı yönetim arayüzü |
 | **Tanıtım sayfası** (`landing/`) | Statik HTML/CSS | GitHub Pages (Aşama 8) |
 | **Ortak kod** (`shared/`) | Go | Ajan ↔ sunucu protokol tipleri, sürüm bilgisi |
 | **Tasarım token'ları** (`design/`) | CSS | Konsol ve tanıtım sayfasının ortak renk/ölçü değişkenleri |
@@ -132,7 +132,7 @@ Ajan, imza anahtarının açık kısmını kayıtta (veya Aşama 4'ten önce kay
 
 Ayrıntılar: [dagitim.md](dagitim.md).
 
-## 4. İçerik modeli: BER Fix
+## 4. İçerik modeli: BerOps Fix
 
 BigFix Fixlet kavramının karşılığıdır.
 
@@ -168,8 +168,8 @@ Uygunluk kuralları sunucuda envantere karşı değerlendirilir (merkezi değerl
 - **Tam envanter:** Varsayılan 24 saatte bir, jitter ile. Arada yalnızca değişiklik (delta) gönderilir (Aşama 2).
 - **Kaynak kısıtlama:** Taramalar düşük öncelikte. Windows'ta `BELOW_NORMAL`/`IDLE` öncelik ve Job Object CPU sınırı, macOS'ta `nice` + `taskpolicy -b` (Aşama 2).
 - **Veri dizini:**
-  - Windows: `%ProgramData%\BER\Agent`
-  - macOS: `/Library/Application Support/BER/Agent`
+  - Windows: `%ProgramData%\BerOps\Agent`
+  - macOS: `/Library/Application Support/BerOps/Agent`
 - **Loglar:** `<veri dizini>/logs/agent.log`, 10 MB × 5 dosya döngüsel.
 
 ### 5.1 Envanter akışı (Aşama 2)
@@ -305,7 +305,7 @@ Ayrıntılar: [gelismis-dagitim.md](gelismis-dagitim.md).
 
 `actions.kind` değerine `deploy_patch` eklendi; `actions.patches` (text[]) kurulan güncelleme kimliklerini tutar. Filo geneli yama listesi `missing_patches` tablosundan güncelleme başına gruplanarak üretilir; ek tablo yoktur.
 
-Kurulum paketleri: Windows için WiX v5 MSI'lar (`installers/windows/`, `ber-server setup` ile ilk kurulum), macOS için `pkgbuild`/`productbuild` paketi (`installers/macos/`), Linux için Docker imajı (`deploy/Dockerfile`, `deploy/docker-compose.yml`). Sunucu ve ajan Windows'ta SCM servisi olarak çalışır (`shared/service`).
+Kurulum paketleri: Windows için WiX v5 MSI'lar (`installers/windows/`, `berops-server setup` ile ilk kurulum), macOS için `pkgbuild`/`productbuild` paketi (`installers/macos/`), Linux için Docker imajı (`deploy/Dockerfile`, `deploy/docker-compose.yml`). Sunucu ve ajan Windows'ta SCM servisi olarak çalışır (`shared/service`).
 
 ### Sonraki aşamalar (plan)
 
@@ -317,9 +317,9 @@ Kurulum paketleri: Windows için WiX v5 MSI'lar (`installers/windows/`, `ber-ser
 ## 7. Klasör yapısı
 
 ```
-agent/                 Ajan (cmd/ber-agent, cmd/ber-agentsim, internal/…)
-server/                Sunucu (cmd/ber-server, internal/…, api/openapi.yaml)
-relay/                 Relay (cmd/ber-relay, relay/)
+agent/                 Ajan (cmd/berops-agent, cmd/berops-agentsim, internal/…)
+server/                Sunucu (cmd/berops-server, internal/…, api/openapi.yaml)
+relay/                 Relay (cmd/berops-relay, relay/)
 shared/                Ortak Go paketleri (protocol, service, tlspin, version)
 console/               React + TS + Vite konsol
 design/                Ortak tasarım token'ları (tokens.css)

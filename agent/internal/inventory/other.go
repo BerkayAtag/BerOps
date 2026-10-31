@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
+	"github.com/BerkayAtag/BerOps/agent/internal/sysres"
 )
 
 // collectPlatform, desteklenmeyen platformlarda (geliştirme amaçlı Linux) envanter toplamaz.

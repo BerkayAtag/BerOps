@@ -5,14 +5,14 @@ Kullanıcılar AD hesaplarıyla **LDAPS** üzerinden giriş yapar. Rol ve OU kap
 ## Kurulum
 
 1. AD'de salt okuma yetkili bir **hizmet hesabı** oluşturun (ör. `CN=svc-ber,OU=Hizmet Hesapları,DC=corp,DC=example`). Kullanıcı ve grup nesnelerini okuyabilmesi yeterlidir.
-2. Automation BER için gruplar oluşturun:
+2. BerOps için gruplar oluşturun:
 
    | Grup | Rol | Kapsam |
    |---|---|---|
-   | `BER-Admins` | Admin | — |
-   | `BER-Teknisyen` | Teknisyen | — |
-   | `BER-Izmir-Teknik` | Teknisyen | `OU=İzmir,OU=Şubeler,…` |
-   | `BER-Izleyici` | Salt Okunur | — |
+   | `BerOps-Admins` | Admin | — |
+   | `BerOps-Teknisyen` | Teknisyen | — |
+   | `BerOps-Izmir-Teknik` | Teknisyen | `OU=İzmir,OU=Şubeler,…` |
+   | `BerOps-Izleyici` | Salt Okunur | — |
 
 3. Konsolda **Ayarlar → Active Directory**:
    - **Sunucu adresi:** `ldaps://dc01.corp.example` (port varsayılan 636).
@@ -39,7 +39,7 @@ Rol ve kapsam **her girişte** yeniden hesaplanır; gruptan çıkarılan kullan�
 AD'ye ulaşılamıyorsa AD kullanıcıları giriş yapamaz ve konsol **kurtarma hesabı** kullanılmasını önerir. Kurulumda en az bir yerel admin hesabı oluşturun ve güvenli saklayın:
 
 ```bash
-ber-server admin create -username kurtarma -recovery
+berops-server admin create -username kurtarma -recovery
 ```
 
 ## AD bilgisayarları

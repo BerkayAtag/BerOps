@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/tlspin"
+	"github.com/BerkayAtag/BerOps/shared/tlspin"
 )
 
 const (
@@ -90,7 +90,7 @@ func newCA(commonName string, now func() time.Time) (*CA, []byte, error) {
 	start := now().Add(-backdate)
 	tmpl := &x509.Certificate{
 		SerialNumber:          serial,
-		Subject:               pkix.Name{CommonName: commonName, Organization: []string{"Automation BER"}},
+		Subject:               pkix.Name{CommonName: commonName, Organization: []string{"BerOps"}},
 		NotBefore:             start,
 		NotAfter:              start.Add(caValidity),
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
@@ -177,7 +177,7 @@ func (ca *CA) IssueServerCert(hosts []string, validity time.Duration) (tls.Certi
 	start := ca.now().Add(-backdate)
 	tmpl := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: hosts[0], Organization: []string{"Automation BER"}},
+		Subject:      pkix.Name{CommonName: hosts[0], Organization: []string{"BerOps"}},
 		NotBefore:    start,
 		NotAfter:     start.Add(validity),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -237,7 +237,7 @@ func (ca *CA) SignAgentCSR(csrPEM []byte, agentID string, validity time.Duration
 	start := ca.now().Add(-backdate)
 	tmpl := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: agentID, OrganizationalUnit: []string{"BER Agent"}},
+		Subject:      pkix.Name{CommonName: agentID, OrganizationalUnit: []string{"BerOps Agent"}},
 		NotBefore:    start,
 		NotAfter:     start.Add(validity),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -315,7 +315,7 @@ func (ca *CA) IssueRelayCert(relayID string, hosts []string, validity time.Durat
 	start := ca.now().Add(-backdate)
 	tmpl := &x509.Certificate{
 		SerialNumber: serial,
-		Subject:      pkix.Name{CommonName: RelayPrefix + relayID, OrganizationalUnit: []string{"BER Relay"}},
+		Subject:      pkix.Name{CommonName: RelayPrefix + relayID, OrganizationalUnit: []string{"BerOps Relay"}},
 		NotBefore:    start,
 		NotAfter:     start.Add(validity),
 		KeyUsage:     x509.KeyUsageDigitalSignature,

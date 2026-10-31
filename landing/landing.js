@@ -15,7 +15,7 @@
     "hero.eyebrow": "Open source · Windows and macOS",
     "hero.title": "Manage patches, applications and vulnerabilities from one console",
     "hero.lead":
-      "Automation BER collects missing patches, third-party applications and CVEs across your fleet with agents, prioritises them by risk and closes them with signed, bandwidth-limited, staged deployments.",
+      "BerOps collects missing patches, third-party applications and CVEs across your fleet with agents, prioritises them by risk and closes them with signed, bandwidth-limited, staged deployments.",
     "hero.download": "Download (GitHub Releases)",
     "hero.source": "Source code",
     "hero.b1": "mTLS + signed jobs",
@@ -102,7 +102,7 @@
   var tr = {};
   var trAlt = {};
   var trAria = {};
-  var title = { tr: document.title, en: "Automation BER — Agent-based patch and application management" };
+  var title = { tr: document.title, en: "BerOps — Agent-based patch and application management" };
 
   function each(attr, fn) {
     var nodes = document.querySelectorAll("[" + attr + "]");
