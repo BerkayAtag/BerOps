@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Automation BER API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     Automation BER konsol ve ajan API'si.
 
@@ -708,6 +708,76 @@ paths:
       responses:
         "200": { description: Kaydedildi }
         "400": { description: Geçersiz değer }
+  /api/v1/settings/remote:
+    get:
+      tags: [Ayarlar]
+      summary: Uzaktan yönetim genel ayarı
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "enabled, session_minutes" }
+    put:
+      tags: [Ayarlar]
+      summary: Uzaktan yönetimi aç/kapat, oturum süresi
+      security: [{ session: [] }]
+      x-ber-permission: remote.settings
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+  /api/v1/machines/{id}/remote:
+    get:
+      tags: [Makineler]
+      summary: Makinenin uzaktan yönetim durumu (bayraklar, oturum, bağlantı)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: "enabled, flags, active, connected, until, platform" }
+  /api/v1/machines/{id}/remote/settings:
+    put:
+      tags: [Makineler]
+      summary: Makinede açık özellikler (performance, services, registry_read, registry_write)
+      security: [{ session: [] }]
+      x-ber-permission: remote.settings
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Kayıt defteri yalnızca Windows'ta }
+  /api/v1/machines/{id}/remote/session:
+    post:
+      tags: [Makineler]
+      summary: Uzaktan oturum aç (ajan bir sonraki heartbeat'te bağlanır)
+      security: [{ session: [] }]
+      x-ber-permission: "remote.* izinlerinden biri"
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Oturum durumu }
+        "409": { description: Uzaktan yönetim kapalı (remote.disabled) }
+  /api/v1/machines/{id}/remote/call:
+    post:
+      tags: [Makineler]
+      summary: Uzaktan işlem çalıştır ve sonucu bekle (en fazla 40 sn)
+      description: |
+        op: performance (remote.performance), services.list / services.control (remote.services),
+        registry.list (remote.registry.read), registry.set / registry.delete (remote.registry.write).
+        Durum değiştiren işlemler gönderilmeden önce denetim kaydına yazılır.
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [op]
+              properties:
+                op: { type: string, enum: [performance, services.list, services.control, registry.list, registry.set, registry.delete] }
+                params: { type: object }
+      responses:
+        "200": { description: "İşlem sonucu (işleme göre PerfSnapshot, ServiceInfo listesi, RegistryKey veya RegistryChange)" }
+        "409": { description: "Özellik kapalı (remote.disabled) veya oturum yok (remote.no_session)" }
+        "422": { description: İşlem ajanda başarısız oldu (remote.failed) }
+        "504": { description: Ajan yanıt vermedi (remote.timeout) }
   /api/v1/settings/agent:
     get:
       tags: [Ayarlar]
@@ -1024,3 +1094,20 @@ paths:
         "200": { description: Dosya }
         "206": { description: Kısmi içerik }
         "404": { description: Bu makine için açık dağıtım yok }
+  /agent/v1/remote/poll:
+    get:
+      tags: [Ajan]
+      summary: Uzaktan oturumdaki sıradaki imzalı isteği uzun yoklamayla bekle (≤25 sn)
+      security: [{ agentCert: [] }]
+      responses:
+        "200": { description: İmzalı istek (payload, signature) }
+        "204": { description: İstek yok veya oturum bitti }
+  /agent/v1/remote/{id}/result:
+    post:
+      tags: [Ajan]
+      summary: Uzaktan isteğin sonucu
+      security: [{ agentCert: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: Teslim edildi }
+        "404": { description: İstek bulunamadı veya zaman aşımına uğradı }

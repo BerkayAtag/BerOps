@@ -548,3 +548,55 @@ export interface AuditEntry {
   detail: string;
   source_ip: string;
 }
+
+// --- Aşama 6: uzaktan yönetim ---
+
+export interface RemoteFlags {
+  performance: boolean;
+  services: boolean;
+  registry_read: boolean;
+  registry_write: boolean;
+}
+
+export interface RemoteStatus {
+  enabled: boolean;
+  flags: RemoteFlags;
+  active: boolean;
+  connected: boolean;
+  until: string | null;
+  platform: "windows" | "darwin";
+}
+
+export interface PerfSnapshot {
+  collected_at: string;
+  cpu_percent: number;
+  cpu_cores: number;
+  mem_total: number;
+  mem_used: number;
+  swap_total: number;
+  swap_used: number;
+  uptime_seconds: number;
+  disks: { mount: string; fs_type: string; total: number; used: number }[];
+  processes: { pid: number; name: string; user?: string; cpu_percent: number; rss: number }[];
+}
+
+export interface ServiceInfo {
+  name: string;
+  display_name?: string;
+  state: "running" | "stopped" | "starting" | "stopping" | "paused" | "unknown";
+  start_type?: string;
+  pid?: number;
+}
+
+export interface RegistryValue {
+  name: string;
+  type: string;
+  data: string;
+}
+
+export interface RegistryKey {
+  path: string;
+  subkeys: string[];
+  values: RegistryValue[];
+  truncated?: boolean;
+}

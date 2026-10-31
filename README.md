@@ -4,7 +4,7 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)**, **Aşama 4 (Paket kütüphanesi ve dağıtım)** ve **Aşama 5 (Active Directory ve yetki kapsamları)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)**, **Aşama 4 (Paket kütüphanesi ve dağıtım)**, **Aşama 5 (Active Directory ve yetki kapsamları)** ve **Aşama 6 (Uzaktan yönetim)** tamamlandı. Yol haritası aşağıda.
 
 ## Bileşenler
 
@@ -84,6 +84,16 @@ Ayrıntılar: [docs/dagitim.md](docs/dagitim.md). Ölçüm: 1 MB'lık paket, 10 
 - **Denetim kaydı ekranı:** Arama, eylem/sonuç/tarih filtreleri, parametre ayrıntısı ve CSV/Excel dışa aktarma.
 
 Ayrıntılar: [docs/ad.md](docs/ad.md), [docs/roller-ve-yetkiler.md](docs/roller-ve-yetkiler.md).
+
+## Aşama 6'da neler var?
+
+- **İsteğe bağlı uzaktan yönetim:** Genel ana anahtar ve makine başına özellikler vardır; hepsi varsayılan kapalıdır.
+- **Performans:** CPU (eğilim çizgisiyle), bellek, takas, diskler ve en çok kaynak kullanan süreçler 5 saniyede bir yenilenir.
+- **Servisler:** Windows servisleri ve macOS launchd işleri listelenir, başlatılır, durdurulur, yeniden başlatılır.
+- **Kayıt defteri (Windows):** Gezinme, değer ekleme/değiştirme/silme. Önceki değer denetim kaydına yazılır.
+- **Oturum modeli:** Ajan yalnızca konsolda oturum açıkken uzun yoklama yapar. İstekler Ed25519 ile imzalıdır; kapalı özellik ajan tarafında da reddedilir.
+
+Ayrıntılar: [docs/uzaktan-yonetim.md](docs/uzaktan-yonetim.md). Ölçüm (gerçek macOS ajanı): oturuma 5 sn'de bağlandı, performans isteği 1,25 sn'de (1 sn CPU örneklemesi dahil) döndü.
 
 ## Ajan kaynak kullanımı
 
@@ -207,7 +217,7 @@ npm --prefix console test -- --run
 | 3 | CVE motoru: NVD, MSRC, KEV, EPSS; risk skoru; dashboard ve raporlar | ✅ |
 | 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ✅ |
 | 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ✅ |
-| 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ⏳ |
+| 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ✅ |
 | 7 | Relay, bakım pencereleri, kademeli dağıtım, bildirimler | ⏳ |
 | 8 | MSI ve pkg kurulum paketleri, release iş akışı, tanıtım sayfası | ⏳ |
 
@@ -218,6 +228,7 @@ npm --prefix console test -- --run
 - [Paket dağıtımı ve komut çalıştırma](docs/dagitim.md)
 - [Roller ve yetkiler](docs/roller-ve-yetkiler.md)
 - [Active Directory entegrasyonu](docs/ad.md)
+- [Uzaktan yönetim](docs/uzaktan-yonetim.md)
 - [Varsayımlar ve kararlar](docs/varsayimlar.md)
 - [API](docs/api.md)
 - [Katkıda bulunma](CONTRIBUTING.md)

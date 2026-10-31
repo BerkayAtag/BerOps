@@ -24,9 +24,10 @@ import {
 } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
 import { formatBytes, formatDate, formatDateTime, formatNumber, formatRelative } from "../format";
+import { RemotePanel } from "../components/RemotePanel";
 import { EpssValue } from "./VulnerabilitiesPage";
 
-type Tab = "vulns" | "missing" | "installed" | "apps";
+type Tab = "vulns" | "missing" | "installed" | "apps" | "remote";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -85,6 +86,9 @@ export function MachineDetailPage() {
   const { machine: m, inventory: inv, online, scan_requested_at, risk } = detail.data;
   const os = inv?.os;
   const canScan = can("machines.manage");
+  const canRemote =
+    m.status === "active" &&
+    ["remote.settings", "remote.performance", "remote.services", "remote.registry.read"].some((p) => can(p));
 
   return (
     <div className="page">
@@ -271,6 +275,17 @@ export function MachineDetailPage() {
                 {t(`machine.tabs.${k}`, { count: n })}
               </button>
             ))}
+            {canRemote && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "remote"}
+                className={`tab${tab === "remote" ? " active" : ""}`}
+                onClick={() => setTab("remote")}
+              >
+                {t("remote.tab")}
+              </button>
+            )}
           </div>
           <div role="tabpanel">
             {tab === "vulns" && <VulnTable rows={vulns.status === "ok" ? vulns.data.items : []} />}
@@ -279,6 +294,11 @@ export function MachineDetailPage() {
               <InstalledTable rows={installed.status === "ok" ? installed.data.items : []} />
             )}
             {tab === "apps" && <AppsTable rows={apps.status === "ok" ? apps.data.items : []} />}
+            {tab === "remote" && (
+              <div className="card-body">
+                <RemotePanel machineId={m.id} />
+              </div>
+            )}
           </div>
         </section>
       )}

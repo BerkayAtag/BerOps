@@ -65,7 +65,13 @@
     "unknown": "Beklenmeyen bir hata oluştu.",
     "not_found": "Kayıt bulunamadı.",
     "conflict": "Kayıt bu işleme uygun durumda değil.",
-    "internal": "Sunucu hatası."
+    "internal": "Sunucu hatası.",
+    "remote": {
+      "disabled": "Bu özellik makinede kapalı.",
+      "no_session": "Önce uzaktan oturum açın.",
+      "timeout": "Ajan yanıt vermedi; çevrimdışı olabilir veya henüz bağlanmamış olabilir.",
+      "failed": "İşlem ajan üzerinde başarısız oldu."
+    }
   },
   "roles": {
     "admin": "Admin",
@@ -88,7 +94,8 @@
     "settingsTransfer": "Aktarım ayarları",
     "settingsUsers": "Kullanıcılar",
     "settingsAd": "Active Directory",
-    "account": "Hesabım"
+    "account": "Hesabım",
+    "settingsRemote": "Uzaktan yönetim"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -754,5 +761,92 @@
     "role": "Rol",
     "source": "Hesap türü",
     "scope": "Makine kapsamı"
+  },
+  "remote": {
+    "tab": "Uzaktan yönetim",
+    "disabledGlobal": "Uzaktan yönetim genel olarak kapalı. Ayarlar → Uzaktan yönetim ekranından açılabilir.",
+    "features": "Bu makinede açık özellikler",
+    "featuresHint": "Varsayılan hepsi kapalıdır. Ajan, kapalı özellik için gelen isteği kendisi de reddeder.",
+    "flag": {
+      "performance": "Performans (CPU, bellek, disk, süreçler)",
+      "services": "Servisler (listeleme ve başlat/durdur)",
+      "registry_read": "Kayıt defteri okuma",
+      "registry_write": "Kayıt defteri yazma"
+    },
+    "connect": "Uzaktan oturum aç",
+    "connecting": "Ajan bekleniyor… (en fazla bir heartbeat aralığı)",
+    "connected": "Bağlı",
+    "until": "Oturum sonu: {{time}}",
+    "notAllowed": "Bu makinede açık uzaktan yönetim özelliği yok.",
+    "perf": {
+      "title": "Performans",
+      "cpu": "CPU",
+      "memory": "Bellek",
+      "swap": "Takas",
+      "uptime": "Açık kalma süresi",
+      "disks": "Diskler",
+      "processes": "En çok kaynak kullanan süreçler",
+      "pid": "PID",
+      "name": "Süreç",
+      "user": "Kullanıcı",
+      "cpuCol": "CPU",
+      "rss": "Bellek",
+      "auto": "Otomatik yenile (5 sn)",
+      "refresh": "Yenile",
+      "cores": "{{n}} çekirdek",
+      "uptimeValue": "{{d}} gün {{h}} sa"
+    },
+    "svc": {
+      "title": "Servisler",
+      "search": "Servis ara",
+      "name": "Servis",
+      "state": "Durum",
+      "startType": "Başlangıç",
+      "actions": "İşlem",
+      "start": "Başlat",
+      "stop": "Durdur",
+      "restart": "Yeniden başlat",
+      "confirm": "\"{{name}}\" servisi için \"{{action}}\" uygulansın mı? İşlem denetim kaydına yazılır.",
+      "load": "Servisleri yükle",
+      "done": "İşlem tamamlandı.",
+      "states": {
+        "running": "Çalışıyor",
+        "stopped": "Durdu",
+        "starting": "Başlıyor",
+        "stopping": "Duruyor",
+        "paused": "Duraklatıldı",
+        "unknown": "Bilinmiyor"
+      }
+    },
+    "reg": {
+      "title": "Kayıt defteri",
+      "path": "Yol",
+      "go": "Git",
+      "up": "Üst anahtar",
+      "subkeys": "Alt anahtarlar ({{count}})",
+      "values": "Değerler ({{count}})",
+      "name": "Ad",
+      "type": "Tür",
+      "data": "Veri",
+      "default": "(Varsayılan)",
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "add": "Değer ekle / değiştir",
+      "save": "Yaz",
+      "confirmSet": "\"{{path}}\\{{name}}\" değeri yazılsın mı? Önceki değer denetim kaydına yazılır.",
+      "confirmDelete": "\"{{name}}\" değeri silinsin mi? Önceki değer denetim kaydına yazılır.",
+      "truncated": "Liste ilk 2000 kayıtla sınırlandı.",
+      "written": "Değer yazıldı.",
+      "deleted": "Değer silindi.",
+      "readOnly": "Kayıt defteri yazma bu makinede kapalı."
+    }
+  },
+  "remoteSettings": {
+    "title": "Uzaktan yönetim",
+    "subtitle": "Makinelere uzaktan performans, servis ve kayıt defteri erişimi. Kapalıyken makine bazındaki ayarlar yok sayılır.",
+    "enabled": "Uzaktan yönetimi etkinleştir",
+    "session": "Oturum süresi (dakika)",
+    "sessionHint": "Konsoldan açılan oturum bu süre sonunda kendiliğinden kapanır; ajan yalnızca oturum süresince sunucuyu yoklar.",
+    "perMachine": "Özellikler makine detayındaki \"Uzaktan yönetim\" sekmesinden makine bazında açılır."
   }
 }

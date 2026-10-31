@@ -65,7 +65,13 @@
     "unknown": "An unexpected error occurred.",
     "not_found": "Record not found.",
     "conflict": "The record is not in a state that allows this action.",
-    "internal": "Server error."
+    "internal": "Server error.",
+    "remote": {
+      "disabled": "This feature is disabled on the machine.",
+      "no_session": "Open a remote session first.",
+      "timeout": "The agent did not respond; it may be offline or not connected yet.",
+      "failed": "The operation failed on the agent."
+    }
   },
   "roles": {
     "admin": "Admin",
@@ -88,7 +94,8 @@
     "settingsTransfer": "Transfer settings",
     "settingsUsers": "Users",
     "settingsAd": "Active Directory",
-    "account": "My account"
+    "account": "My account",
+    "settingsRemote": "Remote management"
   },
   "home": {
     "title": "Dashboard",
@@ -754,5 +761,92 @@
     "role": "Role",
     "source": "Account type",
     "scope": "Machine scope"
+  },
+  "remote": {
+    "tab": "Remote management",
+    "disabledGlobal": "Remote management is disabled globally. Enable it under Settings → Remote management.",
+    "features": "Features enabled on this machine",
+    "featuresHint": "All are off by default. The agent also refuses requests for disabled features.",
+    "flag": {
+      "performance": "Performance (CPU, memory, disk, processes)",
+      "services": "Services (list and start/stop)",
+      "registry_read": "Registry read",
+      "registry_write": "Registry write"
+    },
+    "connect": "Open remote session",
+    "connecting": "Waiting for the agent… (up to one heartbeat interval)",
+    "connected": "Connected",
+    "until": "Session ends: {{time}}",
+    "notAllowed": "No remote management feature is enabled on this machine.",
+    "perf": {
+      "title": "Performance",
+      "cpu": "CPU",
+      "memory": "Memory",
+      "swap": "Swap",
+      "uptime": "Uptime",
+      "disks": "Disks",
+      "processes": "Top processes",
+      "pid": "PID",
+      "name": "Process",
+      "user": "User",
+      "cpuCol": "CPU",
+      "rss": "Memory",
+      "auto": "Auto refresh (5 s)",
+      "refresh": "Refresh",
+      "cores": "{{n}} cores",
+      "uptimeValue": "{{d}} d {{h}} h"
+    },
+    "svc": {
+      "title": "Services",
+      "search": "Search services",
+      "name": "Service",
+      "state": "State",
+      "startType": "Startup",
+      "actions": "Action",
+      "start": "Start",
+      "stop": "Stop",
+      "restart": "Restart",
+      "confirm": "Apply \"{{action}}\" to service \"{{name}}\"? The operation is written to the audit log.",
+      "load": "Load services",
+      "done": "Done.",
+      "states": {
+        "running": "Running",
+        "stopped": "Stopped",
+        "starting": "Starting",
+        "stopping": "Stopping",
+        "paused": "Paused",
+        "unknown": "Unknown"
+      }
+    },
+    "reg": {
+      "title": "Registry",
+      "path": "Path",
+      "go": "Go",
+      "up": "Parent key",
+      "subkeys": "Subkeys ({{count}})",
+      "values": "Values ({{count}})",
+      "name": "Name",
+      "type": "Type",
+      "data": "Data",
+      "default": "(Default)",
+      "edit": "Edit",
+      "delete": "Delete",
+      "add": "Add / change value",
+      "save": "Write",
+      "confirmSet": "Write value \"{{path}}\\{{name}}\"? The previous value is written to the audit log.",
+      "confirmDelete": "Delete value \"{{name}}\"? The previous value is written to the audit log.",
+      "truncated": "The list is limited to the first 2000 entries.",
+      "written": "Value written.",
+      "deleted": "Value deleted.",
+      "readOnly": "Registry write is disabled on this machine."
+    }
+  },
+  "remoteSettings": {
+    "title": "Remote management",
+    "subtitle": "Remote performance, service and registry access to machines. When disabled, per-machine settings are ignored.",
+    "enabled": "Enable remote management",
+    "session": "Session length (minutes)",
+    "sessionHint": "A session opened from the console closes automatically after this time; agents poll the server only during a session.",
+    "perMachine": "Features are enabled per machine on the \"Remote management\" tab of the machine detail page."
   }
 }

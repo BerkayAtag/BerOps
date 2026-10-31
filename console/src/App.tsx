@@ -16,6 +16,7 @@ import { MachinesPage } from "./pages/MachinesPage";
 import { NewActionPage } from "./pages/NewActionPage";
 import { PackageDetailPage } from "./pages/PackageDetailPage";
 import { PackagesPage } from "./pages/PackagesPage";
+import { RemoteSettingsPage } from "./pages/RemoteSettingsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { TransferSettingsPage } from "./pages/TransferSettingsPage";
 import { UsersPage } from "./pages/UsersPage";
@@ -51,6 +52,7 @@ export function App() {
         <Route path="/ayarlar/aktarim" element={<TransferSettingsPage />} />
         <Route path="/ayarlar/kullanicilar" element={<UsersPage />} />
         <Route path="/ayarlar/ad" element={<AdSettingsPage />} />
+        <Route path="/ayarlar/uzaktan" element={<RemoteSettingsPage />} />
         <Route path="/denetim" element={<AuditPage />} />
         <Route path="/hesap" element={<AccountPage me={state.me} />} />
         <Route path="/ayarlar/ajan" element={<AgentSettingsPage />} />

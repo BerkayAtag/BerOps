@@ -1760,3 +1760,65 @@ a.user-chip {
 .form-grid > div {
   align-self: end;
 }
+
+/* --- Aşama 6: uzaktan yönetim --- */
+
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.sparkline {
+  width: 100%;
+  height: 36px;
+}
+
+.sparkline path {
+  fill: none;
+  stroke: var(--ber-primary);
+  stroke-width: 2;
+}
+
+.gauge-fill.fill-warn {
+  background: var(--ber-warning);
+}
+
+.gauge-fill.fill-danger {
+  background: var(--ber-danger);
+}
+
+.scroll-y {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.grow-input {
+  flex: 1;
+  min-width: 240px;
+}
+
+.reg-grid {
+  grid-template-columns: minmax(220px, 1fr) 2fr;
+  border-top: 1px solid var(--ber-border);
+}
+
+@media (max-width: 900px) {
+  .reg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.disk-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 220px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.disk-row .dist-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

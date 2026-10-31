@@ -43,6 +43,8 @@ Tüm hatalar aynı gövdeyi kullanır:
 | `conflict` | 409 | Kayıt bu işleme uygun durumda değil |
 | `auth.directory_unavailable` | 503 | Active Directory'ye ulaşılamıyor (yerel kurtarma hesabı kullanılabilir) |
 | `auth.no_role_mapping` | 403 | AD kullanıcısı hiçbir grup eşlemesine uymuyor |
+| `remote.disabled` / `remote.no_session` | 409 | Uzaktan yönetim özelliği kapalı / oturum açılmamış |
+| `remote.failed` / `remote.timeout` | 422 / 504 | Uzaktan işlem ajanda başarısız oldu / ajan yanıt vermedi |
 
 ### İzinler
 

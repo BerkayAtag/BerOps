@@ -174,6 +174,7 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		s.log.Warn("envanter durumu okunamadı", "ajan", m.ID, "hata", err)
 	}
 	resp.ActionKey = s.actionPublicKey()
+	s.heartbeatRemote(r, m, &resp)
 	if m.Status == protocol.StatusActive {
 		if n, err := s.store.PendingJobCount(r.Context(), m.ID, s.now()); err == nil {
 			resp.PendingJobs = n

@@ -84,6 +84,11 @@ type HeartbeatResponse struct {
 	// ActionKey, aksiyon imza anahtarıdır. Aşama 4'ten önce kaydolan ajanlar anahtarı ilk
 	// heartbeat'te öğrenip sabitler.
 	ActionKey []byte `json:"action_key,omitempty"`
+	// Remote, makinede açık uzaktan yönetim özellikleridir (genel ana anahtar kapalıysa hepsi kapalı).
+	Remote *RemoteFlags `json:"remote,omitempty"`
+	// RemoteUntil doluysa konsolda açık bir uzaktan oturum vardır; ajan bu zamana kadar
+	// PathRemotePoll üzerinden uzun yoklama yapar.
+	RemoteUntil *time.Time `json:"remote_until,omitempty"`
 }
 
 // ErrorResponse, tüm API hatalarının ortak gövdesidir. Code makine tarafından okunur

@@ -44,6 +44,8 @@ type Server struct {
 	secrets *secret.Box
 	dir     directory
 
+	remote remoteBroker
+
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
 	// dummyHash, var olmayan kullanıcılar için de parola doğrulaması yapılarak yanıt
@@ -117,6 +119,14 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("DELETE /api/v1/settings/ad/mappings/{id}", s.authed(auth.PermADConfigure, s.handleDeleteADMapping))
 	mux.Handle("GET /api/v1/ad/computers", s.authed(auth.PermMachinesRead, s.handleADComputers))
 
+	mux.Handle("GET /api/v1/settings/remote", s.authed(auth.PermSettingsRead, s.handleGetRemoteSettings))
+	mux.Handle("PUT /api/v1/settings/remote", s.authed(auth.PermRemoteSettings, s.handlePutRemoteSettings))
+	mux.Handle("GET /api/v1/machines/{id}/remote", s.authed(auth.PermMachinesRead, s.handleGetRemote))
+	mux.Handle("PUT /api/v1/machines/{id}/remote/settings", s.authed(auth.PermRemoteSettings, s.handlePutMachineRemote))
+	mux.Handle("POST /api/v1/machines/{id}/remote/session", s.authed("", s.handleRemoteSession))
+	// İşlem izni (performans, servis, kayıt defteri okuma/yazma) işleyicide işleme göre denetlenir.
+	mux.Handle("POST /api/v1/machines/{id}/remote/call", s.authed("", s.handleRemoteCall))
+
 	mux.Handle("GET /api/v1/server-info", s.authed(auth.PermMachinesRead, s.handleServerInfo))
 
 	mux.Handle("GET /api/v1/registration-keys", s.authed(auth.PermRegKeysManage, s.handleListRegKeys))
@@ -185,6 +195,8 @@ func (s *Server) AgentHandler() http.Handler {
 	mux.HandleFunc("GET /agent/v1/jobs", s.handleAgentJobs)
 	mux.HandleFunc("POST /agent/v1/jobs/{id}/status", s.handleAgentJobStatus)
 	mux.HandleFunc("GET /agent/v1/packages/{id}/file", s.handlePackageDownload)
+	mux.HandleFunc("GET /agent/v1/remote/poll", s.handleRemotePoll)
+	mux.HandleFunc("POST /agent/v1/remote/{id}/result", s.handleRemoteResult)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "Uç nokta bulunamadı")
 	})
