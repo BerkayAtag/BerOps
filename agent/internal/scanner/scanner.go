@@ -17,8 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 const (
@@ -198,6 +198,14 @@ func (s *Scanner) ApplyHeartbeat(resp *protocol.HeartbeatResponse) {
 	if changed {
 		s.nudge()
 	}
+}
+
+// RequestFullScan, eksik yamalar dahil tam taramayı hemen başlatır (ör. yama kurulumundan sonra).
+func (s *Scanner) RequestFullScan() {
+	s.mu.Lock()
+	s.state.NextFullAt = s.now()
+	s.mu.Unlock()
+	s.nudge()
 }
 
 // RequestDeltaScan, değişiklik taramasını hemen yaptırır (ör. paket kurulduktan sonra

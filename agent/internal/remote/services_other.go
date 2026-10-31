@@ -5,7 +5,7 @@ package remote
 import (
 	"context"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // ListServices bu platformda desteklenmez.

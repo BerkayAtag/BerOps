@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Automation BER API
+  title: BerOps API
   version: 0.6.0
   description: |
-    Automation BER konsol ve ajan API'si.
+    BerOps konsol ve ajan API'si.
 
     **Kimlik doğrulama (konsol):** `POST /api/v1/auth/login` başarılı olduğunda `__Host-ber_session`
     çerezi ayarlanır. Durum değiştiren tüm isteklerde (POST/PUT/PATCH/DELETE) yanıtla dönen
@@ -44,7 +44,7 @@ components:
       description: "Ajan sertifikası. Relay üzerinden gelen isteklerde relay, ajanın sertifikasını X-Ber-Agent-Cert başlığında iletir; sunucu bu başlığa yalnızca relay sertifikalı bağlantılarda güvenir."
     relayCert:
       type: mutualTLS
-      description: "Relay sertifikası (CN relay:<id>), ber-server relay create ile üretilir."
+      description: "Relay sertifikası (CN relay:<id>), berops-server relay create ile üretilir."
   parameters:
     CSRF:
       name: X-CSRF-Token
@@ -621,7 +621,7 @@ paths:
       x-ber-permission: machines.read
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [pending_approval, active, completed, cancelled, rejected] } }
-        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, run_command] } }
+        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, deploy_patch, run_command] } }
         - { name: machine_id, in: query, schema: { type: string, format: uuid } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
@@ -629,9 +629,10 @@ paths:
         "200": { description: "items, total, page, page_size" }
     post:
       tags: [Aksiyonlar]
-      summary: Paket dağıtımı veya komut aksiyonu oluştur
+      summary: Paket dağıtımı, yama dağıtımı veya komut aksiyonu oluştur
       description: |
         İzin türe göre denetlenir: deploy_package → actions.deploy_package (teknisyen dahil),
+        deploy_patch → actions.deploy_patch (patches: Windows UpdateID veya macOS etiketleri; tek platform),
         run_command → actions.run_command. Her hedef için iş tanımı sunucunun Ed25519 anahtarıyla imzalanır.
         Denetim kaydı yazılamazsa aksiyon oluşturulmaz (503).
       security: [{ session: [] }]
@@ -705,6 +706,27 @@ paths:
       responses:
         "200": { description: Güncel aksiyon (released_stages arttı) }
         "409": { description: Açılacak aşama yok }
+  /api/v1/patches:
+    get:
+      tags: [Makineler]
+      summary: Filodaki eksik güncellemeler, güncelleme başına gruplanmış (kullanıcı kapsamına göre)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters:
+        - { name: platform, in: query, schema: { type: string, enum: [windows, darwin] } }
+        - { name: severity, in: query, schema: { type: string, enum: [Critical, Important, Moderate, Low] } }
+        - { name: q, in: query, schema: { type: string }, description: "KB, başlık veya kimlikte arama" }
+      responses:
+        "200": { description: "items: [{update_id, kb, title, classification, severity, platform, released_at, reboot_required, cve_count, machines}]" }
+  /api/v1/patches/machines:
+    get:
+      tags: [Makineler]
+      summary: Güncellemenin eksik olduğu aktif makineler
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ name: update_id, in: query, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: "items: [{id, hostname, os_platform, os_name}]" }
   /api/v1/maintenance-windows:
     get:
       tags: [Ayarlar]

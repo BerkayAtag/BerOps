@@ -1,13 +1,13 @@
-# BER Relay
+# BerOps Relay
 
 Şubeler ve ayrı ağ segmentleri için önbellekleyen dağıtım noktası. Ajanlar sunucu yerine relay'e bağlanır; relay istekleri sunucuya iletir, paket dosyalarını ise bir kez indirip şubedeki tüm makinelere yerelden verir.
 
 ```
- Şube ağı                                     Merkez
-┌──────────┐  mTLS (ajan sert.)  ┌─────────┐  mTLS (relay sert.)  ┌────────────┐
-│ BER Agent├────────────────────►│BER Relay├─────────────────────►│ BER Server │
-└──────────┘      :52311         │ önbellek│       :52311         └────────────┘
-                                 └─────────┘
+ Şube ağı                                            Merkez
+┌──────────────┐  mTLS (ajan sert.)  ┌──────────────┐  mTLS (relay sert.)  ┌───────────────┐
+│ BerOps Agent ├────────────────────►│ BerOps Relay ├─────────────────────►│ BerOps Server │
+└──────────────┘      :52311         │   önbellek   │       :52311         └───────────────┘
+                                     └──────────────┘
 ```
 
 ## Nasıl çalışır?
@@ -24,7 +24,7 @@
 1. Sunucuda relay sertifikası üretin:
 
    ```bash
-   ber-server relay create -config ber-server.yaml -name "İzmir şubesi" -hostnames relay-izmir.ornek.local -out ./relay-izmir
+   berops-server relay create -config berops-server.yaml -name "İzmir şubesi" -hostnames relay-izmir.ornek.local -out ./relay-izmir
    ```
 
    Klasörde `relay.crt`, `relay.key` ve `ca.crt` oluşur. `relay.key` gizlidir; yalnızca relay makinesine kopyalayın.
@@ -32,7 +32,7 @@
 2. Klasörü relay makinesine kopyalayıp başlatın:
 
    ```bash
-   ber-relay -server https://ber.ornek.local:52311 -dir ./relay-izmir -cache ./cache -cache-gb 100
+   berops-relay -server https://ber.ornek.local:52311 -dir ./relay-izmir -cache ./cache -cache-gb 100
    ```
 
 3. Şubedeki ajanları kurarken sunucu adresi olarak relay'i verin (`https://relay-izmir.ornek.local:52311`). CA parmak izi merkezdeki ile aynıdır.

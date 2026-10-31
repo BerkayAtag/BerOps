@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -148,6 +149,18 @@ func applyEnv(cfg *Config) {
 	}
 	if v := os.Getenv("BER_NVD_API_KEY"); v != "" {
 		cfg.CVE.NVDAPIKey = v
+	}
+	// BER_HOSTNAMES, konsol ve ajan sertifikalarındaki adları birlikte belirler (konteyner kurulumu).
+	if v := os.Getenv("BER_HOSTNAMES"); v != "" {
+		var hosts []string
+		for _, h := range strings.Split(v, ",") {
+			if h = strings.TrimSpace(h); h != "" {
+				hosts = append(hosts, h)
+			}
+		}
+		if len(hosts) > 0 {
+			cfg.Console.Hostnames, cfg.Agent.Hostnames = hosts, hosts
+		}
 	}
 }
 

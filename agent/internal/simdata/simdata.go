@@ -3,12 +3,13 @@
 package simdata
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math/rand/v2"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 type appDef struct {
@@ -141,7 +142,7 @@ func Generate(index int, p Profile, includeMissing bool) *inventory.Snapshot {
 				}
 				released := now.AddDate(0, 0, -7-i*9)
 				s.MissingPatches = append(s.MissingPatches, protocol.MissingPatch{
-					ID: fmt.Sprintf("sim-%s", d.kb), KB: d.kb, Title: d.title, Classification: d.classification,
+					ID: simUpdateID(d.kb), KB: d.kb, Title: d.title, Classification: d.classification,
 					Severity: d.severity, CVEs: d.cves, RebootRequired: d.reboot, ReleasedAt: &released,
 					SizeBytes: int64(5+r.IntN(800)) << 20, SupportURL: "https://support.microsoft.com/help/" + d.kb[2:],
 				})
@@ -166,4 +167,11 @@ func Generate(index int, p Profile, includeMissing bool) *inventory.Snapshot {
 	s.InstalledPatches = inventory.SortInstalledPatches(s.InstalledPatches)
 	s.MissingPatches = inventory.SortMissingPatches(s.MissingPatches)
 	return s
+}
+
+// simUpdateID, KB numarasından belirlenimli, Windows Update Agent biçiminde (GUID) bir
+// güncelleme kimliği üretir; böylece sanal ajanlara da yama dağıtımı oluşturulabilir.
+func simUpdateID(kb string) string {
+	h := sha256.Sum256([]byte("ber-sim-update:" + kb))
+	return fmt.Sprintf("%x-%x-%x-%x-%x", h[0:4], h[4:6], h[6:8], h[8:10], h[10:16])
 }

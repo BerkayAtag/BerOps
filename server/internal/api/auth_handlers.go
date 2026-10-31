@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/ad"
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/ad"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 type loginRequest struct {
@@ -113,7 +113,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 				ActorType: store.ActorUser, ActorName: req.Username, Action: "auth.login",
 				Result: store.ResultDenied, Detail: "AD: " + detail, SourceIP: ip,
 			})
-			writeError(w, http.StatusForbidden, codeNoRoleMapping, "Hesabınız Automation BER kullanmaya yetkili bir AD grubunda değil")
+			writeError(w, http.StatusForbidden, codeNoRoleMapping, "Hesabınız BerOps kullanmaya yetkili bir AD grubunda değil")
 			return
 		case err != nil:
 			fail("AD: " + detail)

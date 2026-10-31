@@ -1,6 +1,6 @@
 # Roller ve Yetkiler
 
-Automation BER'de her API uç noktası **sunucu tarafında** granüler bir izinle korunur. Konsol yalnızca kullanıcının izinlerine göre düğmeleri gizler ve devre dışı bırakır; asıl denetim sunucudadır. Reddedilen her istek denetim kaydına `authz.denied` olarak yazılır.
+BerOps'de her API uç noktası **sunucu tarafında** granüler bir izinle korunur. Konsol yalnızca kullanıcının izinlerine göre düğmeleri gizler ve devre dışı bırakır; asıl denetim sunucudadır. Reddedilen her istek denetim kaydına `authz.denied` olarak yazılır.
 
 ## Yerleşik roller
 
@@ -15,7 +15,7 @@ Automation BER'de her API uç noktası **sunucu tarafında** granüler bir izinl
 | `actions.deploy_package` | Kütüphanedeki paketi gönderme | ✅ | ✅ | — |
 | `actions.run_command` | Serbest CMD/PowerShell/sh komutu | ✅ | — | — |
 | `actions.approve` | Dört göz onayı (kendi aksiyonu hariç) | ✅ | — | — |
-| `actions.deploy_patch` | İşletim sistemi yaması dağıtımı (ileride) | ✅ | — | — |
+| `actions.deploy_patch` | İşletim sistemi yaması dağıtımı (Yamalar sayfası) | ✅ | — | — |
 | `remote.*` | Uzaktan performans, servis, kayıt defteri (Aşama 6) | ✅ | — | — |
 | `settings.read` | Ayarları görme (bakım pencereleri dahil; bildirim ayarları hariç) | ✅ | ✅ | ✅ |
 | `settings.write` | Ajan, CVE, bakım penceresi ve bildirim ayarları; relay iptali | ✅ | — | — |
@@ -49,4 +49,4 @@ Admin rolünde kapsam uygulanmaz. Makinenin OU'su, Windows ajanının bildirdiğ
 - Kullanıcı kendi rolünü düşüremez ve kendini devre dışı bırakamaz. Son etkin yönetici kaldırılamaz.
 - AD kullanıcılarının rolü ve kapsamı her girişte grup eşlemelerinden yeniden hesaplanır; konsoldan yalnızca devre dışı bırakılabilirler.
 
-Active Directory: [ad.md](ad.md).
+Active Directory: [ad-entegrasyonu.md](ad-entegrasyonu.md).

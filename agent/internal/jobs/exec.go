@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // Execute, komutu platformun kabuğunda çalıştırır. Komut önce iş dizinine betik dosyası olarak

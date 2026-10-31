@@ -7,12 +7,12 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 func TestRegistryRoundTrip(t *testing.T) {
-	const path = `HKLM\SOFTWARE\AutomationBERTest`
-	t.Cleanup(func() { _ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\AutomationBERTest`) })
+	const path = `HKLM\SOFTWARE\BerOpsTest`
+	t.Cleanup(func() { _ = registry.DeleteKey(registry.LOCAL_MACHINE, `SOFTWARE\BerOpsTest`) })
 	ch, err := RegistrySet(path, protocol.RegistryValue{Name: "Sürüm", Type: "REG_SZ", Data: "1.0 ğüş"})
 	if err != nil {
 		t.Skipf("HKLM'ye yazılamadı (yönetici değil?): %v", err)

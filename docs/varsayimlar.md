@@ -6,7 +6,7 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 
 | # | Konu | Varsayım / Karar | Etkilenen yer |
 |---|---|---|---|
-| 1.1 | Go modül yolu | `github.com/BerkayAtag/automation-ber` (GitHub deposuyla aynı). | `go.mod`, tüm Go dosyaları |
+| 1.1 | Go modül yolu | `github.com/BerkayAtag/BerOps` (GitHub deposuyla aynı). | `go.mod`, tüm Go dosyaları |
 | 1.2 | Birincil renk | `#DC0005` spesifikasyondaki örnek değerdir; resmi marka rehberinden teyit edilmedi. Değer yalnızca `design/tokens.css` içinde tanımlıdır. | `design/tokens.css` |
 | 1.3 | Lisans | **Apache License 2.0**: patent hakkı devri içerir, kurumsal kullanımda yaygın kabul görür ve atıf koruması sağlar. | `LICENSE` |
 | 1.4 | Ajan portu | `52311/tcp`. BigFix ile aynı port numarası kurumsal güvenlik duvarlarında tanıdıktır. Yapılandırılabilir. | `server` yapılandırması |
@@ -16,11 +16,11 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 1.8 | CA anahtarının saklanması | Aşama 1'de `data_dir/pki/ca.key` dosyasında, yalnızca servis hesabının okuyabileceği izinlerle (0600) tutulur. Windows'ta DPAPI ile şifreleme Aşama 8'de (MSI kurulumu) eklenecek. | `server/internal/pki` |
 | 1.9 | Onay gerektiren kayıt | Makineye sertifika hemen verilir ancak durum `pending` olur. Onaylanana kadar iş gönderilmez; reddedilirse sertifika geçersiz sayılır. Bu yaklaşım ajanın ayrıca sertifika beklemek için yoklama yapmasını gereksiz kılar. | `server/internal/api` |
 | 1.10 | Yeniden kayıt | Aynı makine yeniden kurulursa yeni bir ajan ID'si alır; eski kayıt çevrimdışı görünür. Hostname/donanım kimliğiyle birleştirme Aşama 2'de ele alınacak. | `machines` |
-| 1.11 | İlk admin | Kurulum sihirbazı (Aşama 8) yazılana kadar ilk admin `ber-server admin create` komutuyla oluşturulur. | `server/cmd/ber-server` |
+| 1.11 | İlk admin | Kurulum sihirbazı (Aşama 8) yazılana kadar ilk admin `berops-server admin create` komutuyla oluşturulur. | `server/cmd/berops-server` |
 | 1.12 | Teknisyen ve yama dağıtımı | Spesifikasyon teknisyene yalnızca "kayıtlı paket gönderme" yetkisi tanıyor. İşletim sistemi yaması dağıtma (`actions.deploy_patch`) bu nedenle teknisyende **yok**; Aşama 5'te özel rollerle eklenebilir. | `server/internal/auth/rbac.go` |
 | 1.13 | Salt Okunur ve dışa aktarma | Rapor dışa aktarma veri değiştirmediği için Salt Okunur rolünde açıktır. | `server/internal/auth/rbac.go` |
 | 1.14 | CSP ve satır içi stil | `style-src 'self' 'unsafe-inline'`: grafik kütüphaneleri (Recharts) satır içi `style` niteliği kullanır. Betikler için `'unsafe-inline'` yoktur. | `server/internal/api/middleware.go` |
-| 1.15 | Yapılandırma dosyası | Sunucu YAML yapılandırma dosyası (`ber-server.yaml`) + ortam değişkeni geçersiz kılmaları. Kurulum sihirbazı bu dosyayı yazar. | `server/internal/config` |
+| 1.15 | Yapılandırma dosyası | Sunucu YAML yapılandırma dosyası (`berops-server.yaml`) + ortam değişkeni geçersiz kılmaları. Kurulum sihirbazı bu dosyayı yazar. | `server/internal/config` |
 | 1.16 | PostgreSQL sürümü | En az 14. CI 17 ile test eder. | CI, kurulum belgeleri |
 | 1.17 | Konsol dağıtımı | Konsol derlemesi sunucu binary'sine gömülmez; sunucu `console.static_dir` dizininden sunar. Böylece konsol ayrı güncellenebilir ve Go derlemesi Node'a bağımlı olmaz. | `server/internal/api` |
 | 1.18 | Ajan servis kaydı | Aşama 1'de ajan Windows servis yöneticisi altında çalışabilir (`svc` entegrasyonu). Servisin oluşturulması ve macOS `launchd` plist'i Aşama 8'de kurulum paketleriyle gelir. | `agent/internal/service` |
@@ -126,7 +126,7 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 7.1 | Relay kimliği | Relay ayrı bir sertifika türüdür (CN `relay:<id>`, sunucu + istemci EKU). Zincire CA eklenir; ajanın CA parmak izi sabitlemesi değişmeden çalışır. Sertifika iptali veritabanındaki `revoked_at` ile yapılır, CRL/OCSP yoktur. | `pki.IssueRelayCert`, `relays` |
 | 7.2 | Ajan kimliğinin iletilmesi | Relay TLS'i sonlandırır ve ajan sertifikasını `X-Ber-Agent-Cert` (base64 DER) başlığıyla iletir. Sunucu başlığa yalnızca relay sertifikalı bağlantıda güvenir ve sertifikayı yeniden doğrular. TLS geçişi (SNI ile tünel) yerine bu yol seçildi; çünkü relay'in paket isteklerini görüp önbellekten yanıtlaması gerekir. | `api/relay_handlers.go`, `relay/relay` |
 | 7.3 | Relay önbelleği | İçerik adresli (SHA-256), LRU temizleme, varsayılan 50 GB. Relay dosyayı ancak sunucu bir ajanın indirme yetkisini onayladıktan sonra çeker; relay'e sunucudan hız sınırı uygulanmaz, ajana sunucunun belirlediği istemci başına sınır uygulanır. | `relay/relay/relay.go` |
-| 7.4 | Relay kaydı | Relay'ler konsoldan değil, sunucuda `ber-server relay create` komutuyla oluşturulur (özel anahtar ağ üzerinden taşınmaz). Konsol listeler ve iptal eder. | `cmd/ber-server` |
+| 7.4 | Relay kaydı | Relay'ler konsoldan değil, sunucuda `berops-server relay create` komutuyla oluşturulur (özel anahtar ağ üzerinden taşınmaz). Konsol listeler ve iptal eder. | `cmd/berops-server` |
 | 7.5 | Bakım penceresi semantiği | Pencere yalnızca "Bakım penceresine uy" seçilen aksiyonları etkiler. Makineye uyan etkin pencere yoksa iş hemen verilir. Birden çok pencere uyuyorsa herhangi biri yeterlidir. Gece yarısını aşan pencere başladığı güne aittir. | `store/windows.go` |
 | 7.6 | Pencere ve geçerlilik süresi | Pencere dışında bekleyen işin geçerlilik süresi durmaz. Kullanıcının geçerlilik süresini pencereyi kapsayacak şekilde seçmesi beklenir; otomatik uzatma yapılmaz. | `api/rollout_handlers.go` |
 | 7.7 | Kademeli dağıtım kararı | Aşama açılmadan önce açılmış hedeflerin en az yarısının sonuçlanması beklenir. Başarı oranı = başarılı / (başarılı + başarısız + süresi dolan). Eşik altında dağıtım duraklar ve yalnızca elle devam ettirilir. | `RunRollouts` |
@@ -137,4 +137,22 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 7.12 | Zamanlanmış raporlar | Tüm filo için üretilir (kapsam uygulanmaz); yalnızca e-posta kanalına gider. Saat ve gün kanalın değil zamanlamanın saat dilimine göredir. Kaçırılan çalışma telafi edilmez. | `runSchedules` |
 | 7.13 | Oturum saati | Oturum oluşturma ve son etkinlik zamanı veritabanı saatinden değil uygulama saatinden yazılır; boşta kalma kontrolü de aynı saatle yapılır. | `store.CreateSession` |
 | 7.14 | Yeniden başlatma politikaları | Spesifikasyondaki yeniden başlatma politikaları (erteleme, kullanıcıya bildirim) Aşama 7'de yok. Kurulum komutunun çıkış kodu 3010/1641 "yeniden başlatma gerekli" olarak kaydedilir; zorla yeniden başlatma yapılmaz. | — |
+
+## Aşama 8 — Paketleme, yayın ve yama dağıtımı
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 8.1 | Gömülü veritabanı | Sunucu MSI'ı PostgreSQL içermez; sihirbaz mevcut bir PostgreSQL'e bağlanır. PostgreSQL'i pakete gömmek kurulum boyutunu ve yama sorumluluğunu büyütür. Tek makinelik kurulum için Docker Compose PostgreSQL'i birlikte getirir. | `installers/windows/server` |
+| 8.2 | MSI kod sayfası | Yayımcı adı (`Berkay Atağ`) için MSI veritabanı Türkçe kod sayfası 1254 ile derlenir; Programlar ve Özellikler'de doğru görünür (CI'da kayıt defterinden doğrulanır). | `*.wxs` |
+| 8.3 | Parolalar kurulumda | MSI özellikleri `Hidden` işaretlidir; `berops-server setup` parolayı komut satırından alır (yalnızca kurulum sırasında, SYSTEM olarak). Elle kurulumda `BER_ADMIN_PASSWORD` önerilir. | `berops-server setup` |
+| 8.4 | Kurcalama koruması | Ajan kaldırma yerel yönetici yetkisi ister; ek sunucu onayı (kaldırma parolası/token) yoktur. Çevrimdışı kalan makine konsolda görünür. | `docs/guvenlik.md` |
+| 8.5 | Kaldırmada veri | Ajan kaldırılınca veri klasörü silinir (yükseltmede korunur). Sunucu kaldırılınca iç CA ve paketler bilerek korunur. | MSI özel eylemleri |
+| 8.6 | Anahtarsız ajan | Yapılandırılmamış ajan servisi çıkmaz, 30 saniyede bir yapılandırmayı bekler. Böylece paket önce dağıtılıp yapılandırma sonradan (GPO, MDM, `configure`) verilebilir. | `berops-agent run` |
+| 8.7 | macOS yapılandırması | Kurulum betiği MDM yönetilen tercihlerini (`io.github.berkayatag.berops.agent`) veya `/private/tmp/berops-agent-install.conf` dosyasını okur. Dosya kaynak olarak çalıştırılmaz, yalnızca bilinen anahtarlar okunur. | `installers/macos/scripts/postinstall` |
+| 8.8 | Kod imzalama | Release iş akışı sertifikalar GitHub Secrets'ta varsa imzalar ve notarize eder; yoksa imzasız derler ve sürüm notunda belirtir. | `.github/workflows/release.yml` |
+| 8.9 | Yama dağıtımı | Windows'ta WUA COM API'si PowerShell betiğiyle, macOS'ta `softwareupdate` ile kurulur. Sunucu güncelleme dosyası taşımaz; makine WSUS/Windows Update/Apple'dan indirir. Makine yeniden başlatılmaz (3010 başarılı sayılır); yeniden başlatma politikası sonraki sürüme bırakıldı. | `api/patch_handlers.go` |
+| 8.10 | Yama komutunun üretimi | Komut yalnızca doğrulanmış güncelleme kimliklerinden üretilir (Windows GUID, macOS güvenli karakter kümesi) ve tek tırnakla yerleştirilir; kullanıcı serbest metin veremez. Yama dağıtımı dört göz onayı gerektirmez (serbest komut değildir). | `patchJob` |
+| 8.11 | Simülatör kimlikleri | Sanal ajanlar KB'den türetilen GUID biçimli güncelleme kimlikleri üretir; böylece demo ve testlerde yama dağıtımı uçtan uca denenebilir. | `agent/internal/simdata` |
+| 8.12 | Docker imajı | Sunucu imajı Alpine üzerinde, root olmayan `ber` kullanıcısıyla çalışır; konsol dosyaları imaja gömülüdür. Sunucu adları `BER_HOSTNAMES` ile verilir. | `deploy/Dockerfile` |
+| 8.13 | Ürün adı | Ürün adı **BerOps**'tur: paketler, servisler (`BerOpsServer`, `BerOpsAgent`), ikili dosyalar (`berops-*`), veri klasörleri, Go modülü ve depo adı buna göre adlandırıldı. Geriye dönük uyum ve kısalık için iç tanımlayıcılar korundu: `BER_*` ortam değişkenleri, `--ber-*` tasarım token'ları, `X-Ber-*` başlıkları, `berreg_` anahtar öneki, çerez ve tarayıcı depolama anahtarları. | Tüm depo |
 

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Automation BER",
+    "name": "BerOps",
     "tagline": "Patch and third-party application management"
   },
   "common": {
@@ -56,7 +56,7 @@
       "forbidden": "You are not allowed to perform this action.",
       "csrf": "Security check failed. Refresh the page and try again.",
       "directory_unavailable": "The directory service (Active Directory) is unreachable. You can sign in with the local recovery account.",
-      "no_role_mapping": "Your account is not in an AD group authorised to use Automation BER. Contact your administrator."
+      "no_role_mapping": "Your account is not in an AD group authorised to use BerOps. Contact your administrator."
     },
     "request": {
       "invalid": "The request is invalid."
@@ -98,7 +98,8 @@
     "settingsRemote": "Remote management",
     "settingsWindows": "Maintenance windows",
     "settingsRelays": "Relays",
-    "settingsNotify": "Notifications"
+    "settingsNotify": "Notifications",
+    "agentDownload": "Download agent"
   },
   "home": {
     "title": "Dashboard",
@@ -541,7 +542,8 @@
     "empty": "No actions yet.",
     "kind": {
       "deploy_package": "Package deployment",
-      "run_command": "Run command"
+      "run_command": "Run command",
+      "deploy_patch": "Patch deployment"
     },
     "status": {
       "pending_approval": "Awaiting approval",
@@ -634,7 +636,8 @@
       "none": "No stages (all at once)",
       "pilot": "Pilot: 10%, the rest after 24 hours",
       "rings": "Rings: 5% → 25% (1 day) → 70% (3 days)"
-    }
+    },
+    "patches": "Updates"
   },
   "transfer": {
     "title": "Transfer settings",
@@ -874,7 +877,7 @@
     "title": "Relays",
     "subtitle": "Agents at branch offices connect to the server through a relay; packages are cached on the relay to reduce WAN traffic.",
     "howTitle": "New relay",
-    "how": "Relay certificates are issued from the server command line. Copy the generated folder to the relay host, start it with ber-relay -server https://server:52311 -dir <folder>, and point agents at the relay as their server address.",
+    "how": "Relay certificates are issued from the server command line. Copy the generated folder to the relay host, start it with berops-relay -server https://server:52311 -dir <folder>, and point agents at the relay as their server address.",
     "empty": "No relays yet.",
     "revoke": "Revoke certificate",
     "confirmRevoke": "Revoke the certificate of relay {{name}}? Agents connecting through it will no longer reach the server.",
@@ -1006,5 +1009,59 @@
       "empty": "No scheduled reports.",
       "needEmail": "Add an email channel before scheduling a report."
     }
+  },
+  "agentDownload": {
+    "title": "Download agent",
+    "subtitle": "Download the installers and generate install commands with the server address and registration key embedded.",
+    "packages": "Installers",
+    "packagesHint": "Packages are published on GitHub Releases: an MSI (x64) for Windows and a .pkg for macOS supporting Intel and Apple Silicon.",
+    "windows": "Windows agent (MSI)",
+    "macos": "macOS agent (.pkg)",
+    "serverUrl": "Agent server address",
+    "caHash": "CA fingerprint",
+    "keys": "Registration keys",
+    "create": "Generate key and commands",
+    "empty": "No registration keys yet.",
+    "createdTitle": "Install commands for {{name}}",
+    "secretOnce": "The registration key is shown only now. Copy it and keep it somewhere safe.",
+    "secret": "Registration key",
+    "cmdWindows": "Windows (administrator command prompt)",
+    "cmdMacos": "macOS (Terminal)",
+    "gpoHint": "For GPO, SCCM or Intune deployment pass the same SERVER, REGKEY and CAHASH properties to the MSI. On macOS an MDM preference domain can be used too (see the install guide).",
+    "confirmRevoke": "Revoke key {{name}}? No new enrolments will be possible with it; enrolled machines are not affected.",
+    "revoke": "Revoke",
+    "revoked": "Revoked",
+    "approvalTag": "Approval required",
+    "noExpiry": "No expiry",
+    "noPermission": "You are not allowed to create registration keys; ask an administrator for the install command.",
+    "col": {
+      "prefix": "Key",
+      "uses": "Uses",
+      "expires": "Expires"
+    },
+    "field": {
+      "name": "Key name",
+      "namePlaceholder": "e.g. Finance laptops",
+      "maxUses": "Maximum uses",
+      "hours": "Validity (hours)",
+      "approval": "Require administrator approval for enrolment"
+    }
+  },
+  "patches": {
+    "title": "Patches",
+    "subtitle": "Missing operating system updates across the fleet. Deploy the selected updates to the machines missing them, in stages and within maintenance windows.",
+    "search": "Search KB, title or label",
+    "platform": "Platform",
+    "allPlatforms": "All platforms",
+    "allSeverities": "All severities",
+    "machines": "Machines",
+    "select": "Select",
+    "empty": "No missing updates.",
+    "reboot": "Requires restart",
+    "deployTitle": "Deploy {{count}} updates",
+    "deploy": "Start deployment",
+    "mixedPlatforms": "Windows and macOS updates cannot be deployed in the same action; select one platform.",
+    "macNote": "On macOS, updates that need a restart are installed but the machine is not restarted automatically. On Apple silicon, OS version updates may require MDM.",
+    "actionName": "Patch: {{list}}"
   }
 }

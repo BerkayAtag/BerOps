@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // maxEntries, bir anahtarda döndürülen en fazla alt anahtar ve değer sayısıdır.

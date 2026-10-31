@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/server/internal/store/storetest"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/store/storetest"
 )
 
 func TestMigrateIsIdempotent(t *testing.T) {

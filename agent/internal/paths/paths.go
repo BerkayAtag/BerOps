@@ -15,10 +15,10 @@ func DefaultDataDir() string {
 		if base == "" {
 			base = `C:\ProgramData`
 		}
-		return filepath.Join(base, "BER", "Agent")
+		return filepath.Join(base, "BerOps", "Agent")
 	case "darwin":
-		return "/Library/Application Support/BER/Agent"
+		return "/Library/Application Support/BerOps/Agent"
 	default:
-		return "/var/lib/ber-agent"
+		return "/var/lib/berops-agent"
 	}
 }

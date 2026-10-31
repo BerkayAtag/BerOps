@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/pki"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/pki"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 const maxAgentBody = 64 << 10 // 64 KiB; envanter yüklemeleri ayrı uç noktalardan yapılır

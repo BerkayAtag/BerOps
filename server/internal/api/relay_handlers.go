@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/pki"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/pki"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
 )
 
 // Relay ile sunucu arasındaki başlıklar.

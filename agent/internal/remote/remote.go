@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 // Client, uzaktan yönetim uç noktalarına erişimdir.

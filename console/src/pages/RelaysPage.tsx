@@ -51,7 +51,7 @@ export function RelaysPage() {
         <h2>{t("relays.howTitle")}</h2>
         <p className="muted small">{t("relays.how")}</p>
         <pre className="output-block">
-          ber-server relay create -name relay-sube-1 -hostnames relay1.ornek.local -out ./relay-sube-1
+          berops-server relay create -name relay-sube-1 -hostnames relay1.ornek.local -out ./relay-sube-1
         </pre>
       </section>
       <section className="card">

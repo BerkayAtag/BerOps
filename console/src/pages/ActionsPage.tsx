@@ -116,6 +116,7 @@ export function ActionsPage() {
             </option>
             <option value="deploy_package">{t("actions.kind.deploy_package")}</option>
             <option value="run_command">{t("actions.kind.run_command")}</option>
+            <option value="deploy_patch">{t("actions.kind.deploy_patch")}</option>
           </select>
         </div>
         <DataTable

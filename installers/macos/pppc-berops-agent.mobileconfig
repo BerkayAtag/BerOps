@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  BerOps Agent için örnek PPPC (Gizlilik Tercihleri Politika Denetimi) profili.
+  Ajana Tam Disk Erişimi (SystemPolicyAllFiles) verir; MDM ile dağıtılmalıdır (kullanıcı onaylı
+  kurulumda PPPC yükü yok sayılır).
+  Dağıtmadan önce:
+    1. TEAMID_DEGISTIR değerini Developer ID sertifikanızın ekip kimliğiyle değiştirin.
+    2. PayloadUUID değerlerini kendi ortamınız için yeniden üretin (uuidgen).
+  İmzasız (geliştirme) derlemelerde CodeRequirement yalnızca identifier ile eşleşmez;
+  üretimde mutlaka imzalı paket kullanın.
+-->
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadDisplayName</key>
+			<string>BerOps Agent — Tam Disk Erişimi</string>
+			<key>PayloadIdentifier</key>
+			<string>io.github.berkayatag.berops.agent.pppc.payload</string>
+			<key>PayloadType</key>
+			<string>com.apple.TCC.configuration-profile-policy</string>
+			<key>PayloadUUID</key>
+			<string>6D2B0F5E-7C1A-4B8E-9E3D-1A2B3C4D5E6F</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>Services</key>
+			<dict>
+				<key>SystemPolicyAllFiles</key>
+				<array>
+					<dict>
+						<key>Allowed</key>
+						<true/>
+						<key>CodeRequirement</key>
+						<string>identifier "berops-agent" and anchor apple generic and certificate leaf[subject.OU] = "TEAMID_DEGISTIR"</string>
+						<key>Comment</key>
+						<string>Envanter taraması için uygulama ve kullanıcı klasörlerini okuma</string>
+						<key>Identifier</key>
+						<string>/usr/local/bin/berops-agent</string>
+						<key>IdentifierType</key>
+						<string>path</string>
+					</dict>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>BerOps Agent'a Tam Disk Erişimi verir. Yayımcı: Berkay Atağ</string>
+	<key>PayloadDisplayName</key>
+	<string>BerOps Agent PPPC</string>
+	<key>PayloadIdentifier</key>
+	<string>io.github.berkayatag.berops.agent.pppc</string>
+	<key>PayloadOrganization</key>
+	<string>Berkay Atağ</string>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>A1B2C3D4-E5F6-4711-8899-AABBCCDDEEFF</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

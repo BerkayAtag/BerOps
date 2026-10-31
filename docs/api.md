@@ -1,6 +1,6 @@
 # API
 
-Automation BER iki ayrı HTTPS API sunar:
+BerOps iki ayrı HTTPS API sunar:
 
 | API | Port | Kimlik doğrulama | Kullanıcı |
 |---|---|---|---|
@@ -54,4 +54,4 @@ API anahtarlarıyla erişim (dış sistemler için) Aşama 5'te eklenecek.
 
 ## Ajan API'si
 
-Ajan API'si yalnızca BER ajanları ve relay'ler içindir. Kayıt akışı ve güvenlik modeli için [mimari.md](mimari.md#32-ajan-kaydı-enrollment) dosyasına bakın.
+Ajan API'si yalnızca BerOps ajanları ve relay'ler içindir. Kayıt akışı ve güvenlik modeli için [mimari.md](mimari.md#32-ajan-kaydı-enrollment) dosyasına bakın.

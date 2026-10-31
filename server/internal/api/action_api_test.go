@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 func (b *browser) upload(meta map[string]any, fileName string, content []byte) (*http.Response, map[string]any) {

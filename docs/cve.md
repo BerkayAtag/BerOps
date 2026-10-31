@@ -1,6 +1,6 @@
 # CVE Motoru
 
-Automation BER, makinelerden gelen envanteri dört açık kaynakla eşleştirerek her makinedeki güvenlik açıklarını (CVE) ve önceliklerini hesaplar. Ajanlar internete çıkmaz; tüm kaynak verisi sunucuda tutulur.
+BerOps, makinelerden gelen envanteri dört açık kaynakla eşleştirerek her makinedeki güvenlik açıklarını (CVE) ve önceliklerini hesaplar. Ajanlar internete çıkmaz; tüm kaynak verisi sunucuda tutulur.
 
 ## Kaynaklar
 
@@ -65,7 +65,7 @@ Bu formülle, aktif istismar edilen orta skorlu bir açık (CVSS 6,5 + KEV + EPS
 
 ## Çevrimdışı (internet erişimi olmayan) ortamlar
 
-`ber-server.yaml` içinde `cve.offline_dir` tanımlanırsa sunucu internete çıkmaz; kaynakları bu klasörden okur:
+`berops-server.yaml` içinde `cve.offline_dir` tanımlanırsa sunucu internete çıkmaz; kaynakları bu klasörden okur:
 
 ```
 offline_dir/
@@ -97,11 +97,11 @@ Sunucu proxy kullanıyorsa standart `HTTPS_PROXY` ortam değişkeni dikkate alı
 Eşitleme sunucu açıldıktan bir dakika sonra ve sonra her 15 dakikada bir kontrol edilir; aralığı dolan kaynaklar eşitlenir, hata veren kaynak bir saat sonra yeniden denenir. Konsoldan **Şimdi eşitle** veya komut satırından hemen eşitlenebilir:
 
 ```bash
-ber-server cve sync -config ber-server.yaml
+berops-server cve sync -config berops-server.yaml
 ```
 
 ```bash
-ber-server cve sync -config ber-server.yaml -feeds kev,epss
+berops-server cve sync -config berops-server.yaml -feeds kev,epss
 ```
 
 ## Raporlar

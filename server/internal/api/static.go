@@ -15,7 +15,7 @@ func (s *Server) staticHandler() http.Handler {
 	if dir == "" {
 		return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			_, _ = w.Write([]byte("Automation BER sunucusu çalışıyor. Konsol dosyaları yapılandırılmamış (console.static_dir).\n"))
+			_, _ = w.Write([]byte("BerOps sunucusu çalışıyor. Konsol dosyaları yapılandırılmamış (console.static_dir).\n"))
 		})
 	}
 	files := http.FileServer(http.Dir(dir))

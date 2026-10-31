@@ -1,4 +1,4 @@
-module github.com/BerkayAtag/automation-ber
+module github.com/BerkayAtag/BerOps
 
 go 1.27.3
 

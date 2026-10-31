@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/auth"
-	"github.com/BerkayAtag/automation-ber/server/internal/config"
-	"github.com/BerkayAtag/automation-ber/server/internal/cve"
-	"github.com/BerkayAtag/automation-ber/server/internal/pki"
-	"github.com/BerkayAtag/automation-ber/server/internal/secret"
-	"github.com/BerkayAtag/automation-ber/server/internal/store"
-	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
+	"github.com/BerkayAtag/BerOps/server/internal/auth"
+	"github.com/BerkayAtag/BerOps/server/internal/config"
+	"github.com/BerkayAtag/BerOps/server/internal/cve"
+	"github.com/BerkayAtag/BerOps/server/internal/pki"
+	"github.com/BerkayAtag/BerOps/server/internal/secret"
+	"github.com/BerkayAtag/BerOps/server/internal/store"
+	"github.com/BerkayAtag/BerOps/server/internal/vuln"
 )
 
 //go:embed openapi.yaml
@@ -169,6 +169,9 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("POST /api/v1/notifications/channels/{id}/test", s.authed(auth.PermSettingsWrite, s.handleTestChannel))
 	mux.Handle("POST /api/v1/notifications/schedules", s.authed(auth.PermSettingsWrite, s.handleCreateSchedule))
 	mux.Handle("DELETE /api/v1/notifications/schedules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteSchedule))
+
+	mux.Handle("GET /api/v1/patches", s.authed(auth.PermMachinesRead, s.handleListPatches))
+	mux.Handle("GET /api/v1/patches/machines", s.authed(auth.PermMachinesRead, s.handlePatchMachines))
 
 	mux.Handle("GET /api/v1/maintenance-windows", s.authed(auth.PermSettingsRead, s.handleListWindows))
 	mux.Handle("POST /api/v1/maintenance-windows", s.authed(auth.PermSettingsWrite, s.handleSaveWindow))

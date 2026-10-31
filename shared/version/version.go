@@ -1,6 +1,6 @@
 // Package version, derleme sırasında -ldflags ile doldurulan sürüm bilgisini taşır.
 //
-//	go build -ldflags "-X github.com/BerkayAtag/automation-ber/shared/version.Version=1.2.3"
+//	go build -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=1.2.3"
 package version
 
 // Version, semantik sürüm numarasıdır. Geliştirme derlemelerinde "0.0.0-dev" olarak kalır.

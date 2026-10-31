@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Automation BER",
+    "name": "BerOps",
     "tagline": "Yama ve üçüncü parti uygulama yönetimi"
   },
   "common": {
@@ -56,7 +56,7 @@
       "forbidden": "Bu işlem için yetkiniz yok.",
       "csrf": "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar deneyin.",
       "directory_unavailable": "Dizin hizmetine (Active Directory) ulaşılamıyor. Yerel kurtarma hesabıyla giriş yapabilirsiniz.",
-      "no_role_mapping": "Hesabınız Automation BER kullanmaya yetkili bir AD grubunda değil. Yöneticinize başvurun."
+      "no_role_mapping": "Hesabınız BerOps kullanmaya yetkili bir AD grubunda değil. Yöneticinize başvurun."
     },
     "request": {
       "invalid": "İstek geçersiz."
@@ -98,7 +98,8 @@
     "settingsRemote": "Uzaktan yönetim",
     "settingsWindows": "Bakım pencereleri",
     "settingsRelays": "Relay sunucuları",
-    "settingsNotify": "Bildirimler"
+    "settingsNotify": "Bildirimler",
+    "agentDownload": "Ajan indir"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -541,7 +542,8 @@
     "empty": "Henüz aksiyon yok.",
     "kind": {
       "deploy_package": "Paket dağıtımı",
-      "run_command": "Komut çalıştırma"
+      "run_command": "Komut çalıştırma",
+      "deploy_patch": "Yama dağıtımı"
     },
     "status": {
       "pending_approval": "Onay bekliyor",
@@ -634,7 +636,8 @@
       "none": "Kademesiz (tümüne birden)",
       "pilot": "Pilot: %10, 24 saat sonra kalanı",
       "rings": "Halkalar: %5 → %25 (1 gün) → %70 (3 gün)"
-    }
+    },
+    "patches": "Güncellemeler"
   },
   "transfer": {
     "title": "Aktarım ayarları",
@@ -874,7 +877,7 @@
     "title": "Relay sunucuları",
     "subtitle": "Şubelerdeki ajanlar sunucuya relay üzerinden bağlanır; paketler relay'de önbelleğe alınır ve WAN trafiği azalır.",
     "howTitle": "Yeni relay",
-    "how": "Relay sertifikası sunucuda komut satırından üretilir. Oluşan klasörü relay makinesine kopyalayıp ber-relay -server https://sunucu:52311 -dir <klasör> ile başlatın; ajanlarda sunucu adresi olarak relay'i gösterin.",
+    "how": "Relay sertifikası sunucuda komut satırından üretilir. Oluşan klasörü relay makinesine kopyalayıp berops-relay -server https://sunucu:52311 -dir <klasör> ile başlatın; ajanlarda sunucu adresi olarak relay'i gösterin.",
     "empty": "Henüz relay yok.",
     "revoke": "Sertifikayı iptal et",
     "confirmRevoke": "{{name}} relay'inin sertifikası iptal edilsin mi? Bu relay üzerinden bağlanan ajanlar sunucuya ulaşamaz.",
@@ -1006,5 +1009,59 @@
       "empty": "Zamanlanmış rapor yok.",
       "needEmail": "Zamanlanmış rapor için önce bir e-posta kanalı ekleyin."
     }
+  },
+  "agentDownload": {
+    "title": "Ajan indir",
+    "subtitle": "Kurulum paketlerini indirin ve sunucu adresi ile kayıt anahtarı gömülü kurulum komutlarını üretin.",
+    "packages": "Kurulum paketleri",
+    "packagesHint": "Paketler GitHub Releases'ta yayımlanır. Windows için MSI (x64), macOS için Intel ve Apple Silicon'u destekleyen .pkg.",
+    "windows": "Windows ajanı (MSI)",
+    "macos": "macOS ajanı (.pkg)",
+    "serverUrl": "Ajan sunucu adresi",
+    "caHash": "CA parmak izi",
+    "keys": "Kayıt anahtarları",
+    "create": "Anahtar ve komut üret",
+    "empty": "Henüz kayıt anahtarı yok.",
+    "createdTitle": "{{name}} için kurulum komutları",
+    "secretOnce": "Kayıt anahtarı yalnızca şimdi gösterilir. Kopyalayıp güvenli bir yerde saklayın.",
+    "secret": "Kayıt anahtarı",
+    "cmdWindows": "Windows (yönetici komut istemi)",
+    "cmdMacos": "macOS (Terminal)",
+    "gpoHint": "GPO, SCCM veya Intune ile dağıtımda aynı SERVER, REGKEY ve CAHASH özelliklerini MSI'a verin. macOS'ta MDM tercih alanı da kullanılabilir (bkz. kurulum belgesi).",
+    "confirmRevoke": "{{name}} anahtarı iptal edilsin mi? Bu anahtarla yeni kayıt yapılamaz; kayıtlı makineler etkilenmez.",
+    "revoke": "İptal et",
+    "revoked": "İptal edildi",
+    "approvalTag": "Onaylı kayıt",
+    "noExpiry": "Süresiz",
+    "noPermission": "Kayıt anahtarı oluşturma yetkiniz yok; yöneticinizden kurulum komutunu isteyin.",
+    "col": {
+      "prefix": "Anahtar",
+      "uses": "Kullanım",
+      "expires": "Geçerlilik"
+    },
+    "field": {
+      "name": "Anahtar adı",
+      "namePlaceholder": "ör. Muhasebe dizüstüleri",
+      "maxUses": "En fazla kullanım",
+      "hours": "Geçerlilik (saat)",
+      "approval": "Kayıt yönetici onayı gerektirsin"
+    }
+  },
+  "patches": {
+    "title": "Yamalar",
+    "subtitle": "Filodaki eksik işletim sistemi güncellemeleri. Seçtiğiniz güncellemeleri eksik oldukları makinelere kademeli ve bakım penceresine uygun şekilde dağıtın.",
+    "search": "KB, başlık veya etiket ara",
+    "platform": "Platform",
+    "allPlatforms": "Tüm platformlar",
+    "allSeverities": "Tüm önem dereceleri",
+    "machines": "Makine",
+    "select": "Seç",
+    "empty": "Eksik güncelleme yok.",
+    "reboot": "Yeniden başlatma gerektirir",
+    "deployTitle": "{{count}} güncellemeyi dağıt",
+    "deploy": "Dağıtımı başlat",
+    "mixedPlatforms": "Windows ve macOS güncellemeleri aynı aksiyonda dağıtılamaz; tek platform seçin.",
+    "macNote": "macOS'ta yeniden başlatma gerektiren güncellemeler kurulur ama makine kendiliğinden yeniden başlatılmaz. Apple silicon'da işletim sistemi sürüm güncellemeleri MDM gerektirebilir.",
+    "actionName": "Yama: {{list}}"
   }
 }

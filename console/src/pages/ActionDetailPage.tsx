@@ -40,7 +40,7 @@ export function ActionDetailPage() {
   }
   const { action: a, targets } = detail.data;
   const mine = state.status === "authenticated" && a.created_by === state.me.user.id;
-  const kindPerm = a.kind === "run_command" ? "actions.run_command" : "actions.deploy_package";
+  const kindPerm = `actions.${a.kind}`;
 
   async function releaseNext() {
     if (!window.confirm(t("actions.releaseConfirm"))) return;
@@ -144,6 +144,12 @@ export function ActionDetailPage() {
           <h2>{t("actions.detail")}</h2>
         </div>
         <dl className="card-body fields">
+          {a.kind === "deploy_patch" && (
+            <div className="field-row">
+              <dt>{t("actions.patches")}</dt>
+              <dd className="mono small">{a.patches.join(", ")}</dd>
+            </div>
+          )}
           {a.kind === "deploy_package" && (
             <div className="field-row">
               <dt>{t("actions.package")}</dt>

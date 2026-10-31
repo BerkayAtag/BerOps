@@ -1,6 +1,6 @@
 # Katkıda Bulunma
 
-Automation BER'e katkıda bulunmak istediğiniz için teşekkürler. Bu belge geliştirme ortamını ve beklenen çalışma şeklini özetler.
+BerOps'e katkıda bulunmak istediğiniz için teşekkürler. Bu belge geliştirme ortamını ve beklenen çalışma şeklini özetler.
 
 ## Geliştirme ortamı
 

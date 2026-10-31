@@ -17,9 +17,9 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/hostinfo"
-	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/hostinfo"
+	"github.com/BerkayAtag/BerOps/agent/internal/sysres"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 //go:embed scripts/system.ps1

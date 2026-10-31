@@ -22,7 +22,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 
 func TestLoadMissingGivesHelpfulError(t *testing.T) {
 	_, err := Load(t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "ber-agent enroll") {
+	if err == nil || !strings.Contains(err.Error(), "berops-agent enroll") {
 		t.Fatalf("yardımcı hata mesajı beklenirdi: %v", err)
 	}
 }

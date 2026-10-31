@@ -404,7 +404,7 @@ export type TargetStatus =
 export interface Action {
   id: string;
   name: string;
-  kind: "deploy_package" | "run_command";
+  kind: "deploy_package" | "run_command" | "deploy_patch";
   package_id: string | null;
   package_name: string;
   package_version: string;
@@ -425,6 +425,7 @@ export interface Action {
   rollout: Rollout | null;
   paused_reason: string;
   released_stages: number;
+  patches: string[];
 }
 
 export interface Rollout {

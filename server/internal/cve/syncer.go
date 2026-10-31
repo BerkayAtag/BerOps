@@ -250,7 +250,7 @@ func (s *Syncer) get(ctx context.Context, rawURL string, header http.Header) (io
 		for k, v := range header {
 			req.Header[k] = v
 		}
-		req.Header.Set("User-Agent", "automation-ber-cve-sync")
+		req.Header.Set("User-Agent", "berops-cve-sync")
 		resp, err := s.client().Do(req)
 		if err != nil {
 			lastErr = err

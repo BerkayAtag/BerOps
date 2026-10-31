@@ -5,13 +5,43 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.0.0] — 2026-10-31
+
+İlk kararlı sürüm: spesifikasyondaki sekiz aşamanın tümü. Ürün adı **BerOps**.
+
+### Eklendi — Aşama 8: Yama dağıtımı, paketleme ve yayın
+
+- **İşletim sistemi yaması dağıtımı:**
+  - `deploy_patch` aksiyon türü ve `actions.deploy_patch` izni.
+  - Yamalar sayfasında filo geneli eksik güncellemeler ve kademeli, pencereye uygun dağıtım.
+  - Windows'ta Windows Update Agent betiği (3010 başarılı sayılır), macOS'ta `softwareupdate`.
+  - Kurulumdan sonra ajan tam tarama yapar.
+- **Windows MSI'ları (WiX v5, Yayımcı: Berkay Atağ):**
+  - **Sunucu:** Sihirbaz (PostgreSQL, portlar, ad, TLS, ilk yönetici), servis, güvenlik duvarı.
+  - **Ajan:** Sessiz kurulum (`SERVER`, `REGKEY`, `CAHASH`), temiz kaldırma.
+- **macOS `.pkg`:** Universal ikili dosya, launchd daemon'ı, MDM tercihleri, PPPC profili, kaldırma betiği, isteğe bağlı imza ve notarization.
+- **Docker:** Sunucu imajı ve `deploy/docker-compose.yml`; `BER_HOSTNAMES` ortam değişkeni.
+- **CI:** MSI'ları kurup Yayımcı alanını, servisleri, konsol girişini ve temiz kaldırmayı doğrulayan iş; macOS paket kurulum ve kaldırma işi; Docker derlemesi.
+- **Release iş akışı (`v*`):** MSI'lar, pkg, Linux sunucu ve relay arşivleri, çok mimarili GHCR imajı, `SHA256SUMS.txt`, imza durumunu belirten sürüm notu.
+- **`berops-server setup`:** Yapılandırma, migration ve ilk yönetici.
+- Sunucu ve ajan Windows'ta SCM servisi olarak çalışır (`shared/service`).
+- Konsol: Ajan indir sayfası (kayıt anahtarları ve kurulum komutları), Yamalar sayfası.
+- Tanıtım sayfası (`landing/`) ve GitHub Pages iş akışı.
+- Belgeler: sunucu, Windows ajanı ve macOS ajanı kurulumu, güvenlik modeli; `docs/ad.md` → `docs/ad-entegrasyonu.md`.
+
+### Değişti
+
+- Yapılandırılmamış ajan çıkmak yerine yapılandırmayı bekler (anahtarsız kurulum, sonradan GPO/MDM yapılandırması).
+- Sanal ajanlar GUID biçimli güncelleme kimlikleri üretir.
+- Konsolun ürettiği kurulum komutları yeni paket adlarını ve yollarını kullanır.
+
 ### Eklendi — Aşama 7: Relay, bakım pencereleri, kademeli dağıtım, bildirimler
 
-- **BER Relay (`ber-relay`):**
+- **BerOps Relay (`berops-relay`):**
   - Ajan TLS'ini sonlandırır; ajan sertifikasını doğrulayıp `X-Ber-Agent-Cert` ile sunucuya iletir.
   - Paketleri sunucu yetkisi aldıktan sonra bir kez indirir, SHA-256 ile doğrular, önbellekten hız sınırlı ve Range destekli verir.
   - LRU önbellek temizliği yapar.
-- Sunucu: relay sertifikaları (`ber-server relay create`), relay listesi ve iptali, relay'e özel paket dosyası uç noktası.
+- Sunucu: relay sertifikaları (`berops-server relay create`), relay listesi ve iptali, relay'e özel paket dosyası uç noktası.
 - **Bakım pencereleri:** Haftanın günleri, başlangıç, süre, saat dilimi ve OU kapsamı. "Bakım penceresine uy" seçilen aksiyonlar yalnızca pencere içinde verilir.
 - **Kademeli dağıtım:**
   - 2–5 aşama; sihirbazda pilot ve halka hazır ayarları.
@@ -91,7 +121,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
   - Artımlı NVD eşitlemesi, hız sınırına uyum ve yeniden deneme.
   - Değişen MSRC belgelerinin yeniden işlenmesi.
   - İnternet erişimi olmayan ortamlar için çevrimdışı klasör modu.
-  - `ber-server cve sync` komutu.
+  - `berops-server cve sync` komutu.
 - Korelasyon motoru:
   - Windows yapı numarası ↔ MSRC `FixedBuild` karşılaştırması.
   - Eksik KB → CVE eşlemesi.
@@ -126,7 +156,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - Sunucu: `machine_inventory`, `installed_patches`, `missing_patches`, `installed_apps`, `agent_settings` tabloları; gzip envanter yükleme; Range destekli katalog indirme; heartbeat'te ayar ve tarama talimatları.
 - Konsol API'si: filtreli/sıralı/sayfalı makine listesi, filo özeti, makine detayı ve alt listeleri, toplu yeniden tarama, ajan ayarları.
 - Konsol: makine listesi (arama, filtre, sıralama, sayfalama, toplu seçim), makine detay sayfası, gösterge panelinde uyumluluk ve dağılım, ajan ayarları sayfası.
-- `ber-agent inventory` tanılama komutu; simülatöre gerçekçi sahte envanter.
+- `berops-agent inventory` tanılama komutu; simülatöre gerçekçi sahte envanter.
 
 ### Eklendi — Aşama 1: Temel altyapı
 
@@ -139,8 +169,11 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - Konsol API'si: giriş/çıkış, oturum (Argon2id, `__Host-` çerez, CSRF, boşta kalma zaman aşımı), giriş hız sınırı, güvenlik başlıkları (CSP, HSTS).
 - Granüler izinler ve Admin / Teknisyen / Salt Okunur rolleri; reddedilen istekler denetim kaydına yazılır.
 - OpenAPI 3.1 tanımı (`/api/openapi.yaml`).
-- `ber-server` komutları: `serve`, `migrate`, `admin create`, `regkey create`, `version`.
-- `ber-agent` (Windows servisi desteğiyle): `configure`, `enroll`, `run`, `status`, `version`; jitter ve üstel geri çekilmeli heartbeat, döngüsel log dosyaları.
-- `ber-agentsim`: çok sayıda sanal ajanı simüle eden test aracı.
+- `berops-server` komutları: `serve`, `migrate`, `admin create`, `regkey create`, `version`.
+- `berops-agent` (Windows servisi desteğiyle): `configure`, `enroll`, `run`, `status`, `version`; jitter ve üstel geri çekilmeli heartbeat, döngüsel log dosyaları.
+- `berops-agentsim`: çok sayıda sanal ajanı simüle eden test aracı.
 - Konsol: giriş ekranı, gösterge paneli iskeleti, Türkçe/İngilizce, açık/karanlık tema; ortak tasarım token'ları (`design/tokens.css`).
 - GitHub Actions: Go lint/test/govulncheck, Windows ve macOS ajan testleri, çapraz derleme, konsol lint/test/derleme, CodeQL, bağımlılık incelemesi, Dependabot.
+
+[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/BerkayAtag/BerOps/releases/tag/v1.0.0

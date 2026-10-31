@@ -1,4 +1,4 @@
-# Automation BER — Windows sistem bilgisi: kurulu KB'ler, donanım, etki alanı, son açılış
+# BerOps — Windows sistem bilgisi: kurulu KB'ler, donanım, etki alanı, son açılış
 # ve (istenirse) Microsoft Store paketleri. Çıktı tek satır JSON'dur.
 $ErrorActionPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8

@@ -23,7 +23,8 @@ export function Logo({ variant = "default", showText = true }: LogoProps) {
       </svg>
       {showText && (
         <span className="logo-text">
-          <span className="logo-text-light">Automation</span> <strong>BER</strong>
+          <span className="logo-text-light">Ber</span>
+          <strong>Ops</strong>
         </span>
       )}
     </span>

@@ -26,9 +26,9 @@ const fontFamily = "go"
 // WritePDF, A4 yatay PDF rapor yazar. Türkçe karakterler için Go yazı tipi gömülür.
 func WritePDF(w io.Writer, t *Table) error {
 	pdf := fpdf.New("L", "mm", "A4", "")
-	pdf.SetCreator("Automation BER", true)
+	pdf.SetCreator("BerOps", true)
 	pdf.SetTitle(t.Title, true)
-	pdf.SetAuthor("Automation BER", true)
+	pdf.SetAuthor("BerOps", true)
 	pdf.AddUTF8FontFromBytes(fontFamily, "", goregular.TTF)
 	pdf.AddUTF8FontFromBytes(fontFamily, "B", gobold.TTF)
 	pdf.SetMargins(12, 14, 12)
@@ -47,7 +47,7 @@ func WritePDF(w io.Writer, t *Table) error {
 		pdf.SetY(-10)
 		pdf.SetFont(fontFamily, "", 8)
 		pdf.SetTextColor(textMuted[0], textMuted[1], textMuted[2])
-		pdf.CellFormat(contentW/2, 5, "Automation BER · "+t.Title, "", 0, "L", false, 0, "")
+		pdf.CellFormat(contentW/2, 5, "BerOps · "+t.Title, "", 0, "L", false, 0, "")
 		pdf.CellFormat(contentW/2, 5, fmt.Sprintf("%s %d / {nb}", tr(t.Lang, "page"), pdf.PageNo()), "", 0, "R", false, 0, "")
 	})
 

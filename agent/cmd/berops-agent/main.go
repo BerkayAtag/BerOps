@@ -1,10 +1,10 @@
-// ber-agent, Automation BER istemci ajanıdır (Windows servisi / macOS launchd daemon'ı).
+// berops-agent, BerOps istemci ajanıdır (Windows servisi / macOS launchd daemon'ı).
 //
-//	ber-agent configure -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
-//	ber-agent enroll    -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
-//	ber-agent run
-//	ber-agent status
-//	ber-agent version
+//	berops-agent configure -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
+//	berops-agent enroll    -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
+//	berops-agent run
+//	berops-agent status
+//	berops-agent version
 package main
 
 import (
@@ -26,20 +26,20 @@ import (
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/client"
-	"github.com/BerkayAtag/automation-ber/agent/internal/config"
-	"github.com/BerkayAtag/automation-ber/agent/internal/hostinfo"
-	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
-	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
-	"github.com/BerkayAtag/automation-ber/agent/internal/jobs"
-	"github.com/BerkayAtag/automation-ber/agent/internal/paths"
-	"github.com/BerkayAtag/automation-ber/agent/internal/remote"
-	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/service"
-	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
-	"github.com/BerkayAtag/automation-ber/shared/version"
+	"github.com/BerkayAtag/BerOps/agent/internal/client"
+	"github.com/BerkayAtag/BerOps/agent/internal/config"
+	"github.com/BerkayAtag/BerOps/agent/internal/hostinfo"
+	"github.com/BerkayAtag/BerOps/agent/internal/identity"
+	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
+	"github.com/BerkayAtag/BerOps/agent/internal/jobs"
+	"github.com/BerkayAtag/BerOps/agent/internal/paths"
+	"github.com/BerkayAtag/BerOps/agent/internal/remote"
+	"github.com/BerkayAtag/BerOps/agent/internal/runner"
+	"github.com/BerkayAtag/BerOps/agent/internal/scanner"
+	"github.com/BerkayAtag/BerOps/agent/internal/sysres"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/service"
+	"github.com/BerkayAtag/BerOps/shared/version"
 )
 
 func main() {
@@ -50,7 +50,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `Kullanım: ber-agent <komut> [seçenekler]
+	fmt.Fprint(os.Stderr, `Kullanım: berops-agent <komut> [seçenekler]
 
 Komutlar:
   run        Ajanı çalıştırır (servis olarak ya da ön planda)
@@ -85,7 +85,7 @@ func run(args []string) error {
 	case "inventory":
 		return cmdInventory(args)
 	case "version":
-		fmt.Printf("ber-agent %s (%s)\n", version.Version, version.Commit)
+		fmt.Printf("berops-agent %s (%s)\n", version.Version, version.Commit)
 		return nil
 	case "help", "-h", "--help":
 		usage()
@@ -205,7 +205,9 @@ func cmdRun(args []string) error {
 		return err
 	}
 	cfg, err := config.Load(*dataDir)
-	if err != nil {
+	// Yapılandırılmamış ajan çıkmaz, yapılandırmayı bekler: kurulum paketi anahtarsız
+	// kurulduğunda servis yine başlar ve yapılandırma sonradan yazılabilir.
+	if err != nil && !errors.Is(err, config.ErrNotConfigured) {
 		return err
 	}
 	asService := service.IsService()
@@ -223,11 +225,36 @@ func cmdRun(args []string) error {
 		return err
 	}
 	if asService {
-		return service.Run(body)
+		return service.Run(service.AgentName, body)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return body(ctx)
+}
+
+// configPollInterval, kayıt anahtarı beklenirken yapılandırmanın yeniden okunma aralığıdır.
+var configPollInterval = 30 * time.Second
+
+// waitForRegistrationKey, kayıt anahtarı içeren bir yapılandırma yazılana kadar bekler.
+// Bağlam iptal edilirse boş yapılandırmayla döner.
+func waitForRegistrationKey(ctx context.Context, dataDir string, log *slog.Logger) (config.Config, error) {
+	log.Warn("ajan kayıtlı değil ve kayıt anahtarı yok; yapılandırma bekleniyor",
+		"komut", "berops-agent configure -server <adres> -key <anahtar> -ca-hash <parmak izi>")
+	for {
+		select {
+		case <-ctx.Done():
+			return config.Config{}, nil
+		case <-time.After(configPollInterval):
+		}
+		cfg, err := config.Load(dataDir)
+		switch {
+		case err == nil && cfg.RegistrationKey != "":
+			log.Info("yapılandırma bulundu, kayıt deneniyor", "sunucu", cfg.ServerURL)
+			return cfg, nil
+		case err != nil && !errors.Is(err, config.ErrNotConfigured):
+			return cfg, err
+		}
+	}
 }
 
 func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog.Logger) error {
@@ -239,7 +266,9 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	st, cert, err := ids.Load()
 	for errors.Is(err, identity.ErrNotEnrolled) {
 		if cfg.RegistrationKey == "" {
-			return errors.New("ajan kayıtlı değil ve kayıt anahtarı yapılandırılmamış")
+			if cfg, err = waitForRegistrationKey(ctx, dataDir, log); err != nil || ctx.Err() != nil {
+				return err
+			}
 		}
 		// Kayıt başarısız olursa (sunucu kapalı, ağ yok) üstel geri çekilmeyle yeniden denenir.
 		for attempt := 1; ; attempt++ {
@@ -280,7 +309,14 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	go sc.Run(ctx)
 
 	jr := jobs.New(filepath.Join(dataDir, "jobs"), c, log, st.AgentID, ids.ActionKey)
-	jr.OnFinished = func(*protocol.Job) { sc.RequestDeltaScan() }
+	jr.OnFinished = func(j *protocol.Job) {
+		// Yama kurulumundan sonra eksik yama listesi de yenilenmeli: tam tarama.
+		if j.Kind == protocol.JobDeployPatch {
+			sc.RequestFullScan()
+			return
+		}
+		sc.RequestDeltaScan()
+	}
 	go jr.Run(ctx)
 
 	rs := remote.New(c, log, st.AgentID, ids.ActionKey)

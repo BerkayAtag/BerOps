@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/BerkayAtag/automation-ber/server/internal/ad"
+	"github.com/BerkayAtag/BerOps/server/internal/ad"
 )
 
 const (
 	izmirOU  = "OU=İzmir,OU=Şubeler,DC=corp,DC=example"
 	ankaraOU = "OU=Ankara,OU=Şubeler,DC=corp,DC=example"
-	adminGrp = "CN=BER-Admins,OU=Gruplar,DC=corp,DC=example"
-	techGrp  = "CN=BER-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example"
+	adminGrp = "CN=BerOps-Admins,OU=Gruplar,DC=corp,DC=example"
+	techGrp  = "CN=BerOps-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example"
 )
 
 // fakeDirectory, AD yerine kullanılan sahte dizindir.

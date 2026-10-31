@@ -2,7 +2,7 @@
 
 package remote
 
-import "github.com/BerkayAtag/automation-ber/shared/protocol"
+import "github.com/BerkayAtag/BerOps/shared/protocol"
 
 // RegistryList, kayıt defteri yalnızca Windows'ta vardır.
 func RegistryList(string) (*protocol.RegistryKey, error) { return nil, ErrUnsupported }

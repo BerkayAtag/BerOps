@@ -9,10 +9,10 @@ import (
 
 func TestResolveRole(t *testing.T) {
 	maps := []Mapping{
-		{GroupDN: "CN=BER-Admins,OU=Gruplar,DC=corp,DC=example", Role: "admin"},
-		{GroupDN: "CN=BER-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example", Role: "technician", ScopeOUs: []string{"OU=İzmir,OU=Şubeler,DC=corp,DC=example"}},
-		{GroupDN: "CN=BER-Ankara-Teknik,OU=Gruplar,DC=corp,DC=example", Role: "technician", ScopeOUs: []string{"OU=Ankara,OU=Şubeler,DC=corp,DC=example"}},
-		{GroupDN: "CN=BER-Izleyici,OU=Gruplar,DC=corp,DC=example", Role: "readonly"},
+		{GroupDN: "CN=BerOps-Admins,OU=Gruplar,DC=corp,DC=example", Role: "admin"},
+		{GroupDN: "CN=BerOps-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example", Role: "technician", ScopeOUs: []string{"OU=İzmir,OU=Şubeler,DC=corp,DC=example"}},
+		{GroupDN: "CN=BerOps-Ankara-Teknik,OU=Gruplar,DC=corp,DC=example", Role: "technician", ScopeOUs: []string{"OU=Ankara,OU=Şubeler,DC=corp,DC=example"}},
+		{GroupDN: "CN=BerOps-Izleyici,OU=Gruplar,DC=corp,DC=example", Role: "readonly"},
 	}
 	cases := []struct {
 		groups []string
@@ -20,10 +20,10 @@ func TestResolveRole(t *testing.T) {
 		scope  []string
 		ok     bool
 	}{
-		{[]string{"cn=ber-admins,ou=gruplar,dc=corp,dc=example", "CN=BER-Izleyici,OU=Gruplar,DC=corp,DC=example"}, "admin", []string{}, true},
-		{[]string{"CN=BER-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example", "CN=BER-Ankara-Teknik,OU=Gruplar,DC=corp,DC=example"}, "technician",
+		{[]string{"cn=berops-admins,ou=gruplar,dc=corp,dc=example", "CN=BerOps-Izleyici,OU=Gruplar,DC=corp,DC=example"}, "admin", []string{}, true},
+		{[]string{"CN=BerOps-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example", "CN=BerOps-Ankara-Teknik,OU=Gruplar,DC=corp,DC=example"}, "technician",
 			[]string{"OU=Ankara,OU=Şubeler,DC=corp,DC=example", "OU=İzmir,OU=Şubeler,DC=corp,DC=example"}, true},
-		{[]string{"CN=BER-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example", "CN=BER-Izleyici,OU=Gruplar,DC=corp,DC=example"}, "technician",
+		{[]string{"CN=BerOps-Izmir-Teknik,OU=Gruplar,DC=corp,DC=example", "CN=BerOps-Izleyici,OU=Gruplar,DC=corp,DC=example"}, "technician",
 			[]string{"OU=İzmir,OU=Şubeler,DC=corp,DC=example"}, true},
 		{[]string{"CN=Muhasebe,DC=corp,DC=example"}, "", nil, false},
 	}

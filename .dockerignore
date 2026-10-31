@@ -1,0 +1,12 @@
+.git
+.github
+.claude
+**/node_modules
+console/dist
+bin
+dist
+data
+docs
+landing
+installers
+**/*.log

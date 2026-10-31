@@ -70,9 +70,9 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: |
-          go build -trimpath -o /dev/null ./agent/cmd/ber-agent
-          go build -trimpath -o /dev/null ./server/cmd/ber-server
-          go build -trimpath -o /dev/null ./relay/cmd/ber-relay
+          go build -trimpath -o /dev/null ./agent/cmd/berops-agent
+          go build -trimpath -o /dev/null ./server/cmd/berops-server
+          go build -trimpath -o /dev/null ./relay/cmd/berops-relay
 
   agent-native:
     name: Ajan testleri (${{ matrix.os }})
@@ -90,7 +90,7 @@ jobs:
           BER_LIVE_INVENTORY: "1"
         run: go test -v -run 'TestLiveCollect' ./agent/internal/inventory/ && go test ./agent/... ./shared/...
       - name: Envanter tanılama komutu
-        run: go run ./agent/cmd/ber-agent inventory
+        run: go run ./agent/cmd/berops-agent inventory
 
   console:
     name: Konsol (lint, test, derleme)
@@ -114,3 +114,86 @@ jobs:
         run: npm run build
       - name: Bağımlılık denetimi
         run: npm audit --audit-level=high --omit=dev
+
+  installers-windows:
+    name: Windows MSI (derleme, kurulum, kaldırma)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+      - name: Konsol
+        working-directory: console
+        run: npm ci && npm run build
+      - name: İkili dosyalar
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.0-ci" -o dist/berops-agent.exe ./agent/cmd/berops-agent
+          go build -trimpath -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.0-ci" -o dist/berops-server.exe ./server/cmd/berops-server
+      - name: MSI paketleri
+        shell: pwsh
+        run: ./installers/windows/build.ps1 -Version 0.0.0-ci -AgentExe dist/berops-agent.exe -ServerExe dist/berops-server.exe -ConsoleDir console/dist -OutDir dist
+      - name: PostgreSQL (runner imajındaki)
+        shell: pwsh
+        run: |
+          $svc = Get-Service -Name 'postgresql*'
+          Set-Service $svc.Name -StartupType Manual
+          Start-Service $svc.Name
+      - name: Kurulum, Yayımcı alanı ve temiz kaldırma doğrulaması
+        shell: pwsh
+        run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-0.0.0-ci-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-0.0.0-ci-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
+      - name: Kurulum günlükleri
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msi-logs
+          path: "*.log"
+
+  installers-macos:
+    name: macOS pkg (derleme, kurulum, kaldırma)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Universal ikili dosya
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          LD="-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.0-ci"
+          GOARCH=arm64 go build -trimpath -ldflags "$LD" -o dist/berops-agent-arm64 ./agent/cmd/berops-agent
+          GOARCH=amd64 go build -trimpath -ldflags "$LD" -o dist/berops-agent-amd64 ./agent/cmd/berops-agent
+          lipo -create -output dist/berops-agent dist/berops-agent-arm64 dist/berops-agent-amd64
+          lipo -archs dist/berops-agent
+      - name: Paket
+        run: installers/macos/build-pkg.sh 0.0.0-ci dist/berops-agent dist/BerOps-Agent-0.0.0-ci.pkg
+      - name: Kurulum ve daemon doğrulaması
+        run: |
+          sudo installer -pkg dist/BerOps-Agent-0.0.0-ci.pkg -target /
+          sleep 3
+          sudo launchctl print system/io.github.berkayatag.berops.agent | grep -E "state = running"
+          /usr/local/bin/berops-agent version
+          pkgutil --pkg-info io.github.berkayatag.berops.agent.pkg
+      - name: Temiz kaldırma
+        run: |
+          sudo /usr/local/bin/berops-agent-uninstall
+          ! sudo launchctl print system/io.github.berkayatag.berops.agent 2>/dev/null
+          test ! -e /usr/local/bin/berops-agent
+          test ! -e "/Library/Application Support/BerOps"
+          ! pkgutil --pkg-info io.github.berkayatag.berops.agent.pkg 2>/dev/null
+
+  docker:
+    name: Sunucu Docker imajı
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: İmaj derlemesi
+        run: docker build -f deploy/Dockerfile -t berops-server:ci .

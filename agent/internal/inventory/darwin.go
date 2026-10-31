@@ -13,9 +13,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/hostinfo"
-	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/hostinfo"
+	"github.com/BerkayAtag/BerOps/agent/internal/sysres"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 const softwareUpdateTimeout = 30 * time.Minute

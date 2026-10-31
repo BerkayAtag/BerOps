@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 func (e *env) postInventory(c *http.Client, rep protocol.InventoryReport, gz bool) *http.Response {

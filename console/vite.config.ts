@@ -2,7 +2,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-// Geliştirmede API istekleri yerel ber-server'a (https://localhost:8443) aktarılır.
+// Geliştirmede API istekleri yerel berops-server'a (https://localhost:8443) aktarılır.
 // Sunucu iç CA'dan sertifika ürettiği için vekil sertifikayı doğrulamaz (yalnızca geliştirme).
 const apiTarget = process.env.BER_API_URL ?? "https://localhost:8443";
 

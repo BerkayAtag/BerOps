@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/BerkayAtag/automation-ber/agent/internal/client"
-	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/BerOps/agent/internal/client"
+	"github.com/BerkayAtag/BerOps/shared/protocol"
 )
 
 const (

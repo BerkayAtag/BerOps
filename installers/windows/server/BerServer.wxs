@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  BerOps Server — Windows Server MSI (WiX Toolset v5).
+
+  Sihirbaz: kurulum dizini → sunucu ayarları (PostgreSQL, portlar, ad, TLS) → ilk yönetici.
+  Sessiz kurulum:
+    msiexec /i BerOps-Server.msi /qn DATABASE_URL="postgres://ber:...@db:5432/ber" ^
+            HOSTNAMES=ber.ornek.local ADMIN_USERNAME=admin ADMIN_PASSWORD="..."
+
+  Kurulum, "berops-server setup" ile yapılandırmayı %ProgramData%\BerOps\Server\berops-server.yaml
+  dosyasına yazar, migration'ları uygular ve ilk yöneticiyi oluşturur. Veri klasörü (iç CA,
+  paketler) kaldırmada korunur.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:fw="http://wixtoolset.org/schemas/v4/wxs/firewall">
+  <Package Name="BerOps Server"
+           Manufacturer="Berkay Atağ"
+           Version="$(Version)"
+           UpgradeCode="CCA3AC1A-22B1-4863-AB28-2C1ACDF54640"
+           Scope="perMachine"
+           Language="1055"
+           Codepage="1254"
+           InstallerVersion="500">
+    <SummaryInformation Description="BerOps Server" Manufacturer="Berkay Atağ" Codepage="1254" />
+
+    <MajorUpgrade DowngradeErrorMessage="Bu ürünün daha yeni bir sürümü zaten kurulu." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ARPCONTACT" Value="Berkay Atağ" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/BerkayAtag/BerOps" />
+    <Property Id="ARPURLINFOABOUT" Value="https://berkayatag.github.io/BerOps/" />
+    <!-- ARPNOMODIFY, WixUI_InstallDir tarafından zaten tanımlanır. -->
+
+    <Property Id="DATABASE_URL" Secure="yes" Hidden="yes" />
+    <Property Id="CONSOLE_PORT" Value="8443" Secure="yes" />
+    <Property Id="AGENT_PORT" Value="52311" Secure="yes" />
+    <Property Id="HOSTNAMES" Secure="yes" />
+    <Property Id="TLS_CERT" Secure="yes" />
+    <Property Id="TLS_KEY" Secure="yes" />
+    <Property Id="ADMIN_USERNAME" Value="admin" Secure="yes" />
+    <Property Id="ADMIN_PASSWORD" Secure="yes" Hidden="yes" />
+    <Property Id="ADMIN_PASSWORD_CONFIRM" Hidden="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ManufacturerFolder" Name="BerOps">
+        <Directory Id="INSTALLFOLDER" Name="Server">
+          <Directory Id="CONSOLEFOLDER" Name="console" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="ServerComponents" Directory="INSTALLFOLDER">
+      <Component Id="ServerService" Bitness="always64">
+        <File Id="BerServerExe" Name="berops-server.exe" Source="$(ServerExe)" KeyPath="yes" />
+        <ServiceInstall Id="BerServerService"
+                        Name="BerOpsServer"
+                        DisplayName="BerOps Server"
+                        Description="BerOps yama yönetimi sunucusu (konsol ve ajan API'si)"
+                        Type="ownProcess"
+                        Start="auto"
+                        Account="LocalSystem"
+                        ErrorControl="normal"
+                        Arguments="serve -config &quot;[CommonAppDataFolder]BerOps\Server\berops-server.yaml&quot;"
+                        Vital="yes">
+          <util:ServiceConfig FirstFailureActionType="restart"
+                              SecondFailureActionType="restart"
+                              ThirdFailureActionType="restart"
+                              RestartServiceDelayInSeconds="30"
+                              ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <ServiceControl Id="BerServerServiceControl" Name="BerOpsServer" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+        <fw:FirewallException Id="BerConsolePort" Name="BerOps Console" Port="[CONSOLE_PORT]" Protocol="tcp" Scope="any" />
+        <fw:FirewallException Id="BerAgentPort" Name="BerOps Agent API" Port="[AGENT_PORT]" Protocol="tcp" Scope="any" />
+      </Component>
+      <Files Directory="CONSOLEFOLDER" Include="$(ConsoleDir)\**" />
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="BerOps Server" Level="1">
+      <ComponentGroupRef Id="ServerComponents" />
+    </Feature>
+
+    <!-- İlk kurulum / yükseltme: yapılandırma, migration, ilk yönetici. Parolalar günlüğe yazılmaz. -->
+    <SetProperty Id="SetupServer"
+                 Value="&quot;[INSTALLFOLDER]berops-server.exe&quot; setup -config &quot;[CommonAppDataFolder]BerOps\Server\berops-server.yaml&quot; -data-dir &quot;[CommonAppDataFolder]BerOps\Server\data&quot; -database-url &quot;[DATABASE_URL]&quot; -console-port [CONSOLE_PORT] -agent-port [AGENT_PORT] -hostnames &quot;[HOSTNAMES]&quot; -tls-cert &quot;[TLS_CERT]&quot; -tls-key &quot;[TLS_KEY]&quot; -static-dir &quot;[CONSOLEFOLDER].&quot; -admin-username &quot;[ADMIN_USERNAME]&quot; -admin-password &quot;[ADMIN_PASSWORD]&quot;"
+                 Before="SetupServer" Sequence="execute"
+                 Condition="NOT REMOVE" />
+    <CustomAction Id="SetupServer" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Return="check" Impersonate="no" HideTarget="yes" />
+
+    <InstallExecuteSequence>
+      <Custom Action="SetupServer" Before="StartServices" Condition="NOT REMOVE" />
+    </InstallExecuteSequence>
+
+    <!-- Sihirbaz: WixUI_InstallDir akışına iki ayar penceresi eklenir. -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(LicenseRtf)" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UI>
+      <ui:WixUI Id="WixUI_InstallDir" />
+
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="BerSettingsDlg" Order="10" Condition="WIXUI_INSTALLDIR_VALID=&quot;1&quot;" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="BerAdminDlg" Order="10" Condition="NOT Installed" />
+
+      <Dialog Id="BerSettingsDlg" Width="370" Height="270" Title="BerOps Server Kurulumu">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Sunucu ayarları" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Veritabanı, portlar, sunucu adı ve konsol sertifikası" />
+
+        <Control Id="DbLabel" Type="Text" X="20" Y="52" Width="330" Height="10" NoPrefix="yes" Text="PostgreSQL bağlantı adresi (postgres://kullanıcı:parola@sunucu:5432/ber):" />
+        <Control Id="DbEdit" Type="Edit" X="20" Y="63" Width="330" Height="17" Property="DATABASE_URL" Password="yes" />
+        <Control Id="ConsolePortLabel" Type="Text" X="20" Y="86" Width="100" Height="10" Text="Konsol portu:" />
+        <Control Id="ConsolePortEdit" Type="Edit" X="20" Y="97" Width="60" Height="17" Property="CONSOLE_PORT" Integer="yes" />
+        <Control Id="AgentPortLabel" Type="Text" X="130" Y="86" Width="100" Height="10" Text="Ajan portu:" />
+        <Control Id="AgentPortEdit" Type="Edit" X="130" Y="97" Width="60" Height="17" Property="AGENT_PORT" Integer="yes" />
+        <Control Id="HostLabel" Type="Text" X="20" Y="120" Width="330" Height="10" NoPrefix="yes" Text="Sunucu DNS adları (virgülle; ajanların bağlanacağı ad ilk sırada):" />
+        <Control Id="HostEdit" Type="Edit" X="20" Y="131" Width="330" Height="17" Property="HOSTNAMES" />
+        <Control Id="CertLabel" Type="Text" X="20" Y="154" Width="330" Height="10" NoPrefix="yes" Text="Konsol TLS sertifikası (PEM; boşsa iç CA ile kendinden imzalı üretilir):" />
+        <Control Id="CertEdit" Type="Edit" X="20" Y="165" Width="330" Height="17" Property="TLS_CERT" />
+        <Control Id="KeyLabel" Type="Text" X="20" Y="188" Width="330" Height="10" NoPrefix="yes" Text="Sertifikanın özel anahtarı (PEM):" />
+        <Control Id="KeyEdit" Type="Edit" X="20" Y="199" Width="330" Height="17" Property="TLS_KEY" />
+
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&lt; Geri">
+          <Publish Event="NewDialog" Value="InstallDirDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="İleri &gt;">
+          <Publish Event="NewDialog" Value="BerAdminDlg" Condition="DATABASE_URL OR Installed" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="İptal">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+
+      <Dialog Id="BerAdminDlg" Width="370" Height="270" Title="BerOps Server Kurulumu">
+        <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="WixUI_Bmp_Banner" />
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}İlk yönetici hesabı" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Konsola ilk girişte kullanılacak yerel yönetici (kurtarma hesabı)" />
+
+        <Control Id="UserLabel" Type="Text" X="20" Y="56" Width="330" Height="10" Text="Kullanıcı adı:" />
+        <Control Id="UserEdit" Type="Edit" X="20" Y="67" Width="200" Height="17" Property="ADMIN_USERNAME" />
+        <Control Id="PassLabel" Type="Text" X="20" Y="92" Width="330" Height="10" Text="Parola (en az 12 karakter):" />
+        <Control Id="PassEdit" Type="Edit" X="20" Y="103" Width="200" Height="17" Property="ADMIN_PASSWORD" Password="yes" />
+        <Control Id="Pass2Label" Type="Text" X="20" Y="128" Width="330" Height="10" Text="Parola (tekrar):" />
+        <Control Id="Pass2Edit" Type="Edit" X="20" Y="139" Width="200" Height="17" Property="ADMIN_PASSWORD_CONFIRM" Password="yes" />
+        <Control Id="Note" Type="Text" X="20" Y="166" Width="330" Height="40" NoPrefix="yes" Text="Kullanıcı varsa (yükseltme) bu adım atlanır. Parolalar eşleşmeden devam edilemez. Active Directory girişi kurulumdan sonra konsoldan yapılandırılır." />
+
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+        <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&lt; Geri">
+          <Publish Event="NewDialog" Value="BerSettingsDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="İleri &gt;">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Condition="Installed OR (ADMIN_USERNAME AND ADMIN_PASSWORD AND ADMIN_PASSWORD = ADMIN_PASSWORD_CONFIRM)" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="İptal">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+      </Dialog>
+    </UI>
+  </Package>
+</Wix>
