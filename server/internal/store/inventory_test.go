@@ -207,7 +207,7 @@ func TestListMachinesFiltered(t *testing.T) {
 		t.Errorf("yeni kaydolan makineler çevrimiçi sayılmalı: %d", total)
 	}
 
-	sum, err := s.GetFleetSummary(ctx, now, time.Hour)
+	sum, err := s.GetFleetSummary(ctx, now, time.Hour, nil)
 	if err != nil || sum.Total != 3 || sum.Windows != 2 || sum.MacOS != 1 || sum.MissingTotal != 3 {
 		t.Errorf("filo özeti: %+v %v", sum, err)
 	}

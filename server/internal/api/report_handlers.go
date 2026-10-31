@@ -141,7 +141,7 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request, sess *stor
 	var err error
 	switch kind {
 	case reportCompliance:
-		err = s.buildComplianceReport(r, t, platform)
+		err = s.buildComplianceReport(r, t, platform, sess.User.Scope())
 	case reportVulns:
 		f, _, _, ok := vulnFilterFromQuery(r)
 		if !ok {
@@ -154,6 +154,7 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request, sess *stor
 		if f.KEV {
 			filters = append(filters, rt(lang, "kev"))
 		}
+		f.Scope = sess.User.Scope()
 		err = s.buildVulnReport(r, t, f)
 	case reportMissing:
 		sev := q.Get("severity")
@@ -166,13 +167,13 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request, sess *stor
 		if sev != "" {
 			filters = append(filters, rt(lang, "severity")+": "+rt(lang, "sev."+sev))
 		}
-		err = s.buildMissingReport(r, t, platform, sev)
+		err = s.buildMissingReport(r, t, platform, sev, sess.User.Scope())
 	case reportApps:
 		search := strings.TrimSpace(q.Get("q"))
 		if search != "" {
 			filters = append(filters, "“"+search+"”")
 		}
-		err = s.buildAppsReport(r, t, platform, search)
+		err = s.buildAppsReport(r, t, platform, search, sess.User.Scope())
 	default:
 		writeError(w, http.StatusNotFound, codeNotFound, "Rapor bulunamadı")
 		return
@@ -206,10 +207,10 @@ func (s *Server) handleReport(w http.ResponseWriter, r *http.Request, sess *stor
 	_, _ = w.Write(buf.Bytes())
 }
 
-func (s *Server) buildComplianceReport(r *http.Request, t *report.Table, platform string) error {
+func (s *Server) buildComplianceReport(r *http.Request, t *report.Table, platform string, scope []string) error {
 	lang := t.Lang
 	items, _, err := s.store.ListMachinesFiltered(r.Context(), store.MachineFilter{
-		Platform: platform, Sort: "hostname", Unlimited: true, Now: s.now(), OnlineWindow: s.onlineWindow(),
+		Platform: platform, Sort: "hostname", Unlimited: true, Now: s.now(), OnlineWindow: s.onlineWindow(), Scope: scope,
 	})
 	if err != nil {
 		return err
@@ -311,9 +312,9 @@ func (s *Server) buildVulnReport(r *http.Request, t *report.Table, f store.VulnF
 	return nil
 }
 
-func (s *Server) buildMissingReport(r *http.Request, t *report.Table, platform, severity string) error {
+func (s *Server) buildMissingReport(r *http.Request, t *report.Table, platform, severity string, scope []string) error {
 	lang := t.Lang
-	rows, err := s.store.ReportMissingPatches(r.Context(), platform, severity)
+	rows, err := s.store.ReportMissingPatches(r.Context(), platform, severity, scope)
 	if err != nil {
 		return err
 	}
@@ -346,9 +347,9 @@ func (s *Server) buildMissingReport(r *http.Request, t *report.Table, platform, 
 	return nil
 }
 
-func (s *Server) buildAppsReport(r *http.Request, t *report.Table, platform, search string) error {
+func (s *Server) buildAppsReport(r *http.Request, t *report.Table, platform, search string, scope []string) error {
 	lang := t.Lang
-	rows, err := s.store.ReportApps(r.Context(), platform, search)
+	rows, err := s.store.ReportApps(r.Context(), platform, search, scope)
 	if err != nil {
 		return err
 	}

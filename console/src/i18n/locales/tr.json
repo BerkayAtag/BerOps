@@ -54,7 +54,9 @@
       "rate_limited": "Çok fazla başarısız deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.",
       "unauthenticated": "Oturumunuzun süresi doldu. Lütfen yeniden oturum açın.",
       "forbidden": "Bu işlem için yetkiniz yok.",
-      "csrf": "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar deneyin."
+      "csrf": "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar deneyin.",
+      "directory_unavailable": "Dizin hizmetine (Active Directory) ulaşılamıyor. Yerel kurtarma hesabıyla giriş yapabilirsiniz.",
+      "no_role_mapping": "Hesabınız Automation BER kullanmaya yetkili bir AD grubunda değil. Yöneticinize başvurun."
     },
     "request": {
       "invalid": "İstek geçersiz."
@@ -62,7 +64,8 @@
     "network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
     "unknown": "Beklenmeyen bir hata oluştu.",
     "not_found": "Kayıt bulunamadı.",
-    "conflict": "Kayıt bu işleme uygun durumda değil."
+    "conflict": "Kayıt bu işleme uygun durumda değil.",
+    "internal": "Sunucu hatası."
   },
   "roles": {
     "admin": "Admin",
@@ -82,7 +85,10 @@
     "settings": "Ayarlar",
     "settingsAgent": "Ajan ayarları",
     "settingsCve": "CVE kaynakları",
-    "settingsTransfer": "Aktarım ayarları"
+    "settingsTransfer": "Aktarım ayarları",
+    "settingsUsers": "Kullanıcılar",
+    "settingsAd": "Active Directory",
+    "account": "Hesabım"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -611,5 +617,142 @@
     "approval": "Komut aksiyonları dört göz onayı gerektirsin",
     "approvalHint": "Açıksa bir yöneticinin oluşturduğu komut, başka bir yönetici onaylayana kadar çalıştırılmaz.",
     "expiry": "Varsayılan aksiyon geçerliliği (saat)"
+  },
+  "users": {
+    "title": "Kullanıcılar",
+    "subtitle": "Yerel hesaplar ve Active Directory ile giriş yapmış kullanıcılar. AD kullanıcılarının rolü grup eşlemelerinden belirlenir.",
+    "new": "Yerel kullanıcı ekle",
+    "col": {
+      "username": "Kullanıcı",
+      "role": "Rol",
+      "source": "Kaynak",
+      "scope": "Kapsam",
+      "lastLogin": "Son giriş",
+      "status": "Durum"
+    },
+    "source": {
+      "local": "Yerel",
+      "ad": "AD"
+    },
+    "recovery": "Kurtarma hesabı",
+    "disabled": "Devre dışı",
+    "active": "Etkin",
+    "allMachines": "Tüm makineler",
+    "field": {
+      "username": "Kullanıcı adı",
+      "displayName": "Görünen ad",
+      "password": "Parola",
+      "role": "Rol",
+      "scope": "OU kapsamı (her satıra bir DN)"
+    },
+    "hint": {
+      "password": "En az 12 karakter.",
+      "scope": "Boş bırakılırsa tüm makineler. Admin rolünde kapsam uygulanmaz. Örn. OU=İzmir,OU=Şubeler,DC=corp,DC=example"
+    },
+    "create": "Oluştur",
+    "edit": "Düzenle",
+    "save": "Kaydet",
+    "disable": "Devre dışı bırak",
+    "enable": "Etkinleştir",
+    "resetPassword": "Parola belirle",
+    "newPassword": "Yeni parola",
+    "created": "Kullanıcı oluşturuldu.",
+    "updated": "Kullanıcı güncellendi. Açık oturumları kapatıldı.",
+    "adManaged": "Rol ve kapsam AD grup eşlemelerinden gelir."
+  },
+  "adSettings": {
+    "title": "Active Directory",
+    "subtitle": "Kullanıcılar AD hesaplarıyla LDAPS üzerinden giriş yapar; rol ve OU kapsamı AD gruplarından belirlenir. AD erişilemezse yerel kurtarma hesabı kullanılır.",
+    "connection": "Bağlantı",
+    "enabled": "AD ile girişi etkinleştir",
+    "url": "Sunucu adresi",
+    "urlHint": "Yalnızca LDAPS: ldaps://dc01.corp.example:636",
+    "baseDn": "Arama temel DN'i",
+    "bindDn": "Hizmet hesabı DN'i",
+    "bindPassword": "Hizmet hesabı parolası",
+    "passwordSet": "Kayıtlı (değiştirmek için yeni parola girin)",
+    "passwordHint": "Parola sunucuda şifreli saklanır ve geri gösterilmez.",
+    "userAttr": "Kullanıcı özniteliği",
+    "userFilter": "Kullanıcı filtresi",
+    "caCert": "İç CA sertifikası (PEM)",
+    "caHint": "Etki alanı denetleyicisinin sertifikası iç CA'dan veriliyorsa CA sertifikasını yapıştırın.",
+    "timeout": "Zaman aşımı (sn)",
+    "computersDn": "Bilgisayar arama DN'i (isteğe bağlı)",
+    "test": "Bağlantıyı test et",
+    "testUser": "Kullanıcıyla test et",
+    "testUsername": "Kullanıcı adı",
+    "testPassword": "Parola",
+    "testResult": "Test sonucu",
+    "groups": "Gruplar ({{count}})",
+    "resolvedRole": "Eşlenen rol",
+    "mappings": "Grup → rol eşlemeleri",
+    "mappingsHint": "Kullanıcı birden fazla gruba üyeyse en yetkili rol seçilir. İç içe grup üyelikleri dikkate alınır.",
+    "groupDn": "Grup DN'i",
+    "addMapping": "Eşleme ekle",
+    "noMappings": "Henüz eşleme yok; AD kullanıcıları giriş yapamaz.",
+    "computers": "AD bilgisayarları",
+    "computersHint": "Ajanı kurulu olmayan bilgisayarları bulmak için AD'deki bilgisayar nesneleri listelenir (saklanmaz).",
+    "loadComputers": "AD'den listele",
+    "agentInstalled": "Ajan kurulu",
+    "noAgent": "Ajan yok",
+    "onlyMissing": "Yalnızca ajansızlar",
+    "computerCol": {
+      "name": "Bilgisayar",
+      "ou": "OU",
+      "os": "İşletim sistemi",
+      "lastLogon": "Son oturum",
+      "agent": "Ajan"
+    }
+  },
+  "audit": {
+    "title": "Denetim Kaydı",
+    "subtitle": "Tüm kullanıcı ve sistem işlemleri değiştirilemez biçimde kaydedilir.",
+    "searchPlaceholder": "Kullanıcı, eylem, hedef, IP veya parametre",
+    "action": "Eylem",
+    "result": "Sonuç",
+    "from": "Başlangıç",
+    "to": "Bitiş",
+    "results": {
+      "success": "Başarılı",
+      "failure": "Başarısız",
+      "denied": "Reddedildi"
+    },
+    "col": {
+      "time": "Zaman",
+      "actor": "Aktör",
+      "action": "Eylem",
+      "target": "Hedef",
+      "result": "Sonuç",
+      "ip": "IP",
+      "detail": "Ayrıntı"
+    },
+    "actionGroups": {
+      "auth.": "Oturum",
+      "action.": "Aksiyonlar",
+      "package.": "Paketler",
+      "user.": "Kullanıcılar",
+      "settings.": "Ayarlar",
+      "machine.": "Makineler",
+      "report.": "Raporlar",
+      "authz.denied": "Yetki reddi",
+      "agent.": "Ajan"
+    },
+    "params": "Parametreler",
+    "export": "Dışa aktar",
+    "empty": "Kayıt bulunamadı."
+  },
+  "account": {
+    "title": "Hesabım",
+    "subtitle": "Oturum ve parola bilgileri.",
+    "changePassword": "Parola değiştir",
+    "current": "Mevcut parola",
+    "new": "Yeni parola",
+    "confirm": "Yeni parola (tekrar)",
+    "mismatch": "Yeni parolalar eşleşmiyor.",
+    "changed": "Parolanız değiştirildi. Diğer oturumlarınız kapatıldı.",
+    "adNotice": "AD hesabıyla giriş yaptınız; parolanızı AD'de değiştirin.",
+    "role": "Rol",
+    "source": "Hesap türü",
+    "scope": "Makine kapsamı"
   }
 }

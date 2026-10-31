@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/BerkayAtag/automation-ber/server/internal/ad"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
 )
@@ -178,7 +179,7 @@ type machineListResponse struct {
 	PageSize int                     `json:"page_size"`
 }
 
-func (s *Server) handleListMachines(w http.ResponseWriter, r *http.Request, _ *store.Session) {
+func (s *Server) handleListMachines(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	q := r.URL.Query()
 	page, _ := strconv.Atoi(q.Get("page"))
 	if page < 1 {
@@ -198,6 +199,7 @@ func (s *Server) handleListMachines(w http.ResponseWriter, r *http.Request, _ *s
 		Offset:       (page - 1) * size,
 		Now:          s.now(),
 		OnlineWindow: s.onlineWindow(),
+		Scope:        sess.User.Scope(),
 	}
 	if f.Platform != "" && f.Platform != protocol.PlatformWindows && f.Platform != protocol.PlatformDarwin {
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Geçersiz platform")
@@ -226,8 +228,8 @@ func (s *Server) handleListMachines(w http.ResponseWriter, r *http.Request, _ *s
 	writeJSON(w, http.StatusOK, machineListResponse{Items: items, Total: total, Page: page, PageSize: size})
 }
 
-func (s *Server) handleFleetSummary(w http.ResponseWriter, r *http.Request, _ *store.Session) {
-	sum, err := s.store.GetFleetSummary(r.Context(), s.now(), s.onlineWindow())
+func (s *Server) handleFleetSummary(w http.ResponseWriter, r *http.Request, sess *store.Session) {
+	sum, err := s.store.GetFleetSummary(r.Context(), s.now(), s.onlineWindow(), sess.User.Scope())
 	if err != nil {
 		s.log.Error("filo özeti hesaplanamadı", "hata", err)
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
@@ -258,6 +260,11 @@ func (s *Server) machineFromPath(w http.ResponseWriter, r *http.Request) (*store
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+		return nil, false
+	}
+	// Kapsam dışındaki makine, varlığı da belli olmasın diye "bulunamadı" döner.
+	if sess := sessionFrom(r.Context()); sess != nil && !ad.InScope(m.ADOU, sess.User.Scope()) {
+		writeError(w, http.StatusNotFound, codeNotFound, "Makine bulunamadı")
 		return nil, false
 	}
 	return m, true
@@ -346,6 +353,19 @@ func (s *Server) handleRequestScan(w http.ResponseWriter, r *http.Request, sess 
 		if !validUUID(id) {
 			writeError(w, http.StatusBadRequest, codeInvalidRequest, "Geçersiz makine kimliği: "+id)
 			return
+		}
+	}
+	if scope := sess.User.Scope(); scope != nil {
+		targets, err := s.store.ActiveMachines(r.Context(), req.MachineIDs)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+			return
+		}
+		for _, t := range targets {
+			if !ad.InScope(t.OU, scope) {
+				writeError(w, http.StatusForbidden, codeForbidden, "Seçilen makinelerden bazıları yetki kapsamınızın dışında")
+				return
+			}
 		}
 	}
 	n, err := s.store.RequestScan(r.Context(), req.MachineIDs, s.now())

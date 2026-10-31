@@ -30,7 +30,7 @@ func TestAuditLogIsAppendOnly(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	entries, err := s.ListAudit(ctx, 10)
+	entries, _, err := s.ListAudit(ctx, store.AuditFilter{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -190,13 +190,3 @@ func (s *Server) handleSetMachineStatus(op string) authedHandler {
 		writeJSON(w, http.StatusOK, m)
 	}
 }
-
-func (s *Server) handleListAudit(w http.ResponseWriter, r *http.Request, _ *store.Session) {
-	entries, err := s.store.ListAudit(r.Context(), 200)
-	if err != nil {
-		s.log.Error("denetim kaydı okunamadı", "hata", err)
-		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": entries})
-}

@@ -18,6 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/BerkayAtag/automation-ber/server/internal/ad"
 	"github.com/BerkayAtag/automation-ber/server/internal/auth"
 	"github.com/BerkayAtag/automation-ber/server/internal/cve"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
@@ -300,7 +301,7 @@ type packageDetail struct {
 }
 
 // outdatedInstalls, paketin tespit kalıbına uyan ve sürümü paketten eski olan kurulumları bulur.
-func (s *Server) outdatedInstalls(r *http.Request, p *store.Package) ([]store.AppInstall, int, error) {
+func (s *Server) outdatedInstalls(r *http.Request, p *store.Package, scope []string) ([]store.AppInstall, int, error) {
 	out := []store.AppInstall{}
 	if p.DetectName == "" {
 		return out, 0, nil
@@ -322,7 +323,7 @@ func (s *Server) outdatedInstalls(r *http.Request, p *store.Package) ([]store.Ap
 	if len(hits) == 0 {
 		return out, 0, nil
 	}
-	installs, err := s.store.AppInstalls(r.Context(), p.Platform, hits)
+	installs, err := s.store.AppInstalls(r.Context(), p.Platform, hits, scope)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -351,12 +352,12 @@ func (s *Server) outdatedInstalls(r *http.Request, p *store.Package) ([]store.Ap
 	return out, upToDate, nil
 }
 
-func (s *Server) handleGetPackage(w http.ResponseWriter, r *http.Request, _ *store.Session) {
+func (s *Server) handleGetPackage(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	p, ok := s.packageFromPath(w, r)
 	if !ok {
 		return
 	}
-	outdated, upToDate, err := s.outdatedInstalls(r, p)
+	outdated, upToDate, err := s.outdatedInstalls(r, p, sess.User.Scope())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return
@@ -437,6 +438,15 @@ type createActionRequest struct {
 	TimeoutSeconds int      `json:"timeout_seconds"`
 	BandwidthKbps  int      `json:"bandwidth_kbps"`
 	ExpiresHours   int      `json:"expires_hours"`
+}
+
+// requirePermDenied, kapsam reddini denetim kaydına yazar.
+func (s *Server) requirePermDenied(r *http.Request, sess *store.Session, detail string) {
+	s.audit(r.Context(), store.AuditEntry{
+		ActorType: store.ActorUser, ActorID: sess.User.ID, ActorName: sess.User.Username,
+		Action: "authz.denied", Result: store.ResultDenied, SourceIP: clientIP(r), Detail: detail,
+		Params: map[string]any{"method": r.Method, "path": r.URL.Path},
+	})
 }
 
 // requirePerm, izni denetler; yoksa reddi denetim kaydına yazıp 403 döner.
@@ -525,6 +535,15 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 			fmt.Sprintf("%d makine bulunamadı veya aktif değil (onay bekleyen makinelere iş gönderilmez)", missing))
 		return
 	}
+	if scope := sess.User.Scope(); scope != nil {
+		for _, t := range platforms {
+			if !ad.InScope(t.OU, scope) {
+				s.requirePermDenied(r, sess, "kapsam dışı makine")
+				writeError(w, http.StatusForbidden, codeForbidden, "Seçilen makinelerden bazıları yetki kapsamınızın dışında")
+				return
+			}
+		}
+	}
 
 	now := s.now()
 	job := protocol.Job{
@@ -548,7 +567,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 			return
 		}
 		for _, p := range platforms {
-			if p != pkg.Platform {
+			if p.Platform != pkg.Platform {
 				writeError(w, http.StatusBadRequest, codeInvalidRequest, "Paket yalnızca "+pkg.Platform+" makinelerine gönderilebilir")
 				return
 			}
@@ -571,9 +590,9 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 			return
 		}
 		for _, p := range platforms {
-			if !protocol.ValidShell(p, req.Shell) {
+			if !protocol.ValidShell(p.Platform, req.Shell) {
 				writeError(w, http.StatusBadRequest, codeInvalidRequest,
-					fmt.Sprintf("%s kabuğu %s makinelerinde kullanılamaz; platformları ayrı aksiyonlarla hedefleyin", req.Shell, p))
+					fmt.Sprintf("%s kabuğu %s makinelerinde kullanılamaz; platformları ayrı aksiyonlarla hedefleyin", req.Shell, p.Platform))
 				return
 			}
 		}
@@ -648,7 +667,7 @@ func firstLineOf(s string, n int) string {
 	return s
 }
 
-func (s *Server) handleListActions(w http.ResponseWriter, r *http.Request, _ *store.Session) {
+func (s *Server) handleListActions(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	q := r.URL.Query()
 	page, _ := strconv.Atoi(q.Get("page"))
 	if page < 1 {
@@ -658,7 +677,8 @@ func (s *Server) handleListActions(w http.ResponseWriter, r *http.Request, _ *st
 	if size < 1 || size > 200 {
 		size = 50
 	}
-	f := store.ActionFilter{Status: q.Get("status"), Kind: q.Get("kind"), MachineID: q.Get("machine_id"), Limit: size, Offset: (page - 1) * size}
+	f := store.ActionFilter{Status: q.Get("status"), Kind: q.Get("kind"), MachineID: q.Get("machine_id"), Limit: size,
+		Offset: (page - 1) * size, Scope: sess.User.Scope(), ViewerID: sess.User.ID}
 	if f.MachineID != "" && !validUUID(f.MachineID) {
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Geçersiz makine kimliği")
 		return
@@ -690,7 +710,7 @@ func (s *Server) actionFromPath(w http.ResponseWriter, r *http.Request) (*store.
 	return a, true
 }
 
-func (s *Server) handleGetAction(w http.ResponseWriter, r *http.Request, _ *store.Session) {
+func (s *Server) handleGetAction(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	a, ok := s.actionFromPath(w, r)
 	if !ok {
 		return
@@ -699,6 +719,22 @@ func (s *Server) handleGetAction(w http.ResponseWriter, r *http.Request, _ *stor
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return
+	}
+	// Kapsamlı kullanıcı yalnızca kapsamındaki hedefleri görür; hiçbiri yoksa ve aksiyonu
+	// kendisi oluşturmadıysa aksiyon "bulunamadı" sayılır.
+	if scope := sess.User.Scope(); scope != nil {
+		visible := targets[:0]
+		for _, t := range targets {
+			if ad.InScope(t.OU, scope) {
+				visible = append(visible, t)
+			}
+		}
+		mine := a.CreatedBy != nil && *a.CreatedBy == sess.User.ID
+		if len(visible) == 0 && !mine {
+			writeError(w, http.StatusNotFound, codeNotFound, "Aksiyon bulunamadı")
+			return
+		}
+		targets = visible
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"action": a, "targets": targets})
 }

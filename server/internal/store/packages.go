@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -140,11 +141,20 @@ func (s *Store) DistinctAppNames(ctx context.Context, platform string) ([]string
 }
 
 // AppInstalls, verilen adlardaki uygulamaların aktif makinelerdeki kurulumlarını döner.
-func (s *Store) AppInstalls(ctx context.Context, platform string, names []string) ([]AppInstall, error) {
+func (s *Store) AppInstalls(ctx context.Context, platform string, names []string, scope []string) ([]AppInstall, error) {
+	args := []any{platform, names}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	sc := ""
+	if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+		sc = " AND " + c
+	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT m.id, m.hostname, a.name, a.version FROM installed_apps a JOIN machines m ON m.id = a.machine_id
-		WHERE m.status = 'active' AND m.os_platform = $1 AND a.name = ANY($2) AND a.source <> 'pkg'
-		ORDER BY lower(m.hostname)`, platform, names)
+		WHERE m.status = 'active' AND m.os_platform = $1 AND a.name = ANY($2) AND a.source <> 'pkg'`+sc+`
+		ORDER BY lower(m.hostname)`, args...)
 	if err != nil {
 		return nil, err
 	}

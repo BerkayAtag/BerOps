@@ -54,7 +54,9 @@
       "rate_limited": "Too many failed attempts. Please try again later.",
       "unauthenticated": "Your session has expired. Please sign in again.",
       "forbidden": "You are not allowed to perform this action.",
-      "csrf": "Security check failed. Refresh the page and try again."
+      "csrf": "Security check failed. Refresh the page and try again.",
+      "directory_unavailable": "The directory service (Active Directory) is unreachable. You can sign in with the local recovery account.",
+      "no_role_mapping": "Your account is not in an AD group authorised to use Automation BER. Contact your administrator."
     },
     "request": {
       "invalid": "The request is invalid."
@@ -62,7 +64,8 @@
     "network": "Could not reach the server. Check your connection.",
     "unknown": "An unexpected error occurred.",
     "not_found": "Record not found.",
-    "conflict": "The record is not in a state that allows this action."
+    "conflict": "The record is not in a state that allows this action.",
+    "internal": "Server error."
   },
   "roles": {
     "admin": "Admin",
@@ -82,7 +85,10 @@
     "settings": "Settings",
     "settingsAgent": "Agent settings",
     "settingsCve": "CVE sources",
-    "settingsTransfer": "Transfer settings"
+    "settingsTransfer": "Transfer settings",
+    "settingsUsers": "Users",
+    "settingsAd": "Active Directory",
+    "account": "My account"
   },
   "home": {
     "title": "Dashboard",
@@ -611,5 +617,142 @@
     "approval": "Command actions require four-eyes approval",
     "approvalHint": "When enabled, a command created by an administrator does not run until another administrator approves it.",
     "expiry": "Default action validity (hours)"
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "Local accounts and users who signed in with Active Directory. AD users get their role from group mappings.",
+    "new": "Add local user",
+    "col": {
+      "username": "User",
+      "role": "Role",
+      "source": "Source",
+      "scope": "Scope",
+      "lastLogin": "Last sign-in",
+      "status": "Status"
+    },
+    "source": {
+      "local": "Local",
+      "ad": "AD"
+    },
+    "recovery": "Recovery account",
+    "disabled": "Disabled",
+    "active": "Active",
+    "allMachines": "All machines",
+    "field": {
+      "username": "Username",
+      "displayName": "Display name",
+      "password": "Password",
+      "role": "Role",
+      "scope": "OU scope (one DN per line)"
+    },
+    "hint": {
+      "password": "At least 12 characters.",
+      "scope": "Leave empty for all machines. Scope does not apply to admins. E.g. OU=Izmir,OU=Branches,DC=corp,DC=example"
+    },
+    "create": "Create",
+    "edit": "Edit",
+    "save": "Save",
+    "disable": "Disable",
+    "enable": "Enable",
+    "resetPassword": "Set password",
+    "newPassword": "New password",
+    "created": "User created.",
+    "updated": "User updated. Their open sessions were signed out.",
+    "adManaged": "Role and scope come from AD group mappings."
+  },
+  "adSettings": {
+    "title": "Active Directory",
+    "subtitle": "Users sign in with their AD accounts over LDAPS; role and OU scope come from AD groups. If AD is unreachable, the local recovery account is used.",
+    "connection": "Connection",
+    "enabled": "Enable sign-in with AD",
+    "url": "Server address",
+    "urlHint": "LDAPS only: ldaps://dc01.corp.example:636",
+    "baseDn": "Search base DN",
+    "bindDn": "Service account DN",
+    "bindPassword": "Service account password",
+    "passwordSet": "Saved (enter a new password to change it)",
+    "passwordHint": "The password is stored encrypted on the server and never shown again.",
+    "userAttr": "User attribute",
+    "userFilter": "User filter",
+    "caCert": "Internal CA certificate (PEM)",
+    "caHint": "Paste the CA certificate if the domain controller's certificate is issued by an internal CA.",
+    "timeout": "Timeout (s)",
+    "computersDn": "Computer search DN (optional)",
+    "test": "Test connection",
+    "testUser": "Test with a user",
+    "testUsername": "Username",
+    "testPassword": "Password",
+    "testResult": "Test result",
+    "groups": "Groups ({{count}})",
+    "resolvedRole": "Mapped role",
+    "mappings": "Group → role mappings",
+    "mappingsHint": "If a user is in several groups, the most privileged role wins. Nested group membership is taken into account.",
+    "groupDn": "Group DN",
+    "addMapping": "Add mapping",
+    "noMappings": "No mappings yet; AD users cannot sign in.",
+    "computers": "AD computers",
+    "computersHint": "Lists computer objects in AD to find machines without an agent (not stored).",
+    "loadComputers": "Load from AD",
+    "agentInstalled": "Agent installed",
+    "noAgent": "No agent",
+    "onlyMissing": "Only without agent",
+    "computerCol": {
+      "name": "Computer",
+      "ou": "OU",
+      "os": "Operating system",
+      "lastLogon": "Last logon",
+      "agent": "Agent"
+    }
+  },
+  "audit": {
+    "title": "Audit Log",
+    "subtitle": "Every user and system operation is recorded immutably.",
+    "searchPlaceholder": "User, action, target, IP or parameter",
+    "action": "Action",
+    "result": "Result",
+    "from": "From",
+    "to": "To",
+    "results": {
+      "success": "Success",
+      "failure": "Failure",
+      "denied": "Denied"
+    },
+    "col": {
+      "time": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "result": "Result",
+      "ip": "IP",
+      "detail": "Detail"
+    },
+    "actionGroups": {
+      "auth.": "Sign-in",
+      "action.": "Actions",
+      "package.": "Packages",
+      "user.": "Users",
+      "settings.": "Settings",
+      "machine.": "Machines",
+      "report.": "Reports",
+      "authz.denied": "Permission denied",
+      "agent.": "Agent"
+    },
+    "params": "Parameters",
+    "export": "Export",
+    "empty": "No entries found."
+  },
+  "account": {
+    "title": "My account",
+    "subtitle": "Session and password.",
+    "changePassword": "Change password",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "New password (again)",
+    "mismatch": "The new passwords do not match.",
+    "changed": "Your password was changed. Your other sessions were signed out.",
+    "adNotice": "You signed in with an AD account; change your password in AD.",
+    "role": "Role",
+    "source": "Account type",
+    "scope": "Machine scope"
   }
 }

@@ -7,7 +7,7 @@ import { LanguageToggle } from "./LanguageToggle";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
-const NAV_ITEMS: { key: string; to?: string; end?: boolean }[] = [
+const NAV_ITEMS: { key: string; to?: string; end?: boolean; perm?: string }[] = [
   { key: "dashboard", to: "/", end: true },
   { key: "machines", to: "/makineler" },
   { key: "patches" },
@@ -15,15 +15,18 @@ const NAV_ITEMS: { key: string; to?: string; end?: boolean }[] = [
   { key: "packages", to: "/paketler" },
   { key: "actions", to: "/aksiyonlar" },
   { key: "reports", to: "/raporlar" },
-  { key: "audit" },
+  { key: "audit", to: "/denetim", perm: "audit.read" },
   { key: "settingsAgent", to: "/ayarlar/ajan" },
   { key: "settingsCve", to: "/ayarlar/cve" },
   { key: "settingsTransfer", to: "/ayarlar/aktarim" },
+  { key: "settingsUsers", to: "/ayarlar/kullanicilar", perm: "users.manage" },
+  { key: "settingsAd", to: "/ayarlar/ad", perm: "ad.configure" },
+  { key: "account", to: "/hesap" },
 ];
 
 export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
   const { t } = useTranslation();
-  const { logout } = useAuth();
+  const { logout, can } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
   const name = me.user.display_name || me.user.username;
 
@@ -45,7 +48,7 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
         <div className="topbar-spacer" />
         <LanguageToggle />
         <ThemeToggle />
-        <div className="user-chip">
+        <NavLink to="/hesap" className="user-chip">
           <span className="user-avatar" aria-hidden="true">
             {name.slice(0, 1).toLocaleUpperCase("tr-TR")}
           </span>
@@ -53,14 +56,14 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
             <span className="user-name">{name}</span>
             <span className={`role-badge role-${me.user.role}`}>{t(`roles.${me.user.role}`)}</span>
           </span>
-        </div>
+        </NavLink>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => void logout()}>
           {t("common.logout")}
         </button>
       </header>
       <nav className={`sidebar${navOpen ? " open" : ""}`} aria-label={t("nav.label")}>
         <ul>
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => !item.perm || can(item.perm)).map((item) => (
             <li key={item.key}>
               {item.to ? (
                 <NavLink

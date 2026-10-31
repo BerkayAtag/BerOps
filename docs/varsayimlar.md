@@ -85,3 +85,23 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 4.11 | Güncelleme tespiti | Paket "kurulu uygulama adı kalıbı" ile envantere bağlanır; makinedeki en yeni kurulu sürüm paketten eskiyse "güncelleme gerekli" sayılır. Satıcı kataloğundan otomatik "en son sürüm" bilgisi yoktur; en güncel sürüm kütüphanedeki pakettir. | `api/action_handlers.go` |
 | 4.12 | Paket silme | Silme yumuşaktır (geçmiş aksiyonlar paket adını göstermeye devam eder). Dosya, başka paket veya açık aksiyon kullanmıyorsa diskten silinir. | `store/packages.go` |
 | 4.13 | Kendini güncelleme | Ajanın kendini güncellemesi MSI/pkg paketleri hazır olduğunda (Aşama 8) paket dağıtımıyla yapılacak. | — |
+
+## Aşama 5 — Active Directory, RBAC kapsamları ve denetim
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 5.1 | Yalnızca LDAPS | Şifresiz LDAP ve StartTLS kabul edilmez; adres `ldaps://` olmalı. Sunucu sertifikası sistem güven deposuyla ve isteğe bağlı iç CA PEM'iyle doğrulanır; doğrulamayı kapatma seçeneği yoktur. | `server/internal/ad` |
+| 5.2 | Kimlik doğrulama | Hizmet hesabıyla arama + kullanıcının kendi parolasıyla bind. Boş parola ağa gitmeden reddedilir (LDAP'ta anonim bind). | `ad.Authenticate` |
+| 5.3 | İç içe gruplar | AD'nin `1.2.840.113556.1.4.1941` eşleme kuralı kullanılır; desteklenmeyen dizinlerde doğrudan `memberOf` değerleri alınır. | `ad.nestedGroups` |
+| 5.4 | Rol seçimi | En yetkili rol kazanır (admin > teknisyen > salt okunur). Aynı roldeki eşlemelerin kapsamları birleşir; biri kapsamsızsa sonuç kapsamsızdır. Eşleşme yoksa giriş reddedilir. | `ad.ResolveRole` |
+| 5.5 | Rol güncelliği | Rol ve kapsam yalnızca girişte hesaplanır; açık oturum süresince (en fazla 12 saat) değişmez. Konsoldan yapılan rol/kapsam/durum değişikliği yerel kullanıcının oturumlarını hemen kapatır. | `api/auth_handlers.go`, `users_handlers.go` |
+| 5.6 | Yerel hesap önceliği | Aynı adda yerel hesap varsa AD denenmez; AD kullanıcısı yerel hesabı ele geçiremez (`UpsertADUser` çakışmada reddeder). | `store/users.go` |
+| 5.7 | Gizli değerler | AD hizmet hesabı parolası `data_dir/pki/secret.key` (32 bayt, 0600) ile AES-256-GCM şifrelenir; şifreleme etiketi alanı bağlar. Anahtar kaybolursa parola yeniden girilir. | `server/internal/secret` |
+| 5.8 | OU kapsamı | Kapsam OU DN'leridir; makine OU'su kapsamdaki OU'ya eşitse veya `,<OU>` ile bitiyorsa kapsam içidir. Karşılaştırma büyük/küçük harf duyarsızdır (SQL tarafında iki taraf da PostgreSQL ile küçültülür). Admin rolünde kapsam yok sayılır. | `store/machines.go` `scopeCond`, `ad.InScope` |
+| 5.9 | Kapsam dışı yanıt | Kapsam dışı makine ve aksiyonlar 404 döner (varlıkları sızmasın); kapsam dışı hedefli işlem istekleri 403 ile tamamen reddedilir. | `api` |
+| 5.10 | Eğilim grafiği | Günlük uyumluluk özeti filo geneli tutulduğundan kapsamlı kullanıcıya gösterilmez. Kapsam bazlı geçmiş ileride eklenebilir. | `store/vulns.go` |
+| 5.11 | Parola politikası | Yerel parolalar en az 12 karakter; karmaşıklık kuralı yerine uzunluk esas alınır (NIST SP 800-63B). Giriş denemesi hız sınırı Aşama 1'deki gibidir. | `api/users_handlers.go` |
+| 5.12 | İki adımlı doğrulama | Yerel hesaplar için TOTP alanı şemada hazırdır; arayüzü ileride eklenecek. Kurumsal kullanımda AD + kurumun kendi MFA çözümü önerilir. | `users.totp_secret_enc` |
+| 5.13 | AD bilgisayarları | Liste saklanmaz, her istekte AD'den okunur (en fazla 20 000 nesne, 500'lük sayfalar). Ajan eşleştirmesi ad ve DNS adının ilk parçasıyla yapılır. | `api/ad_handlers.go` |
+| 5.14 | Denetim dışa aktarma | En fazla 100 000 kayıt, CSV veya Excel; dışa aktarma da denetim kaydına yazılır. Kayıtlar veritabanında değiştirilemez (Aşama 1 trigger'ları). | `api/audit_handlers.go` |
+| 5.15 | API anahtarları | Dış sistemler için API anahtarı ile erişim ihtiyaç halinde eklenecek; şimdilik yalnızca oturum çerezi. | — |

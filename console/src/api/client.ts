@@ -477,3 +477,74 @@ export function apiUpload<T>(
     xhr.send(form);
   });
 }
+
+// --- Aşama 5: kullanıcılar, AD, denetim ---
+
+export interface User {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string;
+  source: "local" | "ad";
+  role: Role;
+  is_recovery: boolean;
+  disabled: boolean;
+  scope_ous: string[];
+  ad_dn: string;
+  created_at: string;
+  last_login_at: string | null;
+}
+
+export interface ADSettings {
+  enabled: boolean;
+  url: string;
+  base_dn: string;
+  bind_dn: string;
+  has_password: boolean;
+  user_attr: string;
+  user_filter: string;
+  ca_cert_pem: string;
+  timeout_seconds: number;
+  computers_base_dn: string;
+}
+
+export interface ADMapping {
+  id: string;
+  group_dn: string;
+  role: Role;
+  scope_ous: string[];
+}
+
+export interface ADTestResult {
+  ok: boolean;
+  message: string;
+  user?: { dn: string; username: string; display_name: string; email: string; groups: string[] };
+  role?: Role;
+  scope_ous?: string[];
+}
+
+export interface ADComputer {
+  name: string;
+  dns_host_name: string;
+  dn: string;
+  ou: string;
+  operating_system: string;
+  last_logon: string | null;
+  disabled: boolean;
+  machine_id: string | null;
+}
+
+export interface AuditEntry {
+  id: number;
+  occurred_at: string;
+  actor_type: "user" | "agent" | "system" | "api_key";
+  actor_id: string;
+  actor_name: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  params: Record<string, unknown>;
+  result: "success" | "failure" | "denied";
+  detail: string;
+  source_ip: string;
+}

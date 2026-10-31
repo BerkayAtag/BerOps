@@ -1746,3 +1746,17 @@ a.sev-bar-row:hover .dist-value {
   gap: 4px;
   max-width: 420px;
 }
+
+a.user-chip {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* İpucu metni olan alanlar giriş kutularını kaydırmasın; düğmeler satırın altına hizalanır. */
+.form-grid {
+  align-items: start;
+}
+
+.form-grid > div {
+  align-self: end;
+}

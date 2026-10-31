@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -119,22 +120,35 @@ type ActionFilter struct {
 	MachineID string
 	Limit     int
 	Offset    int
+	// Scope doluysa yalnızca kullanıcının oluşturduğu (ViewerID) veya kapsamdaki makineleri
+	// hedefleyen aksiyonlar döner.
+	Scope    []string
+	ViewerID string
 }
 
 // ListActions, aksiyonları yeniden eskiye döner.
 func (s *Store) ListActions(ctx context.Context, f ActionFilter) ([]Action, int, error) {
+	args := []any{f.Status, f.Kind, f.MachineID}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
 	cond := `WHERE ($1 = '' OR a.status = $1) AND ($2 = '' OR a.kind = $2)
 		AND ($3 = '' OR EXISTS (SELECT 1 FROM action_targets x WHERE x.action_id = a.id AND x.machine_id::text = $3))`
+	if c := scopeCond("m.ad_ou", f.Scope, arg); c != "" {
+		cond += ` AND (a.created_by::text = ` + arg(f.ViewerID) + ` OR EXISTS (SELECT 1 FROM action_targets x
+			JOIN machines m ON m.id = x.machine_id WHERE x.action_id = a.id AND ` + c + `))`
+	}
 	var total int
-	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM actions a `+cond, f.Status, f.Kind, f.MachineID).Scan(&total); err != nil {
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM actions a `+cond, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	limit := f.Limit
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	rows, err := s.pool.Query(ctx, actionSelect+` `+cond+` ORDER BY a.created_at DESC LIMIT $4 OFFSET $5`,
-		f.Status, f.Kind, f.MachineID, limit, max(f.Offset, 0))
+	rows, err := s.pool.Query(ctx, actionSelect+` `+cond+` ORDER BY a.created_at DESC LIMIT `+arg(limit)+` OFFSET `+arg(max(f.Offset, 0)),
+		args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -154,6 +168,7 @@ func (s *Store) ListActions(ctx context.Context, f ActionFilter) ([]Action, int,
 type ActionTarget struct {
 	MachineID  string     `json:"machine_id"`
 	Hostname   string     `json:"hostname"`
+	OU         string     `json:"-"`
 	Platform   string     `json:"os_platform"`
 	Status     string     `json:"status"`
 	ExitCode   *int32     `json:"exit_code"`
@@ -168,7 +183,7 @@ type ActionTarget struct {
 // ListActionTargets, aksiyonun hedeflerini döner.
 func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]ActionTarget, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT t.machine_id, m.hostname, m.os_platform, t.status, t.exit_code, t.stdout, t.stderr, t.error,
+		SELECT t.machine_id, m.hostname, m.ad_ou, m.os_platform, t.status, t.exit_code, t.stdout, t.stderr, t.error,
 		       t.started_at, t.finished_at, t.updated_at
 		FROM action_targets t JOIN machines m ON m.id = t.machine_id
 		WHERE t.action_id = $1 ORDER BY lower(m.hostname)`, actionID)
@@ -179,7 +194,7 @@ func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]Actio
 	out := []ActionTarget{}
 	for rows.Next() {
 		var t ActionTarget
-		if err := rows.Scan(&t.MachineID, &t.Hostname, &t.Platform, &t.Status, &t.ExitCode, &t.Stdout, &t.Stderr,
+		if err := rows.Scan(&t.MachineID, &t.Hostname, &t.OU, &t.Platform, &t.Status, &t.ExitCode, &t.Stdout, &t.Stderr,
 			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -352,20 +367,27 @@ func (s *Store) GrantDownload(ctx context.Context, actionID, machineID, packageI
 	return &g, nil
 }
 
-// ActiveMachines, kimliklerden aktif olanları platformlarıyla döner.
-func (s *Store) ActiveMachines(ctx context.Context, ids []string) (map[string]string, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id, os_platform FROM machines WHERE id = ANY($1::uuid[]) AND status = 'active'`, ids)
+// TargetMachine, aksiyon hedefi olabilecek makinedir.
+type TargetMachine struct {
+	Platform string
+	OU       string
+}
+
+// ActiveMachines, kimliklerden aktif olanları platform ve OU bilgisiyle döner.
+func (s *Store) ActiveMachines(ctx context.Context, ids []string) (map[string]TargetMachine, error) {
+	rows, err := s.pool.Query(ctx, `SELECT id, os_platform, ad_ou FROM machines WHERE id = ANY($1::uuid[]) AND status = 'active'`, ids)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := map[string]string{}
+	out := map[string]TargetMachine{}
 	for rows.Next() {
-		var id, p string
-		if err := rows.Scan(&id, &p); err != nil {
+		var id string
+		var t TargetMachine
+		if err := rows.Scan(&id, &t.Platform, &t.OU); err != nil {
 			return nil, err
 		}
-		out[strings.ToLower(id)] = p
+		out[strings.ToLower(id)] = t
 	}
 	return out, rows.Err()
 }

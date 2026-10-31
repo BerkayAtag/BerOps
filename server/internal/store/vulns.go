@@ -33,6 +33,7 @@ type VulnFilter struct {
 	KEV        bool
 	Kind       string // os, app
 	MachineIDs []string
+	Scope      []string
 	Sort       string
 	Desc       bool
 	Limit      int
@@ -53,8 +54,15 @@ var VulnSortColumns = map[string]string{
 	"cve":       "a.cve_id",
 }
 
-// activeMachine, zafiyet sayımlarında yalnızca aktif ve onay bekleyen makineleri alan koşuldur.
-const activeMachine = `EXISTS (SELECT 1 FROM machines m WHERE m.id = mv.machine_id AND m.status IN ('active', 'pending'))`
+// activeMachineScoped, zafiyet sayımlarında yalnızca aktif/onay bekleyen ve kullanıcının
+// kapsamındaki makineleri alan koşuldur.
+func activeMachineScoped(scope []string, arg func(any) string) string {
+	c := "EXISTS (SELECT 1 FROM machines m WHERE m.id = mv.machine_id AND m.status IN ('active', 'pending')"
+	if sc := scopeCond("m.ad_ou", scope, arg); sc != "" {
+		c += " AND " + sc
+	}
+	return c + ")"
+}
 
 // ListVulnerabilities, makinelerde bulunan CVE'leri etkilenen makine sayısı ve risk skoruyla döner.
 func (s *Store) ListVulnerabilities(ctx context.Context, f VulnFilter) ([]VulnListItem, int, error) {
@@ -63,7 +71,7 @@ func (s *Store) ListVulnerabilities(ctx context.Context, f VulnFilter) ([]VulnLi
 		args = append(args, v)
 		return "$" + strconv.Itoa(len(args))
 	}
-	inner := []string{activeMachine}
+	inner := []string{activeMachineScoped(f.Scope, arg)}
 	if len(f.MachineIDs) > 0 {
 		inner = append(inner, "mv.machine_id = ANY("+arg(f.MachineIDs)+"::uuid[])")
 	}
@@ -188,7 +196,7 @@ type AffectedRow struct {
 
 // GetCVEDetail, CVE ayrıntısını ve etkilenen makineleri (en fazla 1000) döner. CVE ne
 // veritabanında ne de herhangi bir makinede yoksa ErrNotFound döner.
-func (s *Store) GetCVEDetail(ctx context.Context, id string) (*CVEDetail, error) {
+func (s *Store) GetCVEDetail(ctx context.Context, id string, scope []string) (*CVEDetail, error) {
 	d := &CVEDetail{CVE: id, CWEs: []string{}, Refs: []string{}, Fixes: []string{}, Affected: []AffectedRow{}}
 	err := s.pool.QueryRow(ctx, `
 		SELECT source, title, description, published_at, modified_at, cvss_score, cvss_vector, cvss_version,
@@ -215,12 +223,21 @@ func (s *Store) GetCVEDetail(ctx context.Context, id string) (*CVEDetail, error)
 		WHERE cve_id = $1 AND kb <> ''`, id).Scan(&d.Fixes); err != nil {
 		return nil, err
 	}
+	args := []any{id}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	cond := ""
+	if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+		cond = " AND " + c
+	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT m.id, m.hostname, m.os_platform, m.os_name, m.os_build, mv.sources, mv.refs, mv.fixed_by,
 		       mv.first_seen_at, mv.risk_score
 		FROM machine_vulnerabilities mv JOIN machines m ON m.id = mv.machine_id
-		WHERE mv.cve_id = $1 AND m.status IN ('active', 'pending')
-		ORDER BY lower(m.hostname) LIMIT 1000`, id)
+		WHERE mv.cve_id = $1 AND m.status IN ('active', 'pending')`+cond+`
+		ORDER BY lower(m.hostname) LIMIT 1000`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -345,31 +362,54 @@ type ComplianceSample struct {
 	AvgRisk          float32 `json:"avg_risk"`
 }
 
-// GetRiskSummary, gösterge paneli risk özetini hesaplar.
-func (s *Store) GetRiskSummary(ctx context.Context, trendDays int) (*RiskSummary, error) {
+// GetRiskSummary, gösterge paneli risk özetini kullanıcının kapsamındaki makineler için hesaplar.
+func (s *Store) GetRiskSummary(ctx context.Context, trendDays int, scope []string) (*RiskSummary, error) {
 	r := &RiskSummary{BySeverity: map[string]int{}, TopMachines: []RiskyMachine{}, Trend: []ComplianceSample{}}
-	err := s.pool.QueryRow(ctx, `
-		WITH mv AS (SELECT mv.* FROM machine_vulnerabilities mv WHERE `+activeMachine+`)
+	// Her sorgu kendi argüman listesini kurar (pgx kullanılmayan argümanı kabul etmez).
+	q := func(build func(arg func(any) string) string) (string, []any) {
+		var args []any
+		sql := build(func(v any) string {
+			args = append(args, v)
+			return "$" + strconv.Itoa(len(args))
+		})
+		return sql, args
+	}
+	mScope := func(arg func(any) string) string {
+		if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+			return " AND " + c
+		}
+		return ""
+	}
+
+	sql, args := q(func(arg func(any) string) string {
+		return `WITH mv AS (SELECT mv.* FROM machine_vulnerabilities mv WHERE ` + activeMachineScoped(scope, arg) + `)
 		SELECT count(DISTINCT mv.cve_id), count(DISTINCT mv.machine_id),
 		       count(DISTINCT mv.cve_id) FILTER (WHERE k.cve_id IS NOT NULL),
 		       count(DISTINCT mv.machine_id) FILTER (WHERE k.cve_id IS NOT NULL),
 		       count(DISTINCT mv.cve_id) FILTER (WHERE mv.risk_score >= 80)
-		FROM mv LEFT JOIN kev k ON k.cve_id = mv.cve_id`).
-		Scan(&r.DistinctCVEs, &r.AffectedMachines, &r.KEVCVEs, &r.KEVMachines, &r.UrgentCVEs)
-	if err != nil {
+		FROM mv LEFT JOIN kev k ON k.cve_id = mv.cve_id`
+	})
+	if err := s.pool.QueryRow(ctx, sql, args...).Scan(&r.DistinctCVEs, &r.AffectedMachines, &r.KEVCVEs, &r.KEVMachines,
+		&r.UrgentCVEs); err != nil {
 		return nil, err
 	}
-	if err := s.pool.QueryRow(ctx, `
-		SELECT coalesce(avg(coalesce(r.max_risk, 0)), 0)
+
+	sql, args = q(func(arg func(any) string) string {
+		return `SELECT coalesce(avg(coalesce(r.max_risk, 0)), 0)
 		FROM machines m JOIN machine_inventory i ON i.machine_id = m.id
 		LEFT JOIN machine_risk r ON r.machine_id = m.id
-		WHERE m.status IN ('active', 'pending')`).Scan(&r.AvgMachineRisk); err != nil {
+		WHERE m.status IN ('active', 'pending')` + mScope(arg)
+	})
+	if err := s.pool.QueryRow(ctx, sql, args...).Scan(&r.AvgMachineRisk); err != nil {
 		return nil, err
 	}
-	rows, err := s.pool.Query(ctx, `
-		SELECT coalesce(nullif(c.severity, ''), 'UNKNOWN'), count(DISTINCT mv.cve_id)
+
+	sql, args = q(func(arg func(any) string) string {
+		return `SELECT coalesce(nullif(c.severity, ''), 'UNKNOWN'), count(DISTINCT mv.cve_id)
 		FROM machine_vulnerabilities mv LEFT JOIN cves c ON c.id = mv.cve_id
-		WHERE `+activeMachine+` GROUP BY 1`)
+		WHERE ` + activeMachineScoped(scope, arg) + ` GROUP BY 1`
+	})
+	rows, err := s.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -383,14 +423,18 @@ func (s *Store) GetRiskSummary(ctx context.Context, trendDays int) (*RiskSummary
 		r.BySeverity[sev] = n
 	}
 	rows.Close()
-	if r.TopCVEs, _, err = s.ListVulnerabilities(ctx, VulnFilter{Sort: "risk", Desc: true, Limit: 5}); err != nil {
+
+	if r.TopCVEs, _, err = s.ListVulnerabilities(ctx, VulnFilter{Sort: "risk", Desc: true, Limit: 5, Scope: scope}); err != nil {
 		return nil, err
 	}
-	rows, err = s.pool.Query(ctx, `
-		SELECT m.id, m.hostname, m.os_platform, r.vuln_count, r.critical_count, r.kev_count, r.max_risk
+
+	sql, args = q(func(arg func(any) string) string {
+		return `SELECT m.id, m.hostname, m.os_platform, r.vuln_count, r.critical_count, r.kev_count, r.max_risk
 		FROM machine_risk r JOIN machines m ON m.id = r.machine_id
-		WHERE m.status IN ('active', 'pending') AND r.vuln_count > 0
-		ORDER BY r.max_risk DESC, r.kev_count DESC, r.vuln_count DESC, lower(m.hostname) LIMIT 5`)
+		WHERE m.status IN ('active', 'pending') AND r.vuln_count > 0` + mScope(arg) + `
+		ORDER BY r.max_risk DESC, r.kev_count DESC, r.vuln_count DESC, lower(m.hostname) LIMIT 5`
+	})
+	rows, err = s.pool.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -403,8 +447,11 @@ func (s *Store) GetRiskSummary(ctx context.Context, trendDays int) (*RiskSummary
 		r.TopMachines = append(r.TopMachines, m)
 	}
 	rows.Close()
-	if r.Trend, err = s.ListComplianceSnapshots(ctx, trendDays); err != nil {
-		return nil, err
+	// Günlük özetler filo geneli tutulur; kapsamlı kullanıcıya gösterilmez.
+	if len(scope) == 0 {
+		if r.Trend, err = s.ListComplianceSnapshots(ctx, trendDays); err != nil {
+			return nil, err
+		}
 	}
 	return r, nil
 }
@@ -468,15 +515,24 @@ type MissingPatchReportRow struct {
 }
 
 // ReportMissingPatches, aktif makinelerdeki tüm eksik yamaları döner.
-func (s *Store) ReportMissingPatches(ctx context.Context, platform, severity string) ([]MissingPatchReportRow, error) {
+func (s *Store) ReportMissingPatches(ctx context.Context, platform, severity string, scope []string) ([]MissingPatchReportRow, error) {
+	args := []any{platform, severity, maxExportRows}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	sc := ""
+	if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+		sc = " AND " + c
+	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT m.hostname, m.os_platform, m.os_build, p.kb, p.version, p.title, p.classification, p.severity,
 		       p.released_at, p.reboot_required, cardinality(p.cves)
 		FROM missing_patches p JOIN machines m ON m.id = p.machine_id
-		WHERE m.status IN ('active', 'pending') AND ($1 = '' OR m.os_platform = $1) AND ($2 = '' OR p.severity = $2)
+		WHERE m.status IN ('active', 'pending') AND ($1 = '' OR m.os_platform = $1) AND ($2 = '' OR p.severity = $2)`+sc+`
 		ORDER BY lower(m.hostname), CASE p.severity WHEN 'Critical' THEN 0 WHEN 'Important' THEN 1
 			WHEN 'Moderate' THEN 2 WHEN 'Low' THEN 3 ELSE 4 END, p.title
-		LIMIT $3`, platform, severity, maxExportRows)
+		LIMIT $3`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -503,19 +559,28 @@ type AppReportRow struct {
 }
 
 // ReportApps, aktif makinelerdeki uygulamaları ad, sürüm ve platforma göre gruplayıp döner.
-func (s *Store) ReportApps(ctx context.Context, platform, search string) ([]AppReportRow, error) {
+func (s *Store) ReportApps(ctx context.Context, platform, search string, scope []string) ([]AppReportRow, error) {
 	pattern := ""
 	if q := strings.TrimSpace(search); q != "" {
 		pattern = "%" + escapeLike(q) + "%"
+	}
+	args := []any{platform, pattern, maxExportRows}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	sc := ""
+	if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+		sc = " AND " + c
 	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT a.name, a.version, max(a.publisher), m.os_platform, count(DISTINCT a.machine_id)
 		FROM installed_apps a JOIN machines m ON m.id = a.machine_id
 		WHERE m.status IN ('active', 'pending') AND ($1 = '' OR m.os_platform = $1)
-		  AND ($2 = '' OR a.name ILIKE $2 OR a.publisher ILIKE $2)
+		  AND ($2 = '' OR a.name ILIKE $2 OR a.publisher ILIKE $2)`+sc+`
 		GROUP BY a.name, a.version, m.os_platform
 		ORDER BY lower(a.name), a.version, m.os_platform
-		LIMIT $3`, platform, pattern, maxExportRows)
+		LIMIT $3`, args...)
 	if err != nil {
 		return nil, err
 	}

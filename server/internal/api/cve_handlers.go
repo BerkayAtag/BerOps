@@ -93,8 +93,8 @@ func (s *Server) newSyncer() *cve.Syncer {
 
 // --- Konsol uç noktaları ---
 
-func (s *Server) handleRiskSummary(w http.ResponseWriter, r *http.Request, _ *store.Session) {
-	sum, err := s.store.GetRiskSummary(r.Context(), trendDays)
+func (s *Server) handleRiskSummary(w http.ResponseWriter, r *http.Request, sess *store.Session) {
+	sum, err := s.store.GetRiskSummary(r.Context(), trendDays, sess.User.Scope())
 	if err != nil {
 		s.log.Error("risk özeti hesaplanamadı", "hata", err)
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
@@ -129,8 +129,9 @@ func vulnFilterFromQuery(r *http.Request) (store.VulnFilter, int, int, bool) {
 	return f, page, size, ok
 }
 
-func (s *Server) handleListVulns(w http.ResponseWriter, r *http.Request, _ *store.Session) {
+func (s *Server) handleListVulns(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	f, page, size, ok := vulnFilterFromQuery(r)
+	f.Scope = sess.User.Scope()
 	if !ok {
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Geçersiz filtre")
 		return
@@ -144,13 +145,13 @@ func (s *Server) handleListVulns(w http.ResponseWriter, r *http.Request, _ *stor
 	writeJSON(w, http.StatusOK, map[string]any{"items": items, "total": total, "page": page, "page_size": size})
 }
 
-func (s *Server) handleGetVuln(w http.ResponseWriter, r *http.Request, _ *store.Session) {
+func (s *Server) handleGetVuln(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	id := strings.ToUpper(r.PathValue("id"))
 	if !cve.ValidCVEID(id) {
 		writeError(w, http.StatusNotFound, codeNotFound, "CVE bulunamadı")
 		return
 	}
-	d, err := s.store.GetCVEDetail(r.Context(), id)
+	d, err := s.store.GetCVEDetail(r.Context(), id, sess.User.Scope())
 	if errors.Is(err, store.ErrNotFound) {
 		writeError(w, http.StatusNotFound, codeNotFound, "CVE bulunamadı")
 		return
