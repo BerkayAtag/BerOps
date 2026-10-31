@@ -12,7 +12,20 @@
     "language": "Dil",
     "menu": "Menü",
     "never": "Hiç",
-    "soon": "Yakında"
+    "soon": "Yakında",
+    "search": "Ara",
+    "all": "Tümü",
+    "yes": "Evet",
+    "no": "Hayır",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "saved": "Kaydedildi",
+    "cancel": "İptal",
+    "back": "Geri",
+    "selected": "{{count}} seçili",
+    "clearSelection": "Seçimi temizle",
+    "noPermission": "Bu işlem için yetkiniz yok",
+    "seconds": "{{n}} sn"
   },
   "theme": {
     "toLight": "Açık temaya geç",
@@ -47,7 +60,9 @@
       "invalid": "İstek geçersiz."
     },
     "network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
-    "unknown": "Beklenmeyen bir hata oluştu."
+    "unknown": "Beklenmeyen bir hata oluştu.",
+    "not_found": "Kayıt bulunamadı.",
+    "conflict": "Kayıt bu işleme uygun durumda değil."
   },
   "roles": {
     "admin": "Admin",
@@ -64,7 +79,8 @@
     "actions": "Aksiyonlar",
     "reports": "Raporlar",
     "audit": "Denetim Kaydı",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "settingsAgent": "Ajan ayarları"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -90,7 +106,15 @@
     "agentSetupHint": "Ajan kurulumunda sunucu adresi ve CA parmak izi gerekir. Kayıt anahtarını yönetici oluşturur.",
     "agentUrl": "Ajan sunucu adresi",
     "caFingerprint": "CA parmak izi (CAHASH)",
-    "serverVersion": "Sunucu sürümü"
+    "serverVersion": "Sunucu sürümü",
+    "compliance": "Yama uyumluluğu",
+    "complianceHelp": "Eksik yaması olmayan makinelerin oranı",
+    "criticalMachines": "Kritik eksik yaması olan",
+    "rebootPending": "Yeniden başlatma bekleyen",
+    "osDistribution": "İşletim sistemi dağılımı",
+    "distinctApps": "Farklı uygulama",
+    "missingTotal": "Toplam eksik yama",
+    "viewAll": "Tümünü gör"
   },
   "status": {
     "active": "Aktif",
@@ -99,5 +123,149 @@
     "revoked": "İptal edildi",
     "online": "Çevrimiçi",
     "offline": "Çevrimdışı"
+  },
+  "table": {
+    "empty": "Kayıt bulunamadı.",
+    "range": "{{from}}–{{to}} / {{total}}",
+    "pageSize": "Sayfa başına",
+    "prev": "Önceki sayfa",
+    "next": "Sonraki sayfa",
+    "selectAll": "Bu sayfadaki tümünü seç",
+    "selectRow": "Satırı seç",
+    "sortAsc": "Artan sırala",
+    "sortDesc": "Azalan sırala"
+  },
+  "machines": {
+    "title": "Makineler",
+    "subtitle": "Ajanı kurulu tüm Windows ve macOS istemcileri.",
+    "searchPlaceholder": "Makine adı, IP, işletim sistemi veya OU",
+    "filters": {
+      "platform": "Platform",
+      "status": "Durum",
+      "connection": "Bağlantı"
+    },
+    "platform": {
+      "windows": "Windows",
+      "darwin": "macOS"
+    },
+    "col": {
+      "hostname": "Makine adı",
+      "os": "İşletim sistemi",
+      "build": "Yama seviyesi",
+      "missing": "Eksik yama",
+      "critical": "Kritik",
+      "apps": "Uygulama",
+      "lastSeen": "Son görülme",
+      "agent": "Ajan",
+      "status": "Durum",
+      "ou": "OU"
+    },
+    "rescan": "Yeniden tara",
+    "rescanSelected": "Seçilenleri yeniden tara",
+    "rescanQueued": "{{count}} makine için tarama istendi. Ajanlar bir sonraki heartbeat'te taramaya başlar.",
+    "noInventory": "Envanter bekleniyor",
+    "rebootPending": "Yeniden başlatma bekliyor"
+  },
+  "machine": {
+    "notFound": "Makine bulunamadı.",
+    "general": "Genel bilgiler",
+    "inventoryStatus": "Envanter durumu",
+    "field": {
+      "hostname": "Makine adı",
+      "ip": "IP adresleri",
+      "os": "İşletim sistemi",
+      "build": "Yama seviyesi",
+      "arch": "Mimari",
+      "ou": "AD OU",
+      "domain": "Etki alanı",
+      "lastSeen": "Son görülme",
+      "agentVersion": "Ajan sürümü",
+      "enrolledAt": "Kayıt tarihi",
+      "hardware": "Donanım",
+      "serial": "Seri numarası",
+      "cpu": "İşlemci",
+      "memory": "Bellek",
+      "lastBoot": "Son açılış",
+      "rebootPending": "Yeniden başlatma",
+      "lastInventory": "Son envanter",
+      "lastFull": "Son tam tarama",
+      "missingSource": "Eksik yama kaynağı",
+      "missingScannedAt": "Eksik yama taraması",
+      "scanDuration": "Tarama süresi",
+      "scanErrors": "Tarama hataları",
+      "agentErrors": "Ajan hataları",
+      "certExpires": "Sertifika geçerliliği"
+    },
+    "scanSource": {
+      "online": "Windows Update / WSUS",
+      "offline": "Çevrimdışı katalog (wsusscn2.cab)",
+      "softwareupdate": "Apple softwareupdate",
+      "none": "—"
+    },
+    "scanPending": "Tarama istendi ({{time}}); ajanın sonucu göndermesi bekleniyor.",
+    "noInventoryYet": "Bu makineden henüz envanter alınmadı. İlk tarama kayıttan sonraki birkaç dakika içinde yapılır.",
+    "tabs": {
+      "missing": "Eksik yamalar ({{count}})",
+      "installed": "Kurulu yamalar ({{count}})",
+      "apps": "Uygulamalar ({{count}})"
+    },
+    "missing": {
+      "title": "Başlık",
+      "kb": "KB",
+      "classification": "Sınıflandırma",
+      "severity": "Önem",
+      "cves": "CVE",
+      "released": "Yayın tarihi",
+      "reboot": "Yeniden başlatma",
+      "size": "Boyut",
+      "none": "Eksik güncelleme yok. Makine güncel."
+    },
+    "installed": {
+      "id": "Yama",
+      "title": "Açıklama",
+      "installedOn": "Kurulum tarihi",
+      "source": "Kaynak"
+    },
+    "apps": {
+      "name": "Ad",
+      "version": "Sürüm",
+      "publisher": "Yayımcı",
+      "source": "Kaynak",
+      "installDate": "Kurulum tarihi",
+      "scope": "Kapsam",
+      "searchPlaceholder": "Uygulama, sürüm veya yayımcı ara"
+    },
+    "scope": {
+      "machine": "Makine",
+      "user": "Kullanıcı"
+    }
+  },
+  "severity": {
+    "Critical": "Kritik",
+    "Important": "Önemli",
+    "Moderate": "Orta",
+    "Low": "Düşük",
+    "none": "Belirtilmemiş"
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "agentTitle": "Ajan ve tarama ayarları",
+    "agentSubtitle": "Bu ayarlar tüm ajanlara bir sonraki heartbeat'te (en geç birkaç dakika içinde) iletilir.",
+    "fullInterval": "Tam tarama aralığı (saat)",
+    "fullIntervalHelp": "Eksik yama taraması dahil tam envanter. Varsayılan: 24 saat.",
+    "deltaInterval": "Değişiklik taraması aralığı (saat)",
+    "deltaIntervalHelp": "Uygulamalar ve kurulu yamalar yeniden toplanır; yalnızca değişen bölümler gönderilir.",
+    "cpuLimit": "Tarama sırasında CPU üst sınırı (%)",
+    "cpuLimitHelp": "Windows'ta Job Object ile sert sınır uygulanır; macOS'ta tarama arka plan önceliğinde çalışır.",
+    "deferBattery": "Pille çalışırken taramaları ertele",
+    "deferActive": "Kullanıcı etkinken taramaları ertele",
+    "deferActiveHelp": "Yalnızca macOS'ta uygulanır. Ertelemeler en fazla 4 saat sürer.",
+    "wuSource": "Windows Update kaynağı",
+    "wuOnline": "Çevrimiçi (Windows Update veya yapılandırılmış WSUS)",
+    "wuOffline": "Çevrimdışı (sunucudaki wsusscn2.cab)",
+    "cabPresent": "Sunucudaki katalog: {{size}}, {{date}}",
+    "cabMissing": "Sunucuda wsusscn2.cab bulunamadı. Dosyayı sunucunun veri dizinindeki wsus/ klasörüne koyun.",
+    "invalid": "Değerleri kontrol edin: değişiklik taraması aralığı tam tarama aralığından uzun olamaz.",
+    "readOnly": "Bu ayarları görüntüleyebilirsiniz; değiştirmek için Admin yetkisi gerekir."
   }
 }

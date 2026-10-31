@@ -90,3 +90,6 @@ func IPAddresses() []string {
 	}
 	return out
 }
+
+// ReadOSInfo, işletim sistemi bilgisini önbelleğe almadan okur (envanter taraması için).
+func ReadOSInfo() OSInfo { return readOSInfo() }

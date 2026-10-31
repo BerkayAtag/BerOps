@@ -146,6 +146,27 @@ Uygunluk kuralları sunucuda envantere karşı değerlendirilir (merkezi değerl
   - macOS: `/Library/Application Support/BER/Agent`
 - **Loglar:** `<veri dizini>/logs/agent.log`, 10 MB × 5 dosya döngüsel.
 
+### 5.1 Envanter akışı (Aşama 2)
+
+```
+ Zamanlayıcı (scanner)                         Sunucu
+ ├─ tam tarama (24 sa ± %10)  ─┐
+ ├─ değişiklik taraması (4 sa) ─┼─▶ Collect ─▶ önbellek (bölüm + SHA-256)
+ └─ konsol isteği / tam istek ─┘                 │
+                                                 ▼
+             yalnızca özeti değişen bölümler ─▶ POST /agent/v1/inventory (gzip, mTLS)
+                                                 │
+ heartbeat { inventory_hashes } ───────────────▶ özet karşılaştırma
+            ◀── { settings, request_full_inventory, scan_requested_at }
+```
+
+| Bölüm | Windows | macOS |
+|---|---|---|
+| İşletim sistemi | Kayıt defteri (`CurrentVersion`, UBR), CIM (donanım, etki alanı, son açılış), GP durumu (AD DN), bekleyen yeniden başlatma anahtarları | `sw_vers`, `sysctl`, `ioreg` (seri no.) |
+| Kurulu yamalar | `Win32_QuickFixEngineering` | `InstallHistory.plist` |
+| Eksik yamalar | Windows Update Agent (`IUpdateSearcher`), çevrimiçi veya `wsusscn2.cab` ile çevrimdışı | `softwareupdate --list` |
+| Uygulamalar | Uninstall anahtarları (HKLM 64/32, HKU), MSI, AppX | `.app` paketleri (`Info.plist`), pkg makbuzları, Homebrew |
+
 ## 6. Veritabanı şeması
 
 Şema aşamalarla genişler. Her aşama yeni numaralı migration ekler (`server/internal/store/migrations/`).
@@ -161,11 +182,21 @@ Uygunluk kuralları sunucuda envantere karşı değerlendirilir (merkezi değerl
 | `machines` | Kayıtlı ajanlar / makineler | `id` (= ajan ID), `hostname`, `status`, `os_*`, `agent_version`, `cert_serial`, `cert_fingerprint`, `last_seen_at` |
 | `audit_log` | Değiştirilemez denetim kaydı | `occurred_at`, `actor_*`, `action`, `target_*`, `params` (JSONB), `result`; UPDATE/DELETE/TRUNCATE trigger ile engelli |
 
+### Aşama 2
+
+| Tablo | Amaç | Önemli alanlar |
+|---|---|---|
+| `machine_inventory` | Makine başına envanter özeti ve sayaçlar | `os` (JSONB), `hashes` (bölüm özetleri), `last_full_at`, `missing_scan_source`, `missing_count`, `missing_critical_count`, `app_count`, `reboot_pending` |
+| `installed_patches` | Kurulu yamalar | `(machine_id, patch_id)` PK, `installed_on`, `source` |
+| `missing_patches` | Eksik güncellemeler | `(machine_id, update_id)` PK, `kb`, `classification`, `severity`, `cves` (GIN indeksli), `reboot_required` |
+| `installed_apps` | Üçüncü parti uygulamalar | `name`, `version`, `publisher`, `source`, `identifier`, `scope` |
+| `agent_settings` | Filo geneli ajan ayarları (tek satır) | `settings` (JSONB) |
+| `machines` (ek) | Konsoldan istenen tarama | `scan_requested_at` |
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
 |---|---|
-| 2 – Envanter | `machine_inventory` (son tam envanter, JSONB), `installed_patches`, `missing_patches`, `installed_apps`, `machine_disks`, `agent_settings` |
 | 3 – CVE | `cves`, `cve_cpes`, `kb_cves`, `kev_entries`, `epss_scores`, `app_cpe_mappings` (güven + elle düzeltme), `app_catalog` (en güncel sürüm), `risk_scores`, `compliance_snapshots` |
 | 4 – Dağıtım | `packages`, `package_files`, `ber_fixes`, `actions`, `action_targets` (hedef başına durum), `action_results` (stdout/stderr/çıkış kodu), `transfer_limits` |
 | 5 – AD / RBAC | `ad_settings` (şifreli bağlantı parolası), `ad_group_role_mappings`, `roles`, `role_permissions`, `role_scopes`, `ad_computers`, `api_keys` |

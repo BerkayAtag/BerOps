@@ -4,6 +4,7 @@ package client
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -11,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
@@ -103,4 +105,91 @@ func (c *Client) post(ctx context.Context, path string, in any, want int, out an
 		return &APIError{Status: resp.StatusCode, Code: e.Code, Message: e.Message}
 	}
 	return json.Unmarshal(data, out)
+}
+
+// UploadInventory, envanteri gzip ile sıkıştırarak gönderir.
+func (c *Client) UploadInventory(ctx context.Context, r *protocol.InventoryReport) error {
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	if err := json.NewEncoder(zw).Encode(r); err != nil {
+		return err
+	}
+	if err := zw.Close(); err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base.JoinPath(protocol.PathInventory).String(), &buf)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Encoding", "gzip")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		return readAPIError(resp)
+	}
+	return nil
+}
+
+// DownloadWSUSCab, çevrimdışı tarama kataloğunu dest yoluna indirir. Dosya zaten varsa
+// yalnızca sunucudaki sürüm daha yeniyse indirilir; kesilen indirme .part dosyasından
+// kaldığı yerden sürdürülür.
+func (c *Client) DownloadWSUSCab(ctx context.Context, dest string) error {
+	part := dest + ".part"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base.JoinPath(protocol.PathWSUSCab).String(), nil)
+	if err != nil {
+		return err
+	}
+	var offset int64
+	if st, err := os.Stat(part); err == nil {
+		offset = st.Size()
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+	} else if st, err := os.Stat(dest); err == nil {
+		req.Header.Set("If-Modified-Since", st.ModTime().UTC().Format(http.TimeFormat))
+	}
+	// Büyük dosya: genel 60 sn zaman aşımı yerine yalnızca bağlam kullanılır.
+	hc := *c.http
+	hc.Timeout = 0
+	resp, err := hc.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	flags := os.O_CREATE | os.O_WRONLY
+	switch resp.StatusCode {
+	case http.StatusNotModified:
+		return nil
+	case http.StatusPartialContent:
+		flags |= os.O_APPEND
+	case http.StatusOK:
+		flags |= os.O_TRUNC
+	default:
+		return readAPIError(resp)
+	}
+	f, err := os.OpenFile(part, flags, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		f.Close()
+		return fmt.Errorf("indirme yarıda kaldı (%d bayt sonra sürdürülecek): %w", offset, err)
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if lm, err := http.ParseTime(resp.Header.Get("Last-Modified")); err == nil {
+		_ = os.Chtimes(part, lm, lm)
+	}
+	return os.Rename(part, dest)
+}
+
+func readAPIError(resp *http.Response) error {
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
+	var e protocol.ErrorResponse
+	_ = json.Unmarshal(data, &e)
+	return &APIError{Status: resp.StatusCode, Code: e.Code, Message: e.Message}
 }

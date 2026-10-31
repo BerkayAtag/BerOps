@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
@@ -120,4 +122,180 @@ func (s *Store) ListMachines(ctx context.Context) ([]Machine, error) {
 		out = append(out, *m)
 	}
 	return out, rows.Err()
+}
+
+// MachineListItem, makine listesi satırıdır (envanter sayaçlarıyla).
+type MachineListItem struct {
+	Machine
+	Online               bool       `json:"online"`
+	InventoryAt          *time.Time `json:"inventory_at"`
+	MissingCount         int        `json:"missing_count"`
+	MissingCriticalCount int        `json:"missing_critical_count"`
+	MissingSecurityCount int        `json:"missing_security_count"`
+	AppCount             int        `json:"app_count"`
+	RebootPending        bool       `json:"reboot_pending"`
+}
+
+// MachineFilter, makine listesi arama/filtre/sıralama/sayfalama parametreleridir.
+type MachineFilter struct {
+	Search   string // hostname, IP veya işletim sistemi içinde arar
+	Platform string // windows, darwin
+	Status   string // active, pending, rejected, revoked
+	Online   *bool
+	// OnlineWindow, makinenin çevrimiçi sayılması için son heartbeat'in en fazla yaşıdır.
+	OnlineWindow time.Duration
+	Sort         string // MachineSortColumns anahtarlarından biri
+	Desc         bool
+	Limit        int
+	Offset       int
+	Now          time.Time
+}
+
+// MachineSortColumns, izin verilen sıralama alanlarıdır. Kullanıcı girdisi SQL'e
+// yalnızca bu eşleme üzerinden girer.
+var MachineSortColumns = map[string]string{
+	"hostname":         "lower(m.hostname)",
+	"os":               "m.os_name",
+	"os_build":         "m.os_build",
+	"agent_version":    "m.agent_version",
+	"last_seen_at":     "m.last_seen_at",
+	"enrolled_at":      "m.enrolled_at",
+	"missing_count":    "coalesce(i.missing_count, -1)",
+	"missing_critical": "coalesce(i.missing_critical_count, -1)",
+	"app_count":        "coalesce(i.app_count, -1)",
+	"status":           "m.status",
+}
+
+// ListMachinesFiltered, filtrelenmiş ve sayfalanmış makine listesi ile toplam kayıt sayısını döner.
+func (s *Store) ListMachinesFiltered(ctx context.Context, f MachineFilter) ([]MachineListItem, int, error) {
+	var where []string
+	var args []any
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	// Çevrimiçi sınır parametresi yalnızca kullanıldığında eklenir; PostgreSQL kullanılmayan
+	// parametrenin türünü belirleyemez.
+	cutoff := ""
+	onlineExpr := func() string {
+		if cutoff == "" {
+			cutoff = arg(f.Now.Add(-f.OnlineWindow))
+		}
+		return "(m.last_seen_at IS NOT NULL AND m.last_seen_at >= " + cutoff + " AND m.status IN ('active', 'pending'))"
+	}
+	if q := strings.TrimSpace(f.Search); q != "" {
+		p := arg("%" + escapeLike(q) + "%")
+		where = append(where, "(m.hostname ILIKE "+p+" OR m.os_name ILIKE "+p+" OR m.os_build ILIKE "+p+
+			" OR m.ad_ou ILIKE "+p+" OR array_to_string(m.ip_addresses, ' ') ILIKE "+p+")")
+	}
+	if f.Platform != "" {
+		where = append(where, "m.os_platform = "+arg(f.Platform))
+	}
+	if f.Status != "" {
+		where = append(where, "m.status = "+arg(f.Status))
+	}
+	if f.Online != nil {
+		if *f.Online {
+			where = append(where, onlineExpr())
+		} else {
+			where = append(where, "NOT "+onlineExpr())
+		}
+	}
+	cond := ""
+	if len(where) > 0 {
+		cond = "WHERE " + strings.Join(where, " AND ")
+	}
+
+	var total int
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM machines m LEFT JOIN machine_inventory i ON i.machine_id = m.id `+cond,
+		args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	col, ok := MachineSortColumns[f.Sort]
+	if !ok {
+		col = MachineSortColumns["hostname"]
+	}
+	dir := "ASC"
+	if f.Desc {
+		dir = "DESC"
+	}
+	limit := f.Limit
+	if limit <= 0 || limit > 500 {
+		limit = 50
+	}
+	q := `SELECT ` + prefixed("m.", machineColumns) + `, ` + onlineExpr() + `,
+		i.received_at, coalesce(i.missing_count, 0), coalesce(i.missing_critical_count, 0),
+		coalesce(i.missing_security_count, 0), coalesce(i.app_count, 0), coalesce(i.reboot_pending, false)
+		FROM machines m LEFT JOIN machine_inventory i ON i.machine_id = m.id ` + cond +
+		` ORDER BY ` + col + ` ` + dir + ` NULLS LAST, lower(m.hostname), m.id LIMIT ` + arg(limit) + ` OFFSET ` + arg(max(f.Offset, 0))
+	rows, err := s.pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []MachineListItem{}
+	for rows.Next() {
+		var it MachineListItem
+		m := &it.Machine
+		if err := rows.Scan(&m.ID, &m.Hostname, &m.Status, &m.OSPlatform, &m.OSName, &m.OSVersion, &m.OSBuild,
+			&m.Arch, &m.IPAddresses, &m.AgentVersion, &m.ADOU, &m.CertSerial, &m.CertFingerprint, &m.CertExpiresAt,
+			&m.EnrolledAt, &m.LastSeenAt, &m.AgentStartedAt, &m.LastErrors,
+			&it.Online, &it.InventoryAt, &it.MissingCount, &it.MissingCriticalCount, &it.MissingSecurityCount,
+			&it.AppCount, &it.RebootPending); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, it)
+	}
+	return out, total, rows.Err()
+}
+
+// FleetSummary, gösterge paneli için filo sayaçlarıdır.
+type FleetSummary struct {
+	Total             int `json:"total"`
+	Online            int `json:"online"`
+	Pending           int `json:"pending"`
+	WithInventory     int `json:"with_inventory"`
+	FullyPatched      int `json:"fully_patched"`
+	MissingTotal      int `json:"missing_total"`
+	CriticalMachines  int `json:"critical_machines"`
+	RebootPending     int `json:"reboot_pending"`
+	Windows           int `json:"windows"`
+	MacOS             int `json:"macos"`
+	DistinctAppsCount int `json:"distinct_apps"`
+}
+
+// GetFleetSummary, aktif ve onay bekleyen makineler üzerinden filo sayaçlarını hesaplar.
+func (s *Store) GetFleetSummary(ctx context.Context, now time.Time, onlineWindow time.Duration) (*FleetSummary, error) {
+	var f FleetSummary
+	err := s.pool.QueryRow(ctx, `
+		SELECT count(*),
+		       count(*) FILTER (WHERE m.last_seen_at >= $1),
+		       count(*) FILTER (WHERE m.status = 'pending'),
+		       count(i.machine_id),
+		       count(*) FILTER (WHERE i.machine_id IS NOT NULL AND i.missing_count = 0 AND i.missing_scanned_at IS NOT NULL),
+		       coalesce(sum(i.missing_count), 0),
+		       count(*) FILTER (WHERE i.missing_critical_count > 0),
+		       count(*) FILTER (WHERE i.reboot_pending),
+		       count(*) FILTER (WHERE m.os_platform = 'windows'),
+		       count(*) FILTER (WHERE m.os_platform = 'darwin'),
+		       (SELECT count(DISTINCT lower(name)) FROM installed_apps)
+		FROM machines m LEFT JOIN machine_inventory i ON i.machine_id = m.id
+		WHERE m.status IN ('active', 'pending')`, now.Add(-onlineWindow)).Scan(
+		&f.Total, &f.Online, &f.Pending, &f.WithInventory, &f.FullyPatched, &f.MissingTotal,
+		&f.CriticalMachines, &f.RebootPending, &f.Windows, &f.MacOS, &f.DistinctAppsCount)
+	return &f, err
+}
+
+func prefixed(prefix, cols string) string {
+	parts := strings.Split(cols, ",")
+	for i, p := range parts {
+		parts[i] = prefix + strings.TrimSpace(p)
+	}
+	return strings.Join(parts, ", ")
+}
+
+// escapeLike, LIKE kalıbındaki özel karakterleri kaçışlar.
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
 }

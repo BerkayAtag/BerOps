@@ -1,22 +1,23 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { NavLink } from "react-router";
 import type { Me } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
 import { LanguageToggle } from "./LanguageToggle";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
-const NAV_ITEMS = [
-  { key: "dashboard", ready: true },
-  { key: "machines", ready: false },
-  { key: "patches", ready: false },
-  { key: "vulnerabilities", ready: false },
-  { key: "packages", ready: false },
-  { key: "actions", ready: false },
-  { key: "reports", ready: false },
-  { key: "audit", ready: false },
-  { key: "settings", ready: false },
-] as const;
+const NAV_ITEMS: { key: string; to?: string; end?: boolean }[] = [
+  { key: "dashboard", to: "/", end: true },
+  { key: "machines", to: "/makineler" },
+  { key: "patches" },
+  { key: "vulnerabilities" },
+  { key: "packages" },
+  { key: "actions" },
+  { key: "reports" },
+  { key: "audit" },
+  { key: "settingsAgent", to: "/ayarlar/ajan" },
+];
 
 export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
   const { t } = useTranslation();
@@ -59,15 +60,21 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
         <ul>
           {NAV_ITEMS.map((item) => (
             <li key={item.key}>
-              <a
-                href={item.ready ? "/" : undefined}
-                className={item.key === "dashboard" ? "active" : undefined}
-                aria-current={item.key === "dashboard" ? "page" : undefined}
-                aria-disabled={!item.ready || undefined}
-              >
-                <span>{t(`nav.${item.key}`)}</span>
-                {!item.ready && <span className="soon">{t("common.soon")}</span>}
-              </a>
+              {item.to ? (
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => (isActive ? "active" : undefined)}
+                  onClick={() => setNavOpen(false)}
+                >
+                  <span>{t(`nav.${item.key}`)}</span>
+                </NavLink>
+              ) : (
+                <a aria-disabled="true">
+                  <span>{t(`nav.${item.key}`)}</span>
+                  <span className="soon">{t("common.soon")}</span>
+                </a>
+              )}
             </li>
           ))}
         </ul>

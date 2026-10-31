@@ -4,7 +4,7 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)** ve **Aşama 2 (Envanter ve tespit)** tamamlandı. Yol haritası aşağıda.
 
 ## Bileşenler
 
@@ -27,6 +27,15 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 - **Konsol:** Giriş ekranı, gösterge paneli iskeleti, Türkçe varsayılan + İngilizce, işletim sistemi tercihini izleyen ve seçimi hatırlayan karanlık mod.
 - **Sanal ajan simülatörü:** Yüzlerce ajanı tek süreçte simüle eden `ber-agentsim`.
 
+## Aşama 2'de neler var?
+
+- **Windows tespiti:** Yama seviyesi (ör. `10.0.22631.4460`), kurulu KB'ler, Windows Update Agent ile eksik güncellemeler (çevrimiçi veya sunucudaki `wsusscn2.cab` ile çevrimdışı; KB, sınıflandırma, MSRC önemi, CVE'ler, yeniden başlatma gereksinimi), kayıt defteri/MSI/AppX uygulamaları, AD OU ve bekleyen yeniden başlatma.
+- **macOS tespiti:** macOS sürümü ve build numarası, `softwareupdate --list` ile eksik güncellemeler, kurulum geçmişi, `.app` paketleri, pkg makbuzları ve Homebrew.
+- **Kaynak kısıtlama:** Windows'ta Job Object ile sert CPU sınırı ve IDLE öncelik, macOS'ta arka plan QoS; ajan içi işler için CPU bütçesi; pil ve kullanıcı etkinliğinde erteleme.
+- **Delta gönderim:** Bölüm özetleriyle yalnızca değişen bölümler gönderilir; sunucu tutarsızlık görürse tam envanter ister.
+- **Konsol:** Arama, filtre, sıralama, sayfalama ve toplu seçimli makine listesi; eksik/kurulu yama ve uygulama sekmeli makine detay sayfası; gösterge panelinde uyumluluk ve dağılım; ajan ayarları sayfası; konsoldan yeniden tarama.
+- **Tanılama:** `ber-agent inventory [-full] [-json]` envanteri makinede toplayıp yazdırır.
+
 ## Ajan kaynak kullanımı
 
 Ölçüm: macOS 27 (Apple Silicon), ajan heartbeat aralığı 10 sn (varsayılan 60 sn'den 6 kat sık), 70 sn boyunca 5 sn aralıkla `ps` örneklemesi.
@@ -36,7 +45,18 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 | Boşta CPU | < %1 | ~%0,07 (70 sn'de toplam 0,05 sn CPU süresi) |
 | Bellek (RSS) | < ~50 MB | 11–16 MB |
 
-Aynı test sırasında 50 sanal ajan da aynı sunucuya kaydolup heartbeat gönderdi; tümü başarılı oldu. Envanter taraması Aşama 2'de eklendiğinde ölçümler Windows ve macOS'ta tekrarlanacak.
+Aynı test sırasında 50 sanal ajan da aynı sunucuya kaydolup heartbeat gönderdi; tümü başarılı oldu.
+
+**Tam envanter taraması sırasında** (aynı Mac, %10 CPU sınırı, 180 uygulama, 195 kurulu güncelleme, `softwareupdate --list` dahil):
+
+| Metrik | Ölçülen |
+|---|---|
+| Tarama süresi (duvar saati) | 17–26 sn (çoğu Apple sunucularına yapılan `softwareupdate` sorgusu) |
+| Ajan sürecinin CPU süresi | 0,09 sn |
+| En yüksek bellek (RSS) | 21 MB |
+| Değişiklik taraması (uygulamalar + kurulu yamalar) | ~0,75 sn |
+
+`softwareupdate` alt sürecinin ve Apple'ın `softwareupdated` servisinin CPU kullanımı ajan sürecine dahil değildir; bu süreçler arka plan önceliğinde çalışır. Windows ölçümleri (WUA taraması dahil) Aşama 8'de MSI ile birlikte yapılacak.
 
 ## Hızlı başlangıç (geliştirme ortamı)
 
@@ -91,10 +111,20 @@ go run ./agent/cmd/ber-agent enroll -data-dir ./agent-data -server https://local
 go run ./agent/cmd/ber-agent run -data-dir ./agent-data
 ```
 
-### Sanal ajanlar
+### Envanteri yerelde denemek
+
+Sunucuya göndermeden bu makinenin envanterini görmek için (`-full` eksik güncelleme taramasını da yapar):
 
 ```bash
-go run ./agent/cmd/ber-agentsim -server https://localhost:52311 -key <anahtar> -ca-hash <parmak-izi> -n 100
+go run ./agent/cmd/ber-agent inventory -full
+```
+
+### Sanal ajanlar
+
+Gerçek ajanla aynı zamanlayıcıyı kullanan, gerçekçi sahte envanter (eksik KB'ler, CVE'ler, güncel olmayan uygulamalar, AD OU'ları) gönderen sanal ajanlar:
+
+```bash
+go run ./agent/cmd/ber-agentsim -server https://localhost:52311 -key <anahtar> -ca-hash <parmak-izi> -n 100 -first-scan 30s
 ```
 
 ## Testler
@@ -116,7 +146,7 @@ npm --prefix console test -- --run
 | Aşama | Kapsam | Durum |
 |---|---|---|
 | 1 | Repo iskeleti, CI, veritabanı şeması, API iskeleti, mTLS ajan kaydı ve heartbeat, giriş ekranı ve tema | ✅ |
-| 2 | Envanter: yama seviyesi, eksik yamalar, üçüncü parti uygulamalar; kaynak kısıtlama; makine listesi ve detay | ⏳ |
+| 2 | Envanter: yama seviyesi, eksik yamalar, üçüncü parti uygulamalar; kaynak kısıtlama; makine listesi ve detay | ✅ |
 | 3 | CVE motoru: NVD, MSRC, KEV, EPSS; risk skoru; dashboard ve raporlar | ⏳ |
 | 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ⏳ |
 | 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ⏳ |

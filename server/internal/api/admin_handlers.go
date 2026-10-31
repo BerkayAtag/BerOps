@@ -146,31 +146,9 @@ func (s *Server) handleRevokeRegKey(w http.ResponseWriter, r *http.Request, sess
 	writeJSON(w, http.StatusOK, key)
 }
 
-type machineView struct {
-	store.Machine
-	Online bool `json:"online"`
-}
-
 // onlineWindow, makinenin çevrimiçi sayılması için son heartbeat'in en fazla ne kadar eski olabileceğidir.
 func (s *Server) onlineWindow() time.Duration {
 	return 3 * time.Duration(s.cfg.Agent.HeartbeatSeconds) * time.Second
-}
-
-func (s *Server) handleListMachines(w http.ResponseWriter, r *http.Request, _ *store.Session) {
-	machines, err := s.store.ListMachines(r.Context())
-	if err != nil {
-		s.log.Error("makineler okunamadı", "hata", err)
-		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
-		return
-	}
-	now, window := s.now(), s.onlineWindow()
-	items := make([]machineView, 0, len(machines))
-	for _, m := range machines {
-		online := m.LastSeenAt != nil && now.Sub(*m.LastSeenAt) <= window &&
-			(m.Status == protocol.StatusActive || m.Status == protocol.StatusPending)
-		items = append(items, machineView{Machine: m, Online: online})
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items})
 }
 
 func (s *Server) handleSetMachineStatus(op string) authedHandler {

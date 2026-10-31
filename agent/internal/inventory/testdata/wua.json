@@ -1,0 +1,5 @@
+{"source":"online","updates":[
+ {"id":"6A8C2B1E-1111-4C3D-9E8F-0123456789AB","kb":["5046617"],"title":"2024-11 Windows 11 Version 23H2 için Toplu Güncelleştirme (KB5046617)","classification_id":"0FA1201D-4330-4FA8-8AE9-B877473B6441","classification":"Güvenlik Güncelleştirmeleri","severity":"Critical","released_at":"2024-11-12T00:00:00Z","reboot_required":true,"size_bytes":812345678,"cves":["CVE-2024-43451","cve-2024-49039","CVE-2024-43451","geçersiz"],"support_url":"https://support.microsoft.com/help/5046617"},
+ {"id":"aaaabbbb-2222-4c3d-9e8f-0123456789ab","kb":[],"title":"Microsoft Defender Antivirus tanım güncelleştirmesi","classification_id":"E0789628-CE08-4437-BE74-2495B842F43B","classification":"Tanım Güncelleştirmeleri","severity":"","released_at":"","reboot_required":false,"size_bytes":0,"cves":[],"support_url":""},
+ {"id":"","title":"kimliksiz kayıt atlanmalı"}
+]}

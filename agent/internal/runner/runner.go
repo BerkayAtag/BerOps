@@ -60,6 +60,8 @@ type Runner struct {
 	StartedAt time.Time
 	// OnResponse, her başarılı heartbeat'ten sonra çağrılır (isteğe bağlı).
 	OnResponse func(*protocol.HeartbeatResponse)
+	// InventoryHashes, heartbeat'e eklenecek envanter özetlerini döner (isteğe bağlı).
+	InventoryHashes func() map[string]string
 
 	rnd   func() float64
 	sleep func(ctx context.Context, d time.Duration) bool
@@ -95,6 +97,9 @@ func (r *Runner) Run(ctx context.Context) {
 	var pending []string
 	for {
 		req := protocol.HeartbeatRequest{Host: r.Collect(), AgentStartedAt: r.StartedAt, Errors: pending}
+		if r.InventoryHashes != nil {
+			req.InventoryHashes = r.InventoryHashes()
+		}
 		resp, err := r.Client.Heartbeat(ctx, req)
 		if ctx.Err() != nil {
 			return

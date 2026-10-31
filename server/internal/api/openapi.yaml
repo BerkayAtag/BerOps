@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Automation BER API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Automation BER konsol ve ajan API'si.
 
@@ -25,6 +25,7 @@ tags:
   - name: Sunucu
   - name: Kayıt anahtarları
   - name: Makineler
+  - name: Ayarlar
   - name: Denetim
   - name: Ajan
 components:
@@ -113,6 +114,32 @@ components:
         arch: { type: string }
         ip_addresses: { type: array, items: { type: string } }
         agent_version: { type: string }
+    MissingPatch:
+      type: object
+      properties:
+        id: { type: string }
+        kb: { type: string }
+        title: { type: string }
+        classification: { type: string }
+        severity: { type: string, enum: [Critical, Important, Moderate, Low, ""] }
+        released_at: { type: string, format: date-time }
+        reboot_required: { type: boolean }
+        size_bytes: { type: integer }
+        cves: { type: array, items: { type: string } }
+        version: { type: string }
+        recommended: { type: boolean }
+        support_url: { type: string }
+    AgentSettings:
+      type: object
+      required: [full_scan_interval_hours, delta_scan_interval_hours, scan_cpu_limit_percent, defer_on_battery,
+        defer_when_user_active, windows_update_source]
+      properties:
+        full_scan_interval_hours: { type: integer, minimum: 1, maximum: 168, default: 24 }
+        delta_scan_interval_hours: { type: integer, minimum: 1, default: 4 }
+        scan_cpu_limit_percent: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        defer_on_battery: { type: boolean, default: true }
+        defer_when_user_active: { type: boolean, default: false }
+        windows_update_source: { type: string, enum: [online, offline], default: online }
   responses:
     Unauthorized:
       description: Oturum yok veya geçersiz
@@ -252,18 +279,140 @@ paths:
   /api/v1/machines:
     get:
       tags: [Makineler]
-      summary: Makineleri listele
+      summary: Makineleri ara, filtrele, sırala ve sayfala
       security: [{ session: [] }]
       x-ber-permission: machines.read
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: "Hostname, IP, işletim sistemi, yama seviyesi veya OU içinde arar" }
+        - { name: platform, in: query, schema: { type: string, enum: [windows, darwin] } }
+        - { name: status, in: query, schema: { type: string, enum: [active, pending, rejected, revoked] } }
+        - { name: online, in: query, schema: { type: boolean } }
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [hostname, os, os_build, agent_version, last_seen_at, enrolled_at, missing_count, missing_critical, app_count, status]
+            default: hostname
+        - { name: desc, in: query, schema: { type: boolean, default: false } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
       responses:
         "200":
-          description: Makine listesi
+          description: Makine sayfası
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  items: { type: array, items: { $ref: "#/components/schemas/Machine" } }
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Machine"
+                        - type: object
+                          properties:
+                            inventory_at: { type: [string, "null"], format: date-time }
+                            missing_count: { type: integer }
+                            missing_critical_count: { type: integer }
+                            missing_security_count: { type: integer }
+                            app_count: { type: integer }
+                            reboot_pending: { type: boolean }
+                  total: { type: integer }
+                  page: { type: integer }
+                  page_size: { type: integer }
+  /api/v1/machines/summary:
+    get:
+      tags: [Makineler]
+      summary: Filo özeti (gösterge paneli sayaçları)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200": { description: "Toplam/çevrimiçi/onay bekleyen makine, eksik yama ve uyumluluk sayaçları" }
+  /api/v1/machines/scan:
+    post:
+      tags: [Makineler]
+      summary: Seçilen makineler için yeniden tarama iste
+      description: İstek sonraki heartbeat'te ajana iletilir ve tam envanter gelene kadar bekletilir.
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [machine_ids]
+              properties:
+                machine_ids: { type: array, items: { type: string, format: uuid }, minItems: 1, maxItems: 5000 }
+      responses:
+        "200": { description: "Kabul edilen makine sayısı (accepted)" }
+  /api/v1/machines/{id}:
+    get:
+      tags: [Makineler]
+      summary: Makine ayrıntısı ve envanter özeti
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: "machine, online, scan_requested_at ve inventory (yoksa null)" }
+        "404": { description: Bulunamadı }
+  /api/v1/machines/{id}/missing-patches:
+    get:
+      tags: [Makineler]
+      summary: Eksik yamalar (önem sırasına göre)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200":
+          description: Eksik yamalar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/MissingPatch" } }
+  /api/v1/machines/{id}/installed-patches:
+    get:
+      tags: [Makineler]
+      summary: Kurulu yamalar
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: Kurulu yamalar }
+  /api/v1/machines/{id}/apps:
+    get:
+      tags: [Makineler]
+      summary: Kurulu üçüncü parti uygulamalar
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: Uygulamalar }
+  /api/v1/settings/agent:
+    get:
+      tags: [Ayarlar]
+      summary: Ajan ve tarama ayarları
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "settings ve sunucudaki wsusscn2.cab bilgisi (wsus_cab, yoksa null)" }
+    put:
+      tags: [Ayarlar]
+      summary: Ajan ve tarama ayarlarını değiştir
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgentSettings" }
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Geçersiz değerler }
   /api/v1/machines/{id}/approve:
     post:
       tags: [Makineler]
@@ -352,3 +501,26 @@ paths:
                   server_time: { type: string, format: date-time }
         "401": { description: Sertifika yok, tanınmıyor veya yenilenmiş }
         "403": { description: Makine reddedilmiş veya iptal edilmiş }
+  /agent/v1/inventory:
+    post:
+      tags: [Ajan]
+      summary: Envanter yükleme (tam veya yalnızca değişen bölümler)
+      description: |
+        Gövde gzip ile sıkıştırılabilir (`Content-Encoding: gzip`, açılmış boyut en fazla 32 MiB).
+        `included` listesinde olmayan bölümler sunucuda değiştirilmez. `full: true` ise sunucu bölüm
+        özetlerini gönderilenlerle değiştirir.
+      security: [{ agentCert: [] }]
+      responses:
+        "204": { description: Kaydedildi }
+        "400": { description: Geçersiz rapor }
+  /agent/v1/files/wsusscn2.cab:
+    get:
+      tags: [Ajan]
+      summary: Çevrimdışı Windows Update kataloğu
+      description: Range (kaldığı yerden devam) ve If-Modified-Since desteklenir.
+      security: [{ agentCert: [] }]
+      responses:
+        "200": { description: Dosya }
+        "206": { description: Kısmi içerik }
+        "304": { description: Değişmedi }
+        "404": { description: Sunucuda katalog yok }

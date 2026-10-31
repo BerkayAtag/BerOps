@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import i18n from "../i18n";
+import { MemoryRouter } from "react-router";
 import { App } from "../App";
 import { AuthProvider } from "../auth/AuthProvider";
 import { mockMatchMedia } from "../test/matchMedia";
@@ -21,11 +22,13 @@ const me = {
 
 function renderApp() {
   return render(
-    <ThemeProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </ThemeProvider>,
+    <MemoryRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ThemeProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -73,7 +76,21 @@ describe("giriş ekranı", () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url.endsWith("/auth/me")) return json(401, { code: "auth.unauthenticated", message: "" });
       if (url.endsWith("/auth/login")) return json(200, me);
-      if (url.endsWith("/machines")) return json(200, { items: [] });
+      if (url.includes("/machines/summary"))
+        return json(200, {
+          total: 0,
+          online: 0,
+          pending: 0,
+          with_inventory: 0,
+          fully_patched: 0,
+          missing_total: 0,
+          critical_machines: 0,
+          reboot_pending: 0,
+          windows: 0,
+          macos: 0,
+          distinct_apps: 0,
+        });
+      if (url.includes("/machines")) return json(200, { items: [], total: 0, page: 1, page_size: 8 });
       if (url.endsWith("/server-info"))
         return json(200, { version: "0.1.0", agent_url: "https://ber:52311", ca_fingerprint: "sha256:ab" });
       if (url.endsWith("/auth/logout")) {

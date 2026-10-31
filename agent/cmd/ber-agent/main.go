@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -28,9 +30,12 @@ import (
 	"github.com/BerkayAtag/automation-ber/agent/internal/config"
 	"github.com/BerkayAtag/automation-ber/agent/internal/hostinfo"
 	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
+	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
 	"github.com/BerkayAtag/automation-ber/agent/internal/paths"
 	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
+	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/service"
+	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
 	"github.com/BerkayAtag/automation-ber/shared/version"
 )
@@ -50,6 +55,7 @@ Komutlar:
   configure  Sunucu adresini, kayıt anahtarını ve CA parmak izini kaydeder (kayıt servis başlayınca yapılır)
   enroll     Yapılandırmayı kaydeder ve hemen kaydolur
   status     Kayıt durumunu gösterir
+  inventory  Envanteri bu makinede toplar ve yazdırır (sunucuya göndermez)
   version    Sürümü yazdırır
 `)
 }
@@ -74,6 +80,8 @@ func run(args []string) error {
 		return cmdConfigure(args, true)
 	case "status":
 		return cmdStatus(args)
+	case "inventory":
+		return cmdInventory(args)
 	case "version":
 		fmt.Printf("ber-agent %s (%s)\n", version.Version, version.Commit)
 		return nil
@@ -257,12 +265,26 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	if err != nil {
 		return err
 	}
+	if err := sysres.LowerProcessPriority(); err != nil {
+		log.Warn("süreç önceliği düşürülemedi", "hata", err)
+	}
+
+	sc := scanner.New(filepath.Join(dataDir, "inventory"), runtime.GOOS, c, log)
+	sc.OnBattery = sysres.OnBattery
+	sc.UserActive = sysres.UserActive
+	if err := sc.Load(); err != nil {
+		log.Error("envanter durumu yüklenemedi", "hata", err)
+	}
+	go sc.Run(ctx)
+
 	r := &runner.Runner{
-		Client:    c,
-		Log:       log,
-		Collect:   hi.Collect,
-		StartedAt: started,
-		OnResponse: func(*protocol.HeartbeatResponse) {
+		Client:          c,
+		Log:             log,
+		Collect:         hi.Collect,
+		StartedAt:       started,
+		InventoryHashes: sc.UploadedHashes,
+		OnResponse: func(resp *protocol.HeartbeatResponse) {
+			sc.ApplyHeartbeat(resp)
 			// Heartbeat'ler arasında soket açık tutulmaz; binlerce ajan sunucuda bağlantı biriktirmez.
 			c.CloseIdle()
 		},
@@ -295,5 +317,47 @@ func cmdStatus(args []string) error {
 	fmt.Println("Ajan ID      :", st.AgentID)
 	fmt.Println("Kayıt durumu :", st.Status)
 	fmt.Println("Kayıt tarihi :", st.EnrolledAt.Local().Format(time.RFC3339))
+	return nil
+}
+
+func cmdInventory(args []string) error {
+	fs := flag.NewFlagSet("inventory", flag.ExitOnError)
+	full := fs.Bool("full", false, "eksik yama taramasını da yap (Windows Update / softwareupdate; yavaş olabilir)")
+	asJSON := fs.Bool("json", false, "sonucu JSON olarak yazdır")
+	cpu := fs.Int("cpu-limit", 10, "tarama sırasında CPU üst sınırı (yüzde)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	_ = sysres.LowerProcessPriority()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	snap := inventory.Collect(ctx, inventory.Options{CPULimitPercent: *cpu, IncludeMissing: *full})
+	if *asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(snap)
+	}
+	if snap.OS != nil {
+		fmt.Printf("İşletim sistemi : %s %s (yama seviyesi %s, %s)\n", snap.OS.Name, snap.OS.Version, snap.OS.Build, snap.OS.Arch)
+		if snap.OS.Model != "" {
+			fmt.Printf("Donanım         : %s %s\n", snap.OS.Manufacturer, snap.OS.Model)
+		}
+		if snap.OS.ADDN != "" {
+			fmt.Printf("AD konumu       : %s\n", snap.OS.ADDN)
+		}
+		fmt.Printf("Yeniden başlatma: %v\n", snap.OS.RebootPending)
+	}
+	fmt.Printf("Uygulama        : %d\n", len(snap.Apps))
+	fmt.Printf("Kurulu yama     : %d\n", len(snap.InstalledPatches))
+	if *full {
+		fmt.Printf("Eksik yama      : %d\n", len(snap.MissingPatches))
+		for _, p := range snap.MissingPatches {
+			fmt.Printf("  - %s %s %s\n", p.Title, p.KB, strings.Join(p.CVEs, ","))
+		}
+	}
+	fmt.Printf("Süre            : %v\n", snap.Duration.Round(time.Millisecond))
+	for _, e := range snap.Errors {
+		fmt.Println("Hata            :", e)
+	}
 	return nil
 }
