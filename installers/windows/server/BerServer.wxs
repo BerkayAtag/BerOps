@@ -31,7 +31,7 @@
     <Property Id="ARPCONTACT" Value="Berkay Atağ" />
     <Property Id="ARPHELPLINK" Value="https://github.com/BerkayAtag/automation-ber" />
     <Property Id="ARPURLINFOABOUT" Value="https://berkayatag.github.io/automation-ber/" />
-    <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- ARPNOMODIFY, WixUI_InstallDir tarafından zaten tanımlanır. -->
 
     <Property Id="DATABASE_URL" Secure="yes" Hidden="yes" />
     <Property Id="CONSOLE_PORT" Value="8443" Secure="yes" />
