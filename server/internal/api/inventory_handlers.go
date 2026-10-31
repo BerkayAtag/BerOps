@@ -120,8 +120,19 @@ func (s *Server) handleInventory(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return
 	}
-	s.log.Info("envanter alındı", "ajan", m.ID, "hostname", m.Hostname, "tam", rep.Full,
-		"bölümler", strings.Join(rep.Included, ","), "uygulama", len(rep.Apps), "eksik_yama", len(rep.MissingPatches))
+	// Log'a ajanın gönderdiği metinler değil, sabit değerlerden türetilenler yazılır (log enjeksiyonuna karşı).
+	kind := "değişiklik"
+	if rep.Full {
+		kind = "tam"
+	}
+	var sections []string
+	for _, sec := range protocol.AllSections {
+		if rep.Has(sec) {
+			sections = append(sections, sec)
+		}
+	}
+	s.log.Info("envanter alındı", "ajan", m.ID, "tür", kind, "bölümler", strings.Join(sections, ","),
+		"uygulama", len(rep.Apps), "eksik_yama", len(rep.MissingPatches))
 	w.WriteHeader(http.StatusNoContent)
 }
 
