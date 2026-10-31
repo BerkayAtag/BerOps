@@ -80,7 +80,8 @@
     "reports": "Raporlar",
     "audit": "Denetim Kaydı",
     "settings": "Ayarlar",
-    "settingsAgent": "Ajan ayarları"
+    "settingsAgent": "Ajan ayarları",
+    "settingsCve": "CVE kaynakları"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -114,7 +115,19 @@
     "osDistribution": "İşletim sistemi dağılımı",
     "distinctApps": "Farklı uygulama",
     "missingTotal": "Toplam eksik yama",
-    "viewAll": "Tümünü gör"
+    "viewAll": "Tümünü gör",
+    "riskTitle": "Güvenlik riski",
+    "distinctCves": "Farklı CVE",
+    "kevMachines": "KEV açığı olan makine",
+    "urgentCves": "Acil açık (risk ≥ 80)",
+    "avgRisk": "Ortalama makine riski",
+    "bySeverity": "Önem dağılımı",
+    "trend": "Uyumluluk eğilimi (30 gün)",
+    "trendEmpty": "Eğilim verisi birkaç gün içinde oluşur.",
+    "trendHelp": "Eksik yaması olmayan makinelerin günlük oranı",
+    "topCves": "En riskli açıklar",
+    "topMachines": "En riskli makineler",
+    "noVulns": "Zafiyet verisi henüz yok."
   },
   "status": {
     "active": "Aktif",
@@ -158,7 +171,9 @@
       "lastSeen": "Son görülme",
       "agent": "Ajan",
       "status": "Durum",
-      "ou": "OU"
+      "ou": "OU",
+      "vulns": "Açık",
+      "risk": "Risk"
     },
     "rescan": "Yeniden tara",
     "rescanSelected": "Seçilenleri yeniden tara",
@@ -207,7 +222,8 @@
     "tabs": {
       "missing": "Eksik yamalar ({{count}})",
       "installed": "Kurulu yamalar ({{count}})",
-      "apps": "Uygulamalar ({{count}})"
+      "apps": "Uygulamalar ({{count}})",
+      "vulns": "Güvenlik açıkları ({{count}})"
     },
     "missing": {
       "title": "Başlık",
@@ -238,7 +254,16 @@
     "scope": {
       "machine": "Makine",
       "user": "Kullanıcı"
-    }
+    },
+    "risk": {
+      "title": "Risk özeti",
+      "maxRisk": "En yüksek risk",
+      "vulns": "Güvenlik açığı",
+      "critical": "Kritik",
+      "kev": "KEV",
+      "computedAt": "Hesaplanma"
+    },
+    "vulnsNone": "Bu makinede bilinen açık bulunamadı."
   },
   "severity": {
     "Critical": "Kritik",
@@ -267,5 +292,170 @@
     "cabMissing": "Sunucuda wsusscn2.cab bulunamadı. Dosyayı sunucunun veri dizinindeki wsus/ klasörüne koyun.",
     "invalid": "Değerleri kontrol edin: değişiklik taraması aralığı tam tarama aralığından uzun olamaz.",
     "readOnly": "Bu ayarları görüntüleyebilirsiniz; değiştirmek için Admin yetkisi gerekir."
+  },
+  "cvss": {
+    "CRITICAL": "Kritik",
+    "HIGH": "Yüksek",
+    "MEDIUM": "Orta",
+    "LOW": "Düşük",
+    "UNKNOWN": "Bilinmiyor"
+  },
+  "risk": {
+    "urgent": "Acil",
+    "high": "Yüksek",
+    "medium": "Orta",
+    "low": "Düşük",
+    "label": "Risk"
+  },
+  "source": {
+    "os_build": "İşletim sistemi yapısı",
+    "missing_patch": "Eksik yama",
+    "app": "Uygulama",
+    "os": "İşletim sistemi sürümü"
+  },
+  "vulns": {
+    "title": "Güvenlik Açıkları",
+    "subtitle": "Makinelerde tespit edilen CVE'ler; risk skoru CVSS, EPSS olasılığı ve CISA KEV bilgisinden hesaplanır.",
+    "searchPlaceholder": "CVE kimliği veya başlık",
+    "severity": "Önem",
+    "kind": "Kaynak",
+    "kindOs": "İşletim sistemi",
+    "kindApp": "Uygulama",
+    "kevOnly": "Yalnızca aktif istismar edilenler (KEV)",
+    "kevHint": "CISA Known Exploited Vulnerabilities kataloğunda: aktif olarak istismar ediliyor",
+    "kevRansomwareHint": "Aktif istismar ediliyor ve fidye yazılımı kampanyalarında kullanıldığı biliniyor",
+    "ransomware": "Fidye yazılımı",
+    "exploited": "İstismar edildi",
+    "exploitedHint": "Microsoft bu açığın istismar edildiğini bildiriyor",
+    "col": {
+      "cve": "CVE",
+      "title": "Başlık",
+      "severity": "Önem",
+      "cvss": "CVSS",
+      "epss": "EPSS",
+      "risk": "Risk",
+      "affected": "Etkilenen",
+      "kind": "Kaynak",
+      "published": "Yayın",
+      "fixedBy": "Düzeltme",
+      "firstSeen": "İlk tespit",
+      "refs": "Bulgu"
+    },
+    "empty": "Bu filtrelerle eşleşen açık yok.",
+    "noData": "Henüz zafiyet verisi yok. CVE kaynakları eşitlendikten ve ajanlar envanter gönderdikten sonra burada listelenir.",
+    "export": "Dışa aktar",
+    "epssHint": "Önümüzdeki 30 günde istismar edilme olasılığı (FIRST EPSS)"
+  },
+  "vuln": {
+    "back": "Güvenlik Açıkları",
+    "notFound": "Bu CVE bulunamadı.",
+    "unknownRecord": "Bu CVE için kaynaklarda henüz kayıt yok; makinedeki eksik güncellemenin CVE listesinden tespit edildi.",
+    "description": "Açıklama",
+    "scores": "Skorlar",
+    "cvssVector": "CVSS vektörü",
+    "epssPercentile": "EPSS yüzdelik",
+    "published": "Yayın tarihi",
+    "modified": "Son değişiklik",
+    "cwe": "Zayıflık (CWE)",
+    "references": "Kaynaklar",
+    "kevTitle": "CISA KEV kaydı",
+    "kevAdded": "Kataloğa eklenme",
+    "kevDue": "Son düzeltme tarihi (ABD kurumları için)",
+    "requiredAction": "Gerekli işlem",
+    "fixes": "Düzelten güncellemeler",
+    "affected": "Etkilenen makineler ({{count}})",
+    "source": "Kaynak",
+    "nvdLink": "NVD'de aç",
+    "msrcLink": "MSRC'de aç"
+  },
+  "reports": {
+    "title": "Raporlar",
+    "subtitle": "Raporlar o anki verilerle oluşturulur ve dışa aktarma denetim kaydına yazılır.",
+    "formats": {
+      "pdf": "PDF",
+      "xlsx": "Excel",
+      "csv": "CSV"
+    },
+    "compliance": {
+      "title": "Uyumluluk raporu",
+      "desc": "Makine başına eksik yama, açık, KEV ve risk; yönetim ve denetim için."
+    },
+    "vulnerabilities": {
+      "title": "Zafiyet raporu",
+      "desc": "Filo genelinde CVE listesi: önem, CVSS, EPSS, KEV, risk ve etkilenen makine sayısı."
+    },
+    "missing-patches": {
+      "title": "Eksik yama raporu",
+      "desc": "Makine × eksik güncelleme listesi; dağıtım planlaması için."
+    },
+    "apps": {
+      "title": "Uygulama envanteri raporu",
+      "desc": "Kurulu üçüncü parti uygulamalar, sürümler ve makine sayıları."
+    },
+    "platform": "Platform",
+    "severity": "Önem",
+    "kevOnly": "Yalnızca KEV",
+    "search": "Uygulama adı",
+    "lang": "Rapor dili",
+    "pdfNote": "PDF en fazla 5000 satır içerir; daha büyük raporlar için Excel kullanın."
+  },
+  "cveSettings": {
+    "title": "CVE kaynakları",
+    "subtitle": "NVD, Microsoft MSRC, CISA KEV ve FIRST EPSS verileri sunucuda saklanır; ajanlar internete çıkmaz.",
+    "feeds": "Kaynaklar",
+    "feed": {
+      "nvd": "NVD (NIST)",
+      "msrc": "Microsoft MSRC",
+      "kev": "CISA KEV",
+      "epss": "FIRST EPSS"
+    },
+    "feedDesc": {
+      "nvd": "CVSS skorları ve üçüncü parti uygulamaların savunmasız sürüm aralıkları",
+      "msrc": "Windows güvenlik güncellemeleri, KB → CVE eşlemesi ve düzeltme yapıları",
+      "kev": "Aktif olarak istismar edilen açıklar",
+      "epss": "30 günlük istismar olasılığı"
+    },
+    "col": {
+      "feed": "Kaynak",
+      "lastSuccess": "Son başarılı eşitleme",
+      "items": "Kayıt",
+      "duration": "Süre",
+      "status": "Durum"
+    },
+    "ok": "Güncel",
+    "error": "Hata",
+    "never": "Henüz eşitlenmedi",
+    "syncNow": "Şimdi eşitle",
+    "syncing": "Eşitleniyor…",
+    "syncQueued": "Eşitleme başlatıldı. Büyük kaynaklar (NVD, MSRC) ilk eşitlemede birkaç dakika sürebilir.",
+    "mode": "Çalışma modu",
+    "online": "Çevrimiçi (sunucu kaynaklara doğrudan bağlanır)",
+    "offline": "Çevrimdışı klasör (internet erişimi olmayan ortamlar)",
+    "disabled": "Eşitleme yapılandırmada kapalı",
+    "interval": "Eşitleme aralığı",
+    "intervalValue": "{{n}} saatte bir",
+    "apiKey": "NVD API anahtarı",
+    "apiKeyYes": "Tanımlı",
+    "apiKeyNo": "Tanımlı değil (daha yavaş eşitleme)",
+    "msrcMonths": "MSRC geçmişi",
+    "msrcMonthsValue": "Son {{n}} ay",
+    "tracked": "Takip edilen ürün",
+    "rules": "Uygulama → CPE kuralları",
+    "rulesHelp": "Kurulu uygulama adlarını NVD ürünlerine eşler. Özel kurallar yerleşik sözlükten önce uygulanır. Kalıplar büyük/küçük harf duyarsız düzenli ifadelerdir.",
+    "ruleName": "Uygulama adı kalıbı",
+    "rulePublisher": "Yayıncı kalıbı (isteğe bağlı)",
+    "ruleIdentifier": "Tanımlayıcı kalıbı (isteğe bağlı)",
+    "ruleVendor": "CPE üretici",
+    "ruleProduct": "CPE ürün",
+    "addRule": "Kural ekle",
+    "deleteRule": "Sil",
+    "builtin": "Yerleşik",
+    "custom": "Özel",
+    "showBuiltin": "Yerleşik kuralları göster ({{count}})",
+    "hideBuiltin": "Yerleşik kuralları gizle",
+    "rulePattern": "Kalıp",
+    "ruleCpe": "CPE ürünü",
+    "ruleType": "Tür",
+    "publisherShort": "yayıncı"
   }
 }

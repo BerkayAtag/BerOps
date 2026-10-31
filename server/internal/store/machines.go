@@ -134,6 +134,9 @@ type MachineListItem struct {
 	MissingSecurityCount int        `json:"missing_security_count"`
 	AppCount             int        `json:"app_count"`
 	RebootPending        bool       `json:"reboot_pending"`
+	VulnCount            int        `json:"vuln_count"`
+	KEVCount             int        `json:"kev_count"`
+	MaxRisk              float32    `json:"max_risk"`
 }
 
 // MachineFilter, makine listesi arama/filtre/sıralama/sayfalama parametreleridir.
@@ -149,6 +152,8 @@ type MachineFilter struct {
 	Limit        int
 	Offset       int
 	Now          time.Time
+	// Unlimited, rapor dışa aktarımında sayfa sınırını kaldırır.
+	Unlimited bool
 }
 
 // MachineSortColumns, izin verilen sıralama alanlarıdır. Kullanıcı girdisi SQL'e
@@ -163,6 +168,8 @@ var MachineSortColumns = map[string]string{
 	"missing_count":    "coalesce(i.missing_count, -1)",
 	"missing_critical": "coalesce(i.missing_critical_count, -1)",
 	"app_count":        "coalesce(i.app_count, -1)",
+	"risk":             "coalesce(r.max_risk, -1)",
+	"vulns":            "coalesce(r.vuln_count, -1)",
 	"status":           "m.status",
 }
 
@@ -224,10 +231,15 @@ func (s *Store) ListMachinesFiltered(ctx context.Context, f MachineFilter) ([]Ma
 	if limit <= 0 || limit > 500 {
 		limit = 50
 	}
+	if f.Unlimited {
+		limit = maxExportRows
+	}
 	q := `SELECT ` + prefixed("m.", machineColumns) + `, ` + onlineExpr() + `,
 		i.received_at, coalesce(i.missing_count, 0), coalesce(i.missing_critical_count, 0),
-		coalesce(i.missing_security_count, 0), coalesce(i.app_count, 0), coalesce(i.reboot_pending, false)
-		FROM machines m LEFT JOIN machine_inventory i ON i.machine_id = m.id ` + cond +
+		coalesce(i.missing_security_count, 0), coalesce(i.app_count, 0), coalesce(i.reboot_pending, false),
+		coalesce(r.vuln_count, 0), coalesce(r.kev_count, 0), coalesce(r.max_risk, 0)
+		FROM machines m LEFT JOIN machine_inventory i ON i.machine_id = m.id
+		LEFT JOIN machine_risk r ON r.machine_id = m.id ` + cond +
 		` ORDER BY ` + col + ` ` + dir + ` NULLS LAST, lower(m.hostname), m.id LIMIT ` + arg(limit) + ` OFFSET ` + arg(max(f.Offset, 0))
 	rows, err := s.pool.Query(ctx, q, args...)
 	if err != nil {
@@ -242,7 +254,7 @@ func (s *Store) ListMachinesFiltered(ctx context.Context, f MachineFilter) ([]Ma
 			&m.Arch, &m.IPAddresses, &m.AgentVersion, &m.ADOU, &m.CertSerial, &m.CertFingerprint, &m.CertExpiresAt,
 			&m.EnrolledAt, &m.LastSeenAt, &m.AgentStartedAt, &m.LastErrors,
 			&it.Online, &it.InventoryAt, &it.MissingCount, &it.MissingCriticalCount, &it.MissingSecurityCount,
-			&it.AppCount, &it.RebootPending); err != nil {
+			&it.AppCount, &it.RebootPending, &it.VulnCount, &it.KEVCount, &it.MaxRisk); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, it)

@@ -120,6 +120,7 @@ func (s *Server) handleInventory(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return
 	}
+	s.vulns.Enqueue(m.ID)
 	// Log'a ajanın gönderdiği metinler değil, sabit değerlerden türetilenler yazılır (log enjeksiyonuna karşı).
 	kind := "değişiklik"
 	if rep.Full {
@@ -239,6 +240,7 @@ type machineDetailResponse struct {
 	Online          bool                    `json:"online"`
 	ScanRequestedAt *time.Time              `json:"scan_requested_at"`
 	Inventory       *store.InventorySummary `json:"inventory"`
+	Risk            *store.MachineRisk      `json:"risk"`
 }
 
 // machineFromPath, yoldaki makine kimliğini doğrular ve makineyi yükler.
@@ -276,6 +278,9 @@ func (s *Server) handleGetMachine(w http.ResponseWriter, r *http.Request, _ *sto
 		return
 	default:
 		resp.Inventory = inv
+	}
+	if risk, err := s.store.GetMachineRisk(r.Context(), m.ID); err == nil {
+		resp.Risk = risk
 	}
 	st, err := s.store.GetInventoryState(r.Context(), m.ID)
 	if err == nil && st.ScanRequestedAt != nil && (st.ReceivedAt == nil || st.ReceivedAt.Before(*st.ScanRequestedAt)) {

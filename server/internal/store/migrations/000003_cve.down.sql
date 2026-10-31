@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS compliance_snapshots;
+DROP TABLE IF EXISTS machine_risk;
+DROP TABLE IF EXISTS machine_vulnerabilities;
+DROP TABLE IF EXISTS app_cpe_rules;
+DROP TABLE IF EXISTS feed_status;
+DROP TABLE IF EXISTS epss;
+DROP TABLE IF EXISTS kev;
+DROP TABLE IF EXISTS msrc_remediations;
+DROP TABLE IF EXISTS cve_cpe_matches;
+DROP TABLE IF EXISTS cves;

@@ -167,6 +167,22 @@ Uygunluk kuralları sunucuda envantere karşı değerlendirilir (merkezi değerl
 | Eksik yamalar | Windows Update Agent (`IUpdateSearcher`), çevrimiçi veya `wsusscn2.cab` ile çevrimdışı | `softwareupdate --list` |
 | Uygulamalar | Uninstall anahtarları (HKLM 64/32, HKU), MSI, AppX | `.app` paketleri (`Info.plist`), pkg makbuzları, Homebrew |
 
+### 5.2 CVE motoru (Aşama 3)
+
+```
+ KEV · EPSS · MSRC · NVD ──▶ cve.Syncer (24 sa, artımlı) ──▶ cves, cve_cpe_matches, msrc_remediations, kev, epss
+                                                                 │
+ envanter geldi ─▶ vuln.Engine kuyruğu ─▶ cve.Correlate ◀────────┘
+                     (eşitleme / kural değişikliği sonrası tüm filo)
+                         │  Windows: yapı < MSRC FixedBuild, eksik KB → CVE
+                         │  macOS:   sürüm ∈ NVD apple:macos aralığı
+                         │  Uygulama: sözlük → CPE → sürüm ∈ NVD aralığı
+                         ▼
+               machine_vulnerabilities (+ risk) ─▶ machine_risk, compliance_snapshots
+```
+
+Ayrıntılar, risk formülü ve çevrimdışı mod: [cve.md](cve.md).
+
 ## 6. Veritabanı şeması
 
 Şema aşamalarla genişler. Her aşama yeni numaralı migration ekler (`server/internal/store/migrations/`).
@@ -193,11 +209,24 @@ Uygunluk kuralları sunucuda envantere karşı değerlendirilir (merkezi değerl
 | `agent_settings` | Filo geneli ajan ayarları (tek satır) | `settings` (JSONB) |
 | `machines` (ek) | Konsoldan istenen tarama | `scan_requested_at` |
 
+### Aşama 3
+
+| Tablo | Amaç | Önemli alanlar |
+|---|---|---|
+| `cves` | CVE kayıtları (NVD + MSRC) | `id`, `source`, `title`, `description`, `cvss_score`, `cvss_vector`, `severity`, `cwes`, `msrc_exploited` |
+| `cve_cpe_matches` | NVD savunmasız ürün aralıkları | `(vendor, product)` indeksli, `version`, `version_start_*`, `version_end_*` |
+| `msrc_remediations` | Windows düzeltmeleri | `cve_id`, `kb`, `build_family`, `fixed_build`, `severity` |
+| `kev`, `epss` | CISA KEV ve FIRST EPSS | `date_added`, `due_date`, `ransomware` / `score`, `percentile` |
+| `feed_status` | Kaynak eşitleme durumu | `last_success_at`, `last_error`, `state` (artımlı eşitleme imleci) |
+| `app_cpe_rules` | Özel uygulama → CPE kuralları | `name_pattern`, `publisher_pattern`, `identifier_pattern`, `vendor`, `product` |
+| `machine_vulnerabilities` | Makine × CVE bulguları | `sources`, `refs`, `fixed_by`, `risk_score`, `first_seen_at` |
+| `machine_risk` | Makine risk özeti | `vuln_count`, `critical_count`, `kev_count`, `max_risk` |
+| `compliance_snapshots` | Günlük uyumluluk özeti | `day`, `fully_patched`, `kev_machines`, `avg_risk` |
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
 |---|---|
-| 3 – CVE | `cves`, `cve_cpes`, `kb_cves`, `kev_entries`, `epss_scores`, `app_cpe_mappings` (güven + elle düzeltme), `app_catalog` (en güncel sürüm), `risk_scores`, `compliance_snapshots` |
 | 4 – Dağıtım | `packages`, `package_files`, `ber_fixes`, `actions`, `action_targets` (hedef başına durum), `action_results` (stdout/stderr/çıkış kodu), `transfer_limits` |
 | 5 – AD / RBAC | `ad_settings` (şifreli bağlantı parolası), `ad_group_role_mappings`, `roles`, `role_permissions`, `role_scopes`, `ad_computers`, `api_keys` |
 | 6 – Uzaktan yönetim | `remote_feature_settings` (makine/grup bazında opt-in), `registry_backups`, `perf_samples` |

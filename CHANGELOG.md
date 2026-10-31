@@ -5,6 +5,38 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi — Aşama 3: CVE motoru ve raporlar
+
+- CVE kaynakları:
+  - CISA KEV, FIRST EPSS, Microsoft MSRC (CVRF) ve NVD CVE API 2.0 eşitleyicisi.
+  - Artımlı NVD eşitlemesi, hız sınırına uyum ve yeniden deneme.
+  - Değişen MSRC belgelerinin yeniden işlenmesi.
+  - İnternet erişimi olmayan ortamlar için çevrimdışı klasör modu.
+  - `ber-server cve sync` komutu.
+- Korelasyon motoru:
+  - Windows yapı numarası ↔ MSRC `FixedBuild` karşılaştırması.
+  - Eksik KB → CVE eşlemesi.
+  - macOS sürümü ve üçüncü parti uygulamalar için NVD CPE sürüm aralıkları.
+  - NVD'ye karşı doğrulanmış ürün sözlüğü; konsoldan özel uygulama → CPE kuralları.
+- Risk skoru (CVSS, EPSS, KEV, fidye yazılımı), makine risk özeti ve günlük uyumluluk anlık görüntüleri.
+- Veritabanı tabloları: `cves`, `cve_cpe_matches`, `msrc_remediations`, `kev`, `epss`, `feed_status`, `app_cpe_rules`, `machine_vulnerabilities`, `machine_risk`, `compliance_snapshots`.
+- Konsol API'si:
+  - Zafiyet listesi ve CVE detayı.
+  - Makine zafiyetleri.
+  - Gösterge paneli risk özeti.
+  - CVE kaynak durumu, eşitleme ve kurallar.
+  - Rapor dışa aktarma.
+  - Makine listesinde risk ve açık sayısı sütunları ile sıralaması.
+- Raporlar:
+  - Dört rapor: uyumluluk, zafiyet, eksik yama ve uygulama envanteri.
+  - Biçimler: PDF (Türkçe karakter destekli, marka renkli), Excel (XLSX) ve CSV (UTF-8 BOM, formül enjeksiyonu koruması).
+  - Türkçe ve İngilizce, kullanıcının saat diliminde.
+- Konsol:
+  - Güvenlik Açıkları ve CVE detay sayfaları.
+  - Makine detayında risk kartları ve açık sekmesi.
+  - Gösterge panelinde risk bölümü, önem dağılımı, uyumluluk eğilimi, en riskli açıklar ve makineler.
+  - Raporlar sayfası ve CVE kaynakları ayar sayfası.
+
 ### Eklendi — Aşama 2: Envanter ve tespit
 
 - Ajan envanteri: işletim sistemi ve donanım, yama seviyesi, kurulu yamalar, eksik güncellemeler ve üçüncü parti uygulamalar (Windows ve macOS).

@@ -1,10 +1,149 @@
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import type { FleetSummary, MachineListItem, Me, Page, ServerInfo } from "../api/client";
+import type { FleetSummary, MachineListItem, Me, Page, RiskSummary, ServerInfo } from "../api/client";
 import { useApi } from "../api/useApi";
-import { OnlinePill, PlatformIcon, StatusPill } from "../components/Badges";
+import { CvssBadge, KevBadge, OnlinePill, PlatformIcon, RiskBadge, StatusPill } from "../components/Badges";
 import { CopyField } from "../components/CopyField";
+import { TrendChart } from "../components/TrendChart";
 import { formatNumber, formatPercent, formatRelative } from "../format";
+
+const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "UNKNOWN"] as const;
+
+function RiskSection() {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const lng = i18n.language;
+  const [risk] = useApi<RiskSummary>("/api/v1/dashboard/risk");
+  if (risk.status !== "ok") return null;
+  const r = risk.data;
+  const sevTotal = SEVERITIES.reduce((n, s) => n + (r.by_severity[s] ?? 0), 0);
+  const stats = [
+    { key: "home.distinctCves", value: r.distinct_cves, tone: "neutral", to: "/zafiyetler" },
+    { key: "home.urgentCves", value: r.urgent_cves, tone: "danger", to: "/zafiyetler?sort=risk" },
+    { key: "home.kevMachines", value: r.kev_machines, tone: "danger", to: "/zafiyetler?kev=true" },
+    {
+      key: "home.avgRisk",
+      value: Math.round(r.avg_machine_risk),
+      tone: "warning",
+      to: "/makineler?sort=risk&desc=true",
+    },
+  ] as const;
+
+  return (
+    <>
+      <h2 className="section-title">{t("home.riskTitle")}</h2>
+      <section className="stat-grid" aria-live="polite">
+        {stats.map((st) => (
+          <Link key={st.key} to={st.to} className={`stat-card tone-${st.tone}`}>
+            <span className="stat-label">{t(st.key)}</span>
+            <span className="stat-value">{formatNumber(st.value, lng)}</span>
+          </Link>
+        ))}
+      </section>
+      <div className="detail-grid">
+        <section className="card">
+          <div className="card-header">
+            <h2>{t("home.trend")}</h2>
+          </div>
+          <div className="card-body stack">
+            <TrendChart samples={r.trend} />
+            <p className="muted small">{t("home.trendHelp")}</p>
+          </div>
+        </section>
+        <section className="card">
+          <div className="card-header">
+            <h2>{t("home.bySeverity")}</h2>
+          </div>
+          <div className="card-body sev-bars">
+            {sevTotal === 0 && <p className="muted small">{t("home.noVulns")}</p>}
+            {sevTotal > 0 &&
+              SEVERITIES.filter((s) => (r.by_severity[s] ?? 0) > 0 || s !== "UNKNOWN").map((s) => {
+                const n = r.by_severity[s] ?? 0;
+                return (
+                  <Link
+                    key={s}
+                    to={s === "UNKNOWN" ? "/zafiyetler" : `/zafiyetler?severity=${s}`}
+                    className="sev-bar-row"
+                  >
+                    <CvssBadge severity={s} />
+                    <div className="gauge-bar">
+                      <div
+                        className={`gauge-fill cvss-${s.toLowerCase()}`}
+                        style={{ width: `${(n / sevTotal) * 100}%` }}
+                      />
+                    </div>
+                    <span className="dist-value">{formatNumber(n, lng)}</span>
+                  </Link>
+                );
+              })}
+          </div>
+        </section>
+      </div>
+      <div className="detail-grid">
+        <section className="card">
+          <div className="card-header card-header-row">
+            <h2>{t("home.topCves")}</h2>
+            <Link to="/zafiyetler" className="small">
+              {t("home.viewAll")} →
+            </Link>
+          </div>
+          {r.top_cves.length === 0 ? (
+            <p className="card-body muted small">{t("home.noVulns")}</p>
+          ) : (
+            <ul className="list-rows">
+              {r.top_cves.map((v) => (
+                <li key={v.cve_id} className="clickable" onClick={() => navigate(`/zafiyetler/${v.cve_id}`)}>
+                  <RiskBadge score={v.risk_score} />
+                  <span className="grow two-line">
+                    <Link
+                      to={`/zafiyetler/${v.cve_id}`}
+                      className="mono strong"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {v.cve_id}
+                    </Link>
+                    <span className="muted small" title={v.title}>
+                      {v.title}
+                    </span>
+                  </span>
+                  {v.kev && <KevBadge ransomware={v.ransomware} />}
+                  <span className="tag" title={t("vulns.col.affected")}>
+                    {formatNumber(v.affected_machines, lng)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="card">
+          <div className="card-header card-header-row">
+            <h2>{t("home.topMachines")}</h2>
+            <Link to="/makineler?sort=risk&desc=true" className="small">
+              {t("home.viewAll")} →
+            </Link>
+          </div>
+          {r.top_machines.length === 0 ? (
+            <p className="card-body muted small">{t("home.noVulns")}</p>
+          ) : (
+            <ul className="list-rows">
+              {r.top_machines.map((m) => (
+                <li key={m.id} className="clickable" onClick={() => navigate(`/makineler/${m.id}`)}>
+                  <RiskBadge score={m.max_risk} />
+                  <PlatformIcon platform={m.os_platform} />
+                  <span className="grow strong">{m.hostname}</span>
+                  {m.kev_count > 0 && <span className="tag">KEV {m.kev_count}</span>}
+                  <span className="tag">
+                    {t("machine.risk.vulns")}: {formatNumber(m.vuln_count, lng)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
 
 export function HomePage({ me }: { me: Me }) {
   const { t, i18n } = useTranslation();
@@ -73,6 +212,8 @@ export function HomePage({ me }: { me: Me }) {
           </Link>
         ))}
       </section>
+
+      <RiskSection />
 
       <div className="detail-grid">
         <section className="card">
