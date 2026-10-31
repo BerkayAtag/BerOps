@@ -5,6 +5,10 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.0.0] — 2026-10-31
+
+İlk kararlı sürüm: spesifikasyondaki sekiz aşamanın tümü. Ürün adı **BerOps**.
+
 ### Eklendi — Aşama 8: Yama dağıtımı, paketleme ve yayın
 
 - **İşletim sistemi yaması dağıtımı:**
@@ -170,3 +174,6 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - `berops-agentsim`: çok sayıda sanal ajanı simüle eden test aracı.
 - Konsol: giriş ekranı, gösterge paneli iskeleti, Türkçe/İngilizce, açık/karanlık tema; ortak tasarım token'ları (`design/tokens.css`).
 - GitHub Actions: Go lint/test/govulncheck, Windows ve macOS ajan testleri, çapraz derleme, konsol lint/test/derleme, CodeQL, bağımlılık incelemesi, Dependabot.
+
+[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/BerkayAtag/BerOps/releases/tag/v1.0.0
