@@ -1,0 +1,33 @@
+# Derleme çıktıları
+/bin/
+/dist/
+*.exe
+*.msi
+*.pkg
+*.test
+coverage.out
+
+# Sunucu/ajan çalışma verisi (anahtarlar, sertifikalar, loglar)
+/data/
+/agent-data/
+*.key
+*.pem
+!**/testdata/**/*.pem
+
+# Yerel yapılandırma
+ber-server.yaml
+agent.yaml
+.env
+.env.*
+
+# Node
+node_modules/
+console/dist/
+landing/dist/
+
+# Claude Code yerel ayarları
+.claude/settings.local.json
+
+# İşletim sistemi
+.DS_Store
+Thumbs.db

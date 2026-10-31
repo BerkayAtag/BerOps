@@ -1,0 +1,354 @@
+openapi: 3.1.0
+info:
+  title: Automation BER API
+  version: 0.1.0
+  description: |
+    Automation BER konsol ve ajan API'si.
+
+    **Kimlik doğrulama (konsol):** `POST /api/v1/auth/login` başarılı olduğunda `__Host-ber_session`
+    çerezi ayarlanır. Durum değiştiren tüm isteklerde (POST/PUT/PATCH/DELETE) yanıtla dönen
+    `csrf_token` değeri `X-CSRF-Token` başlığında gönderilmelidir.
+
+    **Yetkilendirme:** Her uç noktanın gerektirdiği izin `x-ber-permission` alanında belirtilmiştir.
+    İzin yoksa `403 auth.forbidden` döner.
+
+    **Ajan API'si** ayrı portta (varsayılan 52311) mTLS ile çalışır.
+  license:
+    name: Apache-2.0
+servers:
+  - url: https://localhost:8443
+    description: Konsol API
+  - url: https://localhost:52311
+    description: Ajan API (mTLS)
+tags:
+  - name: Kimlik
+  - name: Sunucu
+  - name: Kayıt anahtarları
+  - name: Makineler
+  - name: Denetim
+  - name: Ajan
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: __Host-ber_session
+    agentCert:
+      type: mutualTLS
+  parameters:
+    CSRF:
+      name: X-CSRF-Token
+      in: header
+      required: true
+      schema: { type: string }
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, examples: [auth.forbidden] }
+        message: { type: string }
+    Me:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            username: { type: string }
+            display_name: { type: string }
+            role: { type: string, enum: [admin, technician, readonly] }
+            source: { type: string, enum: [local, ad] }
+        permissions:
+          type: array
+          items: { type: string }
+        csrf_token: { type: string }
+    RegistrationKey:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        key_prefix: { type: string }
+        require_approval: { type: boolean }
+        max_uses: { type: [integer, "null"] }
+        use_count: { type: integer }
+        expires_at: { type: [string, "null"], format: date-time }
+        revoked_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    Machine:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        hostname: { type: string }
+        status: { type: string, enum: [active, pending, rejected, revoked] }
+        online: { type: boolean }
+        os_platform: { type: string, enum: [windows, darwin] }
+        os_name: { type: string }
+        os_version: { type: string }
+        os_build: { type: string, description: "Yama seviyesi, ör. 10.0.22631.4460" }
+        arch: { type: string }
+        ip_addresses: { type: array, items: { type: string } }
+        agent_version: { type: string }
+        ad_ou: { type: string }
+        cert_fingerprint: { type: string }
+        cert_expires_at: { type: string, format: date-time }
+        enrolled_at: { type: string, format: date-time }
+        last_seen_at: { type: [string, "null"], format: date-time }
+        agent_started_at: { type: [string, "null"], format: date-time }
+        last_errors: { type: array, items: { type: string } }
+    HostInfo:
+      type: object
+      required: [hostname, os_platform]
+      properties:
+        hostname: { type: string }
+        os_platform: { type: string, enum: [windows, darwin] }
+        os_name: { type: string }
+        os_version: { type: string }
+        os_build: { type: string }
+        arch: { type: string }
+        ip_addresses: { type: array, items: { type: string } }
+        agent_version: { type: string }
+  responses:
+    Unauthorized:
+      description: Oturum yok veya geçersiz
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+    Forbidden:
+      description: Yetki yok veya CSRF doğrulaması başarısız
+      content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+paths:
+  /api/v1/health:
+    get:
+      tags: [Sunucu]
+      summary: Sağlık durumu
+      security: []
+      responses:
+        "200": { description: Sunucu ve veritabanı çalışıyor }
+        "503": { description: Veritabanına erişilemiyor }
+  /api/v1/auth/login:
+    post:
+      tags: [Kimlik]
+      summary: Kullanıcı adı ve parola ile giriş
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: Giriş başarılı; oturum çerezi ayarlanır
+          content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429":
+          description: Çok fazla başarısız deneme (Retry-After başlığı)
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  /api/v1/auth/logout:
+    post:
+      tags: [Kimlik]
+      summary: Oturumu kapat
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Oturum kapatıldı }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/auth/me:
+    get:
+      tags: [Kimlik]
+      summary: Oturumdaki kullanıcı, izinleri ve CSRF token'ı
+      security: [{ session: [] }]
+      responses:
+        "200":
+          description: Kullanıcı bilgisi
+          content: { application/json: { schema: { $ref: "#/components/schemas/Me" } } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/v1/server-info:
+    get:
+      tags: [Sunucu]
+      summary: Sunucu sürümü, ajan adresi ve CA parmak izi
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200":
+          description: Sunucu bilgisi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: string }
+                  agent_url: { type: string }
+                  ca_fingerprint: { type: string, examples: ["sha256:3f2a…"] }
+  /api/v1/registration-keys:
+    get:
+      tags: [Kayıt anahtarları]
+      summary: Kayıt anahtarlarını listele
+      security: [{ session: [] }]
+      x-ber-permission: regkeys.manage
+      responses:
+        "200":
+          description: Anahtar listesi (anahtarların kendisi dönmez)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/RegistrationKey" } }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Kayıt anahtarları]
+      summary: Yeni kayıt anahtarı oluştur
+      description: Anahtarın düz metni yalnızca bu yanıtta bir kez döner.
+      security: [{ session: [] }]
+      x-ber-permission: regkeys.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 100 }
+                require_approval: { type: boolean, default: false }
+                max_uses: { type: [integer, "null"], minimum: 1 }
+                expires_in_hours: { type: [integer, "null"], minimum: 1, maximum: 8760 }
+      responses:
+        "201":
+          description: Anahtar oluşturuldu
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  key: { $ref: "#/components/schemas/RegistrationKey" }
+                  secret: { type: string, examples: ["berreg_…"] }
+                  install:
+                    type: object
+                    properties:
+                      windows: { type: string }
+                      macos: { type: string }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/v1/registration-keys/{id}:
+    delete:
+      tags: [Kayıt anahtarları]
+      summary: Kayıt anahtarını iptal et
+      security: [{ session: [] }]
+      x-ber-permission: regkeys.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: İptal edildi }
+        "404": { description: Bulunamadı veya zaten iptal edilmiş }
+  /api/v1/machines:
+    get:
+      tags: [Makineler]
+      summary: Makineleri listele
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200":
+          description: Makine listesi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Machine" } }
+  /api/v1/machines/{id}/approve:
+    post:
+      tags: [Makineler]
+      summary: Onay bekleyen makineyi onayla
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Onaylandı }
+        "409": { description: Makine onay bekleyen durumda değil }
+  /api/v1/machines/{id}/reject:
+    post:
+      tags: [Makineler]
+      summary: Makineyi reddet (sertifikası geçersiz sayılır)
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Reddedildi }
+        "409": { description: Makine bu işleme uygun durumda değil }
+  /api/v1/audit:
+    get:
+      tags: [Denetim]
+      summary: Son 200 denetim kaydı
+      security: [{ session: [] }]
+      x-ber-permission: audit.read
+      responses:
+        "200": { description: Denetim kayıtları }
+  /agent/v1/enroll:
+    post:
+      tags: [Ajan]
+      summary: Ajan kaydı (istemci sertifikası olmadan)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [registration_key, csr_pem, host]
+              properties:
+                registration_key: { type: string }
+                csr_pem: { type: string, description: "ECDSA P-256 CSR (PEM)" }
+                host: { $ref: "#/components/schemas/HostInfo" }
+      responses:
+        "201":
+          description: Kayıt başarılı
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agent_id: { type: string, format: uuid }
+                  status: { type: string, enum: [active, pending] }
+                  certificate_pem: { type: string }
+                  ca_certificate_pem: { type: string }
+                  heartbeat_seconds: { type: integer }
+        "400": { description: Geçersiz CSR veya host bilgisi }
+        "401": { description: Geçersiz kayıt anahtarı }
+        "429": { description: Çok fazla başarısız deneme }
+  /agent/v1/heartbeat:
+    post:
+      tags: [Ajan]
+      summary: Ajan heartbeat
+      security: [{ agentCert: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                host: { $ref: "#/components/schemas/HostInfo" }
+                agent_started_at: { type: string, format: date-time }
+                errors: { type: array, items: { type: string }, maxItems: 20 }
+      responses:
+        "200":
+          description: Heartbeat kaydedildi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  heartbeat_seconds: { type: integer }
+                  server_time: { type: string, format: date-time }
+        "401": { description: Sertifika yok, tanınmıyor veya yenilenmiş }
+        "403": { description: Makine reddedilmiş veya iptal edilmiş }

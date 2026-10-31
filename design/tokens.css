@@ -1,0 +1,100 @@
+/*
+ * Automation BER tasarım token'ları.
+ * Konsol (console/) ve tanıtım sayfası (landing/) bu dosyayı paylaşır.
+ *
+ * Marka rengi yalnızca burada tanımlanır: --ber-primary. Değiştirmek için bu dosyayı düzenleyin.
+ * Tema, <html data-theme="light|dark"> niteliğiyle seçilir; nitelik sayfa yüklenirken
+ * theme-init.js tarafından (kayıtlı tercih yoksa işletim sistemi tercihine göre) ayarlanır.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Marka */
+  --ber-primary: #dc0005;
+  --ber-primary-hover: #b80004;
+  --ber-primary-active: #9a0003;
+  --ber-primary-soft: #fdecec;
+  --ber-primary-text: #c40004; /* beyaz zeminde metin olarak kullanılan kırmızı (WCAG AA) */
+  --ber-on-primary: #ffffff;
+  --ber-hero-from: #dc0005;
+  --ber-hero-to: #8c0003;
+
+  /* Yüzeyler */
+  --ber-bg: #f4f5f7;
+  --ber-surface: #ffffff;
+  --ber-surface-2: #f8f9fb;
+  --ber-surface-sunken: #eef0f3;
+  --ber-border: #e2e4e9;
+  --ber-border-strong: #c8cbd2;
+
+  /* Metin */
+  --ber-text: #16171b;
+  --ber-text-muted: #5a5e69;
+  --ber-text-subtle: #858995;
+
+  /* Durum renkleri */
+  --ber-success: #127a57;
+  --ber-success-soft: #e2f3eb;
+  --ber-warning: #a85207;
+  --ber-warning-soft: #fcf0de;
+  --ber-danger: #b42318;
+  --ber-danger-soft: #fdeceb;
+  --ber-info: #1d5bb8;
+  --ber-info-soft: #e5edfa;
+
+  /* Biçim */
+  --ber-radius-sm: 6px;
+  --ber-radius: 10px;
+  --ber-radius-lg: 16px;
+  --ber-shadow-sm: 0 1px 2px rgb(16 18 24 / 0.06);
+  --ber-shadow:
+    0 1px 3px rgb(16 18 24 / 0.07), 0 10px 28px rgb(16 18 24 / 0.07);
+  --ber-focus-ring: 0 0 0 3px rgb(220 0 5 / 0.3);
+
+  /* Yazı tipleri: harici yazı tipi yüklenmez (CSP ve çevrimdışı kurulumlar için) */
+  --ber-font-sans:
+    system-ui, "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --ber-font-mono:
+    ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas,
+    "Liberation Mono", monospace;
+}
+
+/* Karanlık mod: zemin koyu antrasit, kırmızı vurgu korunur. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ber-primary: #dc0005;
+  --ber-primary-hover: #ef1519;
+  --ber-primary-active: #c00004;
+  --ber-primary-soft: #3a1416;
+  --ber-primary-text: #ff5d60;
+  --ber-on-primary: #ffffff;
+  --ber-hero-from: #8a0306;
+  --ber-hero-to: #2a0b0c;
+
+  --ber-bg: #131417;
+  --ber-surface: #1b1c20;
+  --ber-surface-2: #212227;
+  --ber-surface-sunken: #0f1012;
+  --ber-border: #2d2f35;
+  --ber-border-strong: #41444c;
+
+  --ber-text: #ececef;
+  --ber-text-muted: #a2a5ae;
+  --ber-text-subtle: #797d87;
+
+  --ber-success: #3fcf8e;
+  --ber-success-soft: #13291f;
+  --ber-warning: #f2a541;
+  --ber-warning-soft: #2e2313;
+  --ber-danger: #ff6b61;
+  --ber-danger-soft: #3a1714;
+  --ber-info: #70a7ff;
+  --ber-info-soft: #15233b;
+
+  --ber-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --ber-shadow: 0 1px 3px rgb(0 0 0 / 0.45), 0 10px 28px rgb(0 0 0 / 0.35);
+  --ber-focus-ring: 0 0 0 3px rgb(255 60 64 / 0.4);
+}

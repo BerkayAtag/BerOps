@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "Automation BER",
+    "tagline": "Yama ve üçüncü parti uygulama yönetimi"
+  },
+  "common": {
+    "loading": "Yükleniyor…",
+    "retry": "Tekrar dene",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "logout": "Çıkış yap",
+    "language": "Dil",
+    "menu": "Menü",
+    "never": "Hiç",
+    "soon": "Yakında"
+  },
+  "theme": {
+    "toLight": "Açık temaya geç",
+    "toDark": "Karanlık temaya geç"
+  },
+  "login": {
+    "title": "Oturum açın",
+    "subtitle": "Yönetim konsoluna erişmek için hesap bilgilerinizi girin.",
+    "username": "Kullanıcı adı",
+    "usernamePlaceholder": "ornek.kullanici",
+    "password": "Parola",
+    "showPassword": "Parolayı göster",
+    "hidePassword": "Parolayı gizle",
+    "submit": "Oturum aç",
+    "submitting": "Oturum açılıyor…",
+    "heroTitle": "Tüm filonuzun yamalarını tek yerden yönetin.",
+    "heroText": "Windows ve macOS istemcilerde eksik yamaları, üçüncü parti uygulamaları ve güvenlik açıklarını izleyin; dağıtımı kontrollü şekilde yapın.",
+    "feature1": "Hafif ajan: boşta %1'in altında CPU",
+    "feature2": "mTLS ve imzalı aksiyonlarla uçtan uca güvenlik",
+    "feature3": "CVE, KEV ve EPSS ile risk önceliklendirme",
+    "developedBy": "Geliştiren: Berkay Atağ"
+  },
+  "errors": {
+    "auth": {
+      "invalid_credentials": "Kullanıcı adı veya parola hatalı.",
+      "rate_limited": "Çok fazla başarısız deneme yapıldı. Lütfen bir süre sonra tekrar deneyin.",
+      "unauthenticated": "Oturumunuzun süresi doldu. Lütfen yeniden oturum açın.",
+      "forbidden": "Bu işlem için yetkiniz yok.",
+      "csrf": "Güvenlik doğrulaması başarısız oldu. Sayfayı yenileyip tekrar deneyin."
+    },
+    "request": {
+      "invalid": "İstek geçersiz."
+    },
+    "network": "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
+    "unknown": "Beklenmeyen bir hata oluştu."
+  },
+  "roles": {
+    "admin": "Admin",
+    "technician": "Teknisyen",
+    "readonly": "Salt Okunur"
+  },
+  "nav": {
+    "label": "Ana menü",
+    "dashboard": "Gösterge Paneli",
+    "machines": "Makineler",
+    "patches": "Yamalar",
+    "vulnerabilities": "Güvenlik Açıkları",
+    "packages": "Paket Kütüphanesi",
+    "actions": "Aksiyonlar",
+    "reports": "Raporlar",
+    "audit": "Denetim Kaydı",
+    "settings": "Ayarlar"
+  },
+  "home": {
+    "title": "Gösterge Paneli",
+    "welcome": "Hoş geldiniz, {{name}}",
+    "readonlyNotice": "Salt okunur yetkiyle oturum açtınız. Tüm ekranları görebilirsiniz ancak değişiklik yapamazsınız.",
+    "stats": {
+      "total": "Toplam makine",
+      "online": "Çevrimiçi",
+      "offline": "Çevrimdışı",
+      "pending": "Onay bekleyen"
+    },
+    "recentMachines": "Son kaydolan makineler",
+    "noMachines": "Henüz kayıtlı makine yok. Aşağıdaki bilgilerle ilk ajanı kurabilirsiniz.",
+    "table": {
+      "hostname": "Makine adı",
+      "os": "İşletim sistemi",
+      "build": "Yama seviyesi",
+      "agent": "Ajan sürümü",
+      "lastSeen": "Son görülme",
+      "status": "Durum"
+    },
+    "agentSetup": "Ajan kurulum bilgileri",
+    "agentSetupHint": "Ajan kurulumunda sunucu adresi ve CA parmak izi gerekir. Kayıt anahtarını yönetici oluşturur.",
+    "agentUrl": "Ajan sunucu adresi",
+    "caFingerprint": "CA parmak izi (CAHASH)",
+    "serverVersion": "Sunucu sürümü"
+  },
+  "status": {
+    "active": "Aktif",
+    "pending": "Onay bekliyor",
+    "rejected": "Reddedildi",
+    "revoked": "İptal edildi",
+    "online": "Çevrimiçi",
+    "offline": "Çevrimdışı"
+  }
+}

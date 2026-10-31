@@ -1,0 +1,103 @@
+{
+  "app": {
+    "name": "Automation BER",
+    "tagline": "Patch and third-party application management"
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Retry",
+    "copy": "Copy",
+    "copied": "Copied",
+    "logout": "Sign out",
+    "language": "Language",
+    "menu": "Menu",
+    "never": "Never",
+    "soon": "Coming soon"
+  },
+  "theme": {
+    "toLight": "Switch to light theme",
+    "toDark": "Switch to dark theme"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Enter your account details to access the management console.",
+    "username": "Username",
+    "usernamePlaceholder": "jane.doe",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submit": "Sign in",
+    "submitting": "Signing in…",
+    "heroTitle": "Manage patches across your entire fleet from one place.",
+    "heroText": "Track missing patches, third-party applications and vulnerabilities on Windows and macOS clients, and roll out updates in a controlled way.",
+    "feature1": "Lightweight agent: under 1% CPU when idle",
+    "feature2": "End-to-end security with mTLS and signed actions",
+    "feature3": "Risk prioritization with CVE, KEV and EPSS",
+    "developedBy": "Developed by Berkay Atağ"
+  },
+  "errors": {
+    "auth": {
+      "invalid_credentials": "Incorrect username or password.",
+      "rate_limited": "Too many failed attempts. Please try again later.",
+      "unauthenticated": "Your session has expired. Please sign in again.",
+      "forbidden": "You are not allowed to perform this action.",
+      "csrf": "Security check failed. Refresh the page and try again."
+    },
+    "request": {
+      "invalid": "The request is invalid."
+    },
+    "network": "Could not reach the server. Check your connection.",
+    "unknown": "An unexpected error occurred."
+  },
+  "roles": {
+    "admin": "Admin",
+    "technician": "Technician",
+    "readonly": "Read Only"
+  },
+  "nav": {
+    "label": "Main menu",
+    "dashboard": "Dashboard",
+    "machines": "Machines",
+    "patches": "Patches",
+    "vulnerabilities": "Vulnerabilities",
+    "packages": "Package Library",
+    "actions": "Actions",
+    "reports": "Reports",
+    "audit": "Audit Log",
+    "settings": "Settings"
+  },
+  "home": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}",
+    "readonlyNotice": "You are signed in with read-only access. You can view every screen but cannot make changes.",
+    "stats": {
+      "total": "Total machines",
+      "online": "Online",
+      "offline": "Offline",
+      "pending": "Pending approval"
+    },
+    "recentMachines": "Recently enrolled machines",
+    "noMachines": "No machines enrolled yet. Use the details below to install your first agent.",
+    "table": {
+      "hostname": "Hostname",
+      "os": "Operating system",
+      "build": "Patch level",
+      "agent": "Agent version",
+      "lastSeen": "Last seen",
+      "status": "Status"
+    },
+    "agentSetup": "Agent installation details",
+    "agentSetupHint": "Installing the agent requires the server address and the CA fingerprint. An administrator creates the registration key.",
+    "agentUrl": "Agent server address",
+    "caFingerprint": "CA fingerprint (CAHASH)",
+    "serverVersion": "Server version"
+  },
+  "status": {
+    "active": "Active",
+    "pending": "Pending approval",
+    "rejected": "Rejected",
+    "revoked": "Revoked",
+    "online": "Online",
+    "offline": "Offline"
+  }
+}
