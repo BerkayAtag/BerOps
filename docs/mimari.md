@@ -209,6 +209,18 @@ Uygunluk kuralları sunucuda envantere karşı değerlendirilir (merkezi değerl
 
 Ayrıntılar, risk formülü ve çevrimdışı mod: [cve.md](cve.md).
 
+### 5.3 Uzaktan yönetim (Aşama 6)
+
+```
+ konsol ──POST …/remote/session──▶ sunucu (oturum: 10 dk)
+ ajan ◀──heartbeat {remote, remote_until}──
+ ajan ──GET /agent/v1/remote/poll (≤25 sn)──▶ bekler
+ konsol ──POST …/remote/call {op}──▶ imzala → kuyruk ──▶ ajan: doğrula + bayrak → çalıştır
+ ajan ──POST /agent/v1/remote/{id}/result──▶ sunucu ──▶ konsol (≤40 sn)
+```
+
+Ayrıntılar: [uzaktan-yonetim.md](uzaktan-yonetim.md).
+
 ## 6. Veritabanı şeması
 
 Şema aşamalarla genişler. Her aşama yeni numaralı migration ekler (`server/internal/store/migrations/`).
@@ -266,11 +278,19 @@ Ayrıntılar, risk formülü ve çevrimdışı mod: [cve.md](cve.md).
 | `ad_settings` | AD bağlantısı (tek satır) | `url` (ldaps), `base_dn`, `bind_dn`, `bind_password_enc` (AES-GCM), `user_attr`, `ca_cert_pem` |
 | `ad_group_roles` | Grup → rol eşlemeleri | `group_dn` (benzersiz), `role`, `scope_ous` |
 
+### Aşama 6
+
+| Tablo | Amaç | Önemli alanlar |
+|---|---|---|
+| `remote_settings` | Genel ana anahtar (tek satır) | `enabled`, `session_minutes` |
+| `machine_remote` | Makine başına açık özellikler | `performance`, `services`, `registry_read`, `registry_write` |
+
+Kayıt defteri değişikliklerinin önceki değerleri denetim kaydında tutulur.
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
 |---|---|
-| 6 – Uzaktan yönetim | `remote_feature_settings` (makine/grup bazında opt-in), `registry_backups`, `perf_samples` |
 | 7 – Gelişmiş dağıtım | `relays`, `maintenance_windows`, `rollout_rings`, `restart_policies`, `notification_channels`, `notification_rules` |
 | Gruplar (2–5) | `groups` (statik / OU / dinamik kural), `group_members`, `tags`, `machine_tags` |
 

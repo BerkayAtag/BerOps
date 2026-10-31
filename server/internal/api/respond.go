@@ -31,6 +31,10 @@ const (
 	// codeDirectoryUnavailable, AD'ye ulaşılamadığında döner; konsol kurtarma hesabını önerir.
 	codeDirectoryUnavailable = "auth.directory_unavailable"
 	codeNoRoleMapping        = "auth.no_role_mapping"
+	codeRemoteDisabled       = "remote.disabled"
+	codeRemoteNoSession      = "remote.no_session"
+	codeRemoteTimeout        = "remote.timeout"
+	codeRemoteFailed         = "remote.failed"
 )
 
 const maxJSONBody = 1 << 20 // 1 MiB

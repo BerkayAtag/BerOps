@@ -21,6 +21,7 @@ const NAV_ITEMS: { key: string; to?: string; end?: boolean; perm?: string }[] = 
   { key: "settingsTransfer", to: "/ayarlar/aktarim" },
   { key: "settingsUsers", to: "/ayarlar/kullanicilar", perm: "users.manage" },
   { key: "settingsAd", to: "/ayarlar/ad", perm: "ad.configure" },
+  { key: "settingsRemote", to: "/ayarlar/uzaktan", perm: "remote.settings" },
   { key: "account", to: "/hesap" },
 ];
 

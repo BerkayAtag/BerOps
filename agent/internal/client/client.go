@@ -289,3 +289,52 @@ func (c *Client) DownloadPackage(ctx context.Context, packageID, actionID, dest 
 	}
 	return os.Rename(part, dest)
 }
+
+// RemotePoll, uzaktan oturumdaki bir sonraki isteği uzun yoklamayla bekler; istek yoksa nil döner.
+func (c *Client) RemotePoll(ctx context.Context) (*protocol.SignedJob, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base.JoinPath(protocol.PathRemotePoll).String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	hc := *c.http
+	hc.Timeout = 60 * time.Second // sunucu en fazla ~25 sn bekletir
+	resp, err := hc.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil, nil
+	case http.StatusOK:
+		var sj protocol.SignedJob
+		if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&sj); err != nil {
+			return nil, err
+		}
+		return &sj, nil
+	}
+	return nil, readAPIError(resp)
+}
+
+// RemoteResult, uzaktan isteğin sonucunu gönderir.
+func (c *Client) RemoteResult(ctx context.Context, id string, r protocol.RemoteResult) error {
+	body, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		c.base.JoinPath(fmt.Sprintf(protocol.PathRemoteResultFmt, url.PathEscape(id))).String(), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		return readAPIError(resp)
+	}
+	return nil
+}

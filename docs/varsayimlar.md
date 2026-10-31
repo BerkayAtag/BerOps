@@ -105,3 +105,16 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 5.13 | AD bilgisayarları | Liste saklanmaz, her istekte AD'den okunur (en fazla 20 000 nesne, 500'lük sayfalar). Ajan eşleştirmesi ad ve DNS adının ilk parçasıyla yapılır. | `api/ad_handlers.go` |
 | 5.14 | Denetim dışa aktarma | En fazla 100 000 kayıt, CSV veya Excel; dışa aktarma da denetim kaydına yazılır. Kayıtlar veritabanında değiştirilemez (Aşama 1 trigger'ları). | `api/audit_handlers.go` |
 | 5.15 | API anahtarları | Dış sistemler için API anahtarı ile erişim ihtiyaç halinde eklenecek; şimdilik yalnızca oturum çerezi. | — |
+
+## Aşama 6 — Uzaktan yönetim
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 6.1 | Opt-in | Genel ana anahtar ve makine başına özellikler varsayılan kapalı. Ajan, heartbeat'te aldığı bayraklara göre kapalı özelliği kendisi de reddeder (sunucu tarafı hata durumunda ikinci savunma). | `machine_remote`, `agent/internal/remote` |
+| 6.2 | Bağlantı modeli | Kalıcı bağlantı yerine oturum: konsol oturum açınca ajan bir sonraki heartbeat'te 25 sn'lik uzun yoklamalara geçer. On binlerce ajanın sürekli açık bağlantı tutması gerekmez; karşılığında ilk bağlanma bir heartbeat aralığı kadar sürebilir. | `api/remote_handlers.go` |
+| 6.3 | İmza | Uzaktan istekler aksiyon anahtarıyla imzalanır ve 40 sn geçerlidir. | `protocol.SignRemote` |
+| 6.4 | Tek sunucu | İstek aracısı bellek içidir; birden fazla sunucu örneğinde oturum ve ajan yoklaması aynı örneğe düşmelidir. Çok örnekli kurulum için paylaşılan kuyruk Aşama 7 kapsamı dışındadır. | `remoteBroker` |
+| 6.5 | Performans ölçümü | `gopsutil` (cgo gerektirmez). CPU kullanımı 1 sn'lik aralıkta ölçülür; süreç CPU'su aynı aralıkta işlemci zamanı farkından hesaplanır. macOS sistem bölümleri ve sanal dosya sistemleri disk listesinden çıkarılır. | `agent/internal/remote/perf.go` |
+| 6.6 | Servisler (macOS) | launchd işleri `launchctl list` ile okunur; ajan root ise sistem, değilse kullanıcı alanı. Yalnızca kickstart (başlat/yeniden başlat) ve SIGTERM (durdur); etiket düzenli ifadeyle doğrulanır ve kabuk kullanılmaz. | `services_darwin.go` |
+| 6.7 | Kayıt defteri | 64 bit görünüm (`KEY_WOW64_64KEY`); HKCU kapsam dışı (servis SYSTEM hesabıyla çalışır, HKU üzerinden kullanıcı hive'larına erişilir). Yazma türleri: SZ, EXPAND_SZ, MULTI_SZ, DWORD, QWORD, BINARY. | `registry_windows.go` |
+| 6.8 | Yetkiler | Uzaktan yönetim izinleri yalnızca Admin rolünde. Teknisyene açmak için özel roller ileride eklenebilir. | `auth/rbac.go` |

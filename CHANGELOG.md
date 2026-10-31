@@ -5,6 +5,16 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi — Aşama 6: Uzaktan yönetim
+
+- İsteğe bağlı uzaktan yönetim: genel ana anahtar ve makine başına özellikler (performans, servisler, kayıt defteri okuma/yazma), varsayılan kapalı.
+- Oturum tabanlı uzun yoklama; Ed25519 imzalı istekler; ajan tarafında da özellik denetimi.
+- Performans: CPU, bellek, takas, diskler, en çok kaynak kullanan süreçler (gopsutil, cgo'suz).
+- Servisler: Windows servis yöneticisi (başlat/durdur/yeniden başlat); macOS launchd (listeleme, kickstart, durdurma).
+- Windows kayıt defteri: gezinme, değer yazma ve silme; önceki değer denetim kaydına yazılır.
+- Denetim: oturum açılışı; durum değiştiren işlemler gönderilmeden önce ve sonuçlarıyla birlikte kaydedilir.
+- Konsol: makine detayında "Uzaktan yönetim" sekmesi, Ayarlar → Uzaktan yönetim sayfası.
+
 ### Eklendi — Aşama 5: Active Directory, yetki kapsamları ve denetim ekranı
 
 - Active Directory (yalnızca LDAPS):

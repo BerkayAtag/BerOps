@@ -33,6 +33,7 @@ import (
 	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
 	"github.com/BerkayAtag/automation-ber/agent/internal/jobs"
 	"github.com/BerkayAtag/automation-ber/agent/internal/paths"
+	"github.com/BerkayAtag/automation-ber/agent/internal/remote"
 	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/service"
@@ -282,6 +283,8 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	jr.OnFinished = func(*protocol.Job) { sc.RequestDeltaScan() }
 	go jr.Run(ctx)
 
+	rs := remote.New(c, log, st.AgentID, ids.ActionKey)
+
 	keyWarned := false
 	r := &runner.Runner{
 		Client:          c,
@@ -299,6 +302,7 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 				}
 			}
 			jr.Notify(resp.PendingJobs)
+			rs.Apply(ctx, resp)
 			// Heartbeat'ler arasında soket açık tutulmaz; binlerce ajan sunucuda bağlantı biriktirmez.
 			c.CloseIdle()
 		},
