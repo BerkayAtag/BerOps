@@ -154,4 +154,5 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 8.10 | Yama komutunun üretimi | Komut yalnızca doğrulanmış güncelleme kimliklerinden üretilir (Windows GUID, macOS güvenli karakter kümesi) ve tek tırnakla yerleştirilir; kullanıcı serbest metin veremez. Yama dağıtımı dört göz onayı gerektirmez (serbest komut değildir). | `patchJob` |
 | 8.11 | Simülatör kimlikleri | Sanal ajanlar KB'den türetilen GUID biçimli güncelleme kimlikleri üretir; böylece demo ve testlerde yama dağıtımı uçtan uca denenebilir. | `agent/internal/simdata` |
 | 8.12 | Docker imajı | Sunucu imajı Alpine üzerinde, root olmayan `ber` kullanıcısıyla çalışır; konsol dosyaları imaja gömülüdür. Sunucu adları `BER_HOSTNAMES` ile verilir. | `deploy/Dockerfile` |
+| 8.13 | Ürün adı | Ürün adı **BerOps**'tur: paketler, servisler (`BerOpsServer`, `BerOpsAgent`), ikili dosyalar (`berops-*`), veri klasörleri, Go modülü ve depo adı buna göre adlandırıldı. Geriye dönük uyum ve kısalık için iç tanımlayıcılar korundu: `BER_*` ortam değişkenleri, `--ber-*` tasarım token'ları, `X-Ber-*` başlıkları, `berreg_` anahtar öneki, çerez ve tarayıcı depolama anahtarları. | Tüm depo |
 
