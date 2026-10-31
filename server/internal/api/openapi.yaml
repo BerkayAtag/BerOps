@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Automation BER API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Automation BER konsol ve ajan API'si.
 
@@ -25,6 +25,8 @@ tags:
   - name: Sunucu
   - name: Kayıt anahtarları
   - name: Makineler
+  - name: Zafiyetler
+  - name: Raporlar
   - name: Ayarlar
   - name: Denetim
   - name: Ajan
@@ -48,6 +50,24 @@ components:
       required: true
       schema: { type: string, format: uuid }
   schemas:
+    VulnListItem:
+      type: object
+      properties:
+        cve_id: { type: string, example: CVE-2025-8088 }
+        title: { type: string }
+        severity: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW, NONE, ""] }
+        cvss_score: { type: [number, "null"] }
+        epss: { type: [number, "null"], description: "0-1" }
+        epss_percentile: { type: [number, "null"] }
+        kev: { type: boolean }
+        kev_due: { type: [string, "null"], format: date-time }
+        ransomware: { type: boolean }
+        exploited: { type: boolean, description: Microsoft "istismar edildi" bildirimi }
+        published_at: { type: [string, "null"], format: date-time }
+        affected_machines: { type: integer }
+        risk_score: { type: number, description: "0-100; ayrıntı docs/cve.md" }
+        os: { type: boolean }
+        app: { type: boolean }
     Error:
       type: object
       required: [code, message]
@@ -291,7 +311,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [hostname, os, os_build, agent_version, last_seen_at, enrolled_at, missing_count, missing_critical, app_count, status]
+            enum: [hostname, os, os_build, agent_version, last_seen_at, enrolled_at, missing_count, missing_critical, app_count, risk, vulns, status]
             default: hostname
         - { name: desc, in: query, schema: { type: boolean, default: false } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
@@ -317,6 +337,9 @@ paths:
                             missing_security_count: { type: integer }
                             app_count: { type: integer }
                             reboot_pending: { type: boolean }
+                            vuln_count: { type: integer }
+                            kev_count: { type: integer }
+                            max_risk: { type: number }
                   total: { type: integer }
                   page: { type: integer }
                   page_size: { type: integer }
@@ -355,7 +378,7 @@ paths:
       x-ber-permission: machines.read
       parameters: [{ $ref: "#/components/parameters/ID" }]
       responses:
-        "200": { description: "machine, online, scan_requested_at ve inventory (yoksa null)" }
+        "200": { description: "machine, online, scan_requested_at, inventory ve risk (yoksa null)" }
         "404": { description: Bulunamadı }
   /api/v1/machines/{id}/missing-patches:
     get:
@@ -391,6 +414,144 @@ paths:
       parameters: [{ $ref: "#/components/parameters/ID" }]
       responses:
         "200": { description: Uygulamalar }
+  /api/v1/machines/{id}/vulnerabilities:
+    get:
+      tags: [Zafiyetler]
+      summary: Makinedeki CVE bulguları (risk sırasıyla)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: "items: cve_id, title, severity, cvss_score, epss, kev, sources, refs, fixed_by, risk_score, first_seen_at" }
+  /api/v1/dashboard/risk:
+    get:
+      tags: [Zafiyetler]
+      summary: Gösterge paneli risk özeti
+      security: [{ session: [] }]
+      x-ber-permission: reports.read
+      responses:
+        "200": { description: "distinct_cves, kev_machines, urgent_cves, avg_machine_risk, by_severity, top_cves, top_machines, trend (30 gün)" }
+  /api/v1/vulnerabilities:
+    get:
+      tags: [Zafiyetler]
+      summary: Filo genelindeki CVE'ler (etkilenen makine sayısı ve risk)
+      security: [{ session: [] }]
+      x-ber-permission: reports.read
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: "CVE kimliği, başlık veya açıklamada arar" }
+        - { name: severity, in: query, schema: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW] } }
+        - { name: kev, in: query, schema: { type: boolean }, description: Yalnızca CISA KEV'dekiler }
+        - { name: kind, in: query, schema: { type: string, enum: [os, app] } }
+        - { name: sort, in: query, schema: { type: string, enum: [risk, cvss, epss, affected, published, cve], default: risk } }
+        - { name: desc, in: query, schema: { type: boolean, default: true } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
+      responses:
+        "200":
+          description: Zafiyet sayfası
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/VulnListItem" } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  page_size: { type: integer }
+        "400": { description: Geçersiz filtre }
+  /api/v1/vulnerabilities/{id}:
+    get:
+      tags: [Zafiyetler]
+      summary: CVE ayrıntısı, KEV/EPSS bilgisi, düzelten KB'ler ve etkilenen makineler
+      security: [{ session: [] }]
+      x-ber-permission: reports.read
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, pattern: "^CVE-\\d{4}-\\d{4,}$" } }]
+      responses:
+        "200": { description: CVE ayrıntısı }
+        "404": { description: CVE ne kaynaklarda ne makinelerde var }
+  /api/v1/reports/{type}:
+    get:
+      tags: [Raporlar]
+      summary: Raporu PDF, Excel veya CSV olarak indir
+      description: Her dışa aktarma denetim kaydına yazılır. PDF en fazla 5000 satır içerir.
+      security: [{ session: [] }]
+      x-ber-permission: reports.export
+      parameters:
+        - { name: type, in: path, required: true, schema: { type: string, enum: [compliance, vulnerabilities, missing-patches, apps] } }
+        - { name: format, in: query, schema: { type: string, enum: [pdf, xlsx, csv], default: xlsx } }
+        - { name: lang, in: query, schema: { type: string, enum: [tr, en], default: tr } }
+        - { name: tz, in: query, schema: { type: string, example: Europe/Istanbul }, description: Tarihlerin yazılacağı IANA saat dilimi }
+        - { name: platform, in: query, schema: { type: string, enum: [windows, darwin] }, description: "compliance, missing-patches, apps" }
+        - { name: severity, in: query, schema: { type: string }, description: "vulnerabilities: CRITICAL…LOW; missing-patches: Critical, Important, Moderate, Low" }
+        - { name: kev, in: query, schema: { type: boolean }, description: vulnerabilities }
+        - { name: q, in: query, schema: { type: string }, description: "vulnerabilities, apps" }
+      responses:
+        "200":
+          description: Rapor dosyası (Content-Disposition attachment)
+          content:
+            application/pdf: {}
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+            text/csv: {}
+        "400": { description: Geçersiz biçim veya filtre }
+        "404": { description: Bilinmeyen rapor türü }
+  /api/v1/cve/status:
+    get:
+      tags: [Ayarlar]
+      summary: CVE kaynaklarının eşitleme durumu
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "enabled, offline, running, sync_interval_hours, nvd_api_key (var/yok), msrc_months, feeds, tracked_products" }
+  /api/v1/cve/sync:
+    post:
+      tags: [Ayarlar]
+      summary: CVE kaynaklarını hemen eşitle (arka planda)
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "202": { description: Eşitleme başlatıldı }
+        "409": { description: Eşitleme zaten çalışıyor veya yapılandırmada kapalı }
+  /api/v1/cve/rules:
+    get:
+      tags: [Ayarlar]
+      summary: Uygulama → CPE kuralları (özel kurallar önce, sonra yerleşik sözlük)
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "items: id, name, publisher, identifier, os, part, vendor, product, builtin" }
+    post:
+      tags: [Ayarlar]
+      summary: Özel kural ekle
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vendor, product]
+              properties:
+                name: { type: string, description: Uygulama adı düzenli ifadesi (büyük/küçük harf duyarsız) }
+                publisher: { type: string }
+                identifier: { type: string, description: "MSI ürün kodu, bundle kimliği veya Homebrew formülü kalıbı" }
+                vendor: { type: string, example: google }
+                product: { type: string, example: chrome }
+      responses:
+        "201": { description: Eklendi }
+        "400": { description: Geçersiz düzenli ifade veya CPE adı }
+  /api/v1/cve/rules/{id}:
+    delete:
+      tags: [Ayarlar]
+      summary: Özel kuralı sil
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
+        "404": { description: Bulunamadı }
   /api/v1/settings/agent:
     get:
       tags: [Ayarlar]

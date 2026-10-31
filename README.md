@@ -4,7 +4,7 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)** ve **Aşama 2 (Envanter ve tespit)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)** ve **Aşama 3 (CVE motoru ve raporlar)** tamamlandı. Yol haritası aşağıda.
 
 ## Bileşenler
 
@@ -35,6 +35,17 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 - **Delta gönderim:** Bölüm özetleriyle yalnızca değişen bölümler gönderilir; sunucu tutarsızlık görürse tam envanter ister.
 - **Konsol:** Arama, filtre, sıralama, sayfalama ve toplu seçimli makine listesi; eksik/kurulu yama ve uygulama sekmeli makine detay sayfası; gösterge panelinde uyumluluk ve dağılım; ajan ayarları sayfası; konsoldan yeniden tarama.
 - **Tanılama:** `ber-agent inventory [-full] [-json]` envanteri makinede toplayıp yazdırır.
+
+## Aşama 3'te neler var?
+
+- **CVE kaynakları:** CISA KEV, FIRST EPSS, Microsoft MSRC ve NVD sunucuda eşitlenir (24 saatte bir, artımlı). İnternet erişimi olmayan ortamlar için çevrimdışı klasör desteği vardır.
+- **Windows açıkları:** Makinenin yapı numarası MSRC'nin düzeltme yapısıyla karşılaştırılır. Böylece eksik toplu güncellemenin kapattığı tüm CVE'ler bulunur, Windows Update'in CVE listesinde görünmeyenler dahil. Eksik KB'ler de MSRC eşlemesiyle CVE'ye bağlanır.
+- **macOS ve üçüncü parti uygulamalar:** NVD'ye karşı doğrulanmış 40'tan fazla ürünlük sözlükle (tarayıcılar, PDF, sıkıştırma, uzaktan erişim, geliştirici araçları, Homebrew) CPE eşleştirmesi ve sürüm aralığı kontrolü yapılır. Sözlükte olmayan uygulamalar için konsoldan özel kural eklenebilir.
+- **Risk skoru (0–100):** CVSS, EPSS olasılığı, CISA KEV ve fidye yazılımı bilgisini birleştirir. Aktif istismar edilen açıklar öne çıkar. Formül: [docs/cve.md](docs/cve.md).
+- **Konsol:** Güvenlik açıkları listesi ve CVE detayı (etkilenen makineler, düzelten KB'ler, KEV kaydı), makine detayında risk kartları ve açık sekmesi, gösterge panelinde risk özeti, önem dağılımı, 30 günlük uyumluluk eğilimi, en riskli açıklar ve makineler, CVE kaynakları ayar sayfası.
+- **Raporlar:** Uyumluluk, zafiyet, eksik yama ve uygulama envanteri raporları PDF, Excel ve CSV olarak; Türkçe veya İngilizce, kullanıcının saat diliminde. Her dışa aktarma denetim kaydına yazılır.
+
+Gerçek kaynaklarla ölçüm (MacBook, PostgreSQL 17, API anahtarı olmadan): ilk eşitleme 3 dk 24 sn sürdü (KEV 1 sn, EPSS 1,4 sn, MSRC 12 ay 47 sn, NVD 41 ürün 2 dk 29 sn). 31 makinenin yeniden hesaplanması 5,6 sn sürdü.
 
 ## Ajan kaynak kullanımı
 
@@ -119,6 +130,14 @@ Sunucuya göndermeden bu makinenin envanterini görmek için (`-full` eksik gün
 go run ./agent/cmd/ber-agent inventory -full
 ```
 
+### CVE verisini eşitlemek
+
+Sunucu açıldıktan bir dakika sonra kaynakları kendisi eşitler. Hemen eşitlemek için:
+
+```bash
+go run ./server/cmd/ber-server cve sync
+```
+
 ### Sanal ajanlar
 
 Gerçek ajanla aynı zamanlayıcıyı kullanan, gerçekçi sahte envanter (eksik KB'ler, CVE'ler, güncel olmayan uygulamalar, AD OU'ları) gönderen sanal ajanlar:
@@ -147,7 +166,7 @@ npm --prefix console test -- --run
 |---|---|---|
 | 1 | Repo iskeleti, CI, veritabanı şeması, API iskeleti, mTLS ajan kaydı ve heartbeat, giriş ekranı ve tema | ✅ |
 | 2 | Envanter: yama seviyesi, eksik yamalar, üçüncü parti uygulamalar; kaynak kısıtlama; makine listesi ve detay | ✅ |
-| 3 | CVE motoru: NVD, MSRC, KEV, EPSS; risk skoru; dashboard ve raporlar | ⏳ |
+| 3 | CVE motoru: NVD, MSRC, KEV, EPSS; risk skoru; dashboard ve raporlar | ✅ |
 | 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ⏳ |
 | 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ⏳ |
 | 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ⏳ |
@@ -157,6 +176,7 @@ npm --prefix console test -- --run
 ## Dokümantasyon
 
 - [Mimari](docs/mimari.md)
+- [CVE motoru ve raporlar](docs/cve.md)
 - [Varsayımlar ve kararlar](docs/varsayimlar.md)
 - [API](docs/api.md)
 - [Katkıda bulunma](CONTRIBUTING.md)

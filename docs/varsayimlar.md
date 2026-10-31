@@ -47,3 +47,23 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 2.15 | Uyumluluk yüzdesi | Eksik yama taraması tamamlanmış ve eksik yaması olmayan makinelerin, envanteri olan makinelere oranı. Risk ağırlıklı skor Aşama 3'te. | `store/machines.go` |
 | 2.16 | Ayar kapsamı | Ajan ayarları şimdilik tüm filo için tektir. Grup bazlı geçersiz kılma, gruplar (Aşama 5) ile eklenecek. | `agent_settings` |
 | 2.17 | Tablo kütüphanesi | TanStack Table **v8** kullanıldı. v9 yeni çıkmış ve API'si tamamen değişmiş; kararlı sürüm tercih edildi. | `console/package.json` |
+
+## Aşama 3 — CVE motoru ve raporlar
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 3.1 | NVD kapsamı | NVD'nin tamamı (≈300 bin CVE) değil, yalnızca takip edilen ürünlerin CVE'leri çekilir; artımlı eşitlemede veritabanında olan CVE'ler güncellenir. Veritabanı küçük kalır, ilk eşitleme dakikalar sürer. | `server/internal/cve/syncer.go` |
+| 3.2 | Windows işletim sistemi açıkları | Ürün adı eşleştirmesi yerine MSRC'nin `FixedBuild` alanı kullanılır: makine yapısı aynı ailedeki düzeltme yapısından küçükse savunmasızdır. Yalnızca adı "Windows" ile başlayan MSRC ürünleri alınır. | `cve/engine.go`, `cve/feeds.go` |
+| 3.3 | MSRC geçmişi | Varsayılan 12 ay (`cve.msrc_months`). Daha eski yapıda kalmış makineler için açık sayısı alt sınırdır; bu makineler zaten çok sayıda eksik toplu güncelleme gösterir. | `config`, `cve/syncer.go` |
+| 3.4 | Üçüncü parti eşleştirme | Kurulu uygulamalar yerleşik sözlük ve özel kurallarla CPE ürününe eşlenir (düzenli ifade). Bulanık/otomatik CPE eşleştirmesi yapılmaz; yanlış pozitifleri önlemek için açık sözlük tercih edildi. Sözlükteki tüm CPE adları NVD'ye karşı doğrulandı. | `cve/products.json` |
+| 3.5 | NVD AND yapılandırmaları | "Uygulama X, platform Y üzerinde" koşulları değerlendirilmez; uygulama sürümü aralıktaysa bulgu üretilir (ihtiyatlı yaklaşım). | `cve/nvd.go` |
+| 3.6 | Sürümsüz NVD kayıtları | Hiç sürüm sınırı olmayan eşleşmeler (ör. TLS BEAST) atlanır: düzeltme sürümü yoktur, aksiyon alınamaz. | `cve/engine.go` |
+| 3.7 | macOS pkg makbuzları | CVE eşleştirmesine katılmaz; makbuz kurulum anındaki sürümü tutar, kendini güncelleyen uygulamalarda yanlış pozitif üretir. Makbuzlar envanterde görünmeye devam eder. | `cve/engine.go` |
+| 3.8 | Risk formülü | `CVSS×6 + EPSS×25 + 15 (KEV/istismar) + 5 (fidye yazılımı)`, en fazla 100. Eşikler: Acil ≥80, Yüksek ≥60, Orta ≥40. Makine riski = en yüksek bulgu riski. Formül tek yerde (`cve.RiskScore`) tanımlıdır. | `cve/risk.go`, `console/src/risk.ts` |
+| 3.9 | Kaynak birleştirme | Aynı CVE hem NVD'de hem MSRC'de varsa açıklama ve CVSS NVD'den, başlık ve "istismar edildi" bilgisi MSRC'den alınır. NVD henüz analiz etmediyse (CVSS yok) MSRC skoru kullanılır. Başlık yoksa KEV'deki açık adı gösterilir. | `store/cve.go`, `store/vulns.go` |
+| 3.10 | Yeniden hesaplama | Envanter geldiğinde yalnızca o makine, kaynak eşitlemesinden ve kural değişikliğinden sonra ve sunucu açılışında tüm filo arka planda yeniden hesaplanır. Bulgunun ilk görülme zamanı korunur. | `server/internal/vuln` |
+| 3.11 | Tek sunucu | Eşitleme kilidi süreç içidir. Birden fazla sunucu örneği aynı veritabanını kullanırsa eşitleme yinelenebilir (veri bozulmaz, yalnızca gereksiz istek olur). Çok sunuculu kurulum Aşama 7'de ele alınacak. | `cve/syncer.go` |
+| 3.12 | PDF kütüphanesi | `go-pdf/fpdf` + Go yazı tipleri (`golang.org/x/image/font/gofont`, BSD lisanslı, Türkçe karakterleri kapsar). Excel dosyası harici kütüphane olmadan (Office Open XML) üretilir. | `server/internal/report` |
+| 3.13 | Rapor boyutu | Dışa aktarmada en fazla 200 000 satır, PDF'te en fazla 5000 satır. Raporlar belleğe yazılıp sonra gönderilir; hata olursa yarım dosya yerine JSON hata döner. | `store`, `report`, `api/report_handlers.go` |
+| 3.14 | Uyumluluk eğilimi | Günün özeti bakım döngüsünde (10 dk) güncellenir; geçmiş günler değişmez. Eğilim grafiği son 30 günü gösterir; yeni kurulumda birkaç gün sonra anlamlı hale gelir. | `compliance_snapshots`, `api/server.go` |
+| 3.15 | Zamanlanmış rapor ve e-posta | Raporların zamanlanıp e-postayla gönderilmesi bildirim altyapısıyla birlikte Aşama 7'de eklenecek. | — |

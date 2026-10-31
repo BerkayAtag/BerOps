@@ -6,31 +6,17 @@ import {
 } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { api, errorKey, type MachineListItem, type Page } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
-import { OnlinePill, PlatformIcon, StatusPill } from "../components/Badges";
+import { OnlinePill, PlatformIcon, RiskBadge, StatusPill } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
 import { PAGE_SIZES } from "../components/pageSizes";
 import { formatRelative } from "../format";
+import { useListParams } from "../hooks/useListParams";
 
 const col = createColumnHelper<MachineListItem>();
-
-/** Arama, filtre, sıralama ve sayfa durumunu adres çubuğunda tutar (bağlantı paylaşılabilir). */
-function useListParams() {
-  const [params, setParams] = useSearchParams();
-  const get = (k: string, d = "") => params.get(k) ?? d;
-  const update = (patch: Record<string, string | null>) => {
-    const next = new URLSearchParams(params);
-    for (const [k, v] of Object.entries(patch)) {
-      if (v === null || v === "") next.delete(k);
-      else next.set(k, v);
-    }
-    setParams(next, { replace: true });
-  };
-  return { get, update };
-}
 
 export function MachinesPage() {
   const { t, i18n } = useTranslation();
@@ -116,6 +102,22 @@ export function MachinesPage() {
           c.row.original.inventory_at ? (
             <span className={`count ${c.getValue() > 0 ? "count-danger" : "count-ok"}`}>{c.getValue()}</span>
           ) : null,
+      }),
+      col.accessor("vuln_count", {
+        id: "vulns",
+        header: t("machines.col.vulns"),
+        cell: (c) =>
+          c.row.original.inventory_at ? (
+            <span className="pills">
+              <span className={`count ${c.getValue() > 0 ? "count-warn" : "count-ok"}`}>{c.getValue()}</span>
+              {c.row.original.kev_count > 0 && <span className="tag">KEV {c.row.original.kev_count}</span>}
+            </span>
+          ) : null,
+      }),
+      col.accessor("max_risk", {
+        id: "risk",
+        header: t("machines.col.risk"),
+        cell: (c) => (c.row.original.inventory_at ? <RiskBadge score={c.getValue()} /> : null),
       }),
       col.accessor("app_count", {
         header: t("machines.col.apps"),

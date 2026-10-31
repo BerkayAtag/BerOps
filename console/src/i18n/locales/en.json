@@ -80,7 +80,8 @@
     "reports": "Reports",
     "audit": "Audit Log",
     "settings": "Settings",
-    "settingsAgent": "Agent settings"
+    "settingsAgent": "Agent settings",
+    "settingsCve": "CVE sources"
   },
   "home": {
     "title": "Dashboard",
@@ -114,7 +115,19 @@
     "osDistribution": "Operating systems",
     "distinctApps": "Distinct applications",
     "missingTotal": "Total missing patches",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "riskTitle": "Security risk",
+    "distinctCves": "Distinct CVEs",
+    "kevMachines": "Machines with KEV",
+    "urgentCves": "Urgent (risk ≥ 80)",
+    "avgRisk": "Average machine risk",
+    "bySeverity": "Severity distribution",
+    "trend": "Compliance trend (30 days)",
+    "trendEmpty": "Trend data builds up over a few days.",
+    "trendHelp": "Daily share of machines with no missing patches",
+    "topCves": "Riskiest vulnerabilities",
+    "topMachines": "Riskiest machines",
+    "noVulns": "No vulnerability data yet."
   },
   "status": {
     "active": "Active",
@@ -158,7 +171,9 @@
       "lastSeen": "Last seen",
       "agent": "Agent",
       "status": "Status",
-      "ou": "OU"
+      "ou": "OU",
+      "vulns": "Vulns",
+      "risk": "Risk"
     },
     "rescan": "Rescan",
     "rescanSelected": "Rescan selected",
@@ -207,7 +222,8 @@
     "tabs": {
       "missing": "Missing patches ({{count}})",
       "installed": "Installed patches ({{count}})",
-      "apps": "Applications ({{count}})"
+      "apps": "Applications ({{count}})",
+      "vulns": "Vulnerabilities ({{count}})"
     },
     "missing": {
       "title": "Title",
@@ -238,7 +254,16 @@
     "scope": {
       "machine": "Machine",
       "user": "User"
-    }
+    },
+    "risk": {
+      "title": "Risk summary",
+      "maxRisk": "Highest risk",
+      "vulns": "Vulnerabilities",
+      "critical": "Critical",
+      "kev": "KEV",
+      "computedAt": "Computed"
+    },
+    "vulnsNone": "No known vulnerabilities on this machine."
   },
   "severity": {
     "Critical": "Critical",
@@ -267,5 +292,170 @@
     "cabMissing": "wsusscn2.cab was not found on the server. Place the file in the wsus/ folder of the server data directory.",
     "invalid": "Check the values: the change scan interval cannot exceed the full scan interval.",
     "readOnly": "You can view these settings; changing them requires the Admin role."
+  },
+  "cvss": {
+    "CRITICAL": "Critical",
+    "HIGH": "High",
+    "MEDIUM": "Medium",
+    "LOW": "Low",
+    "UNKNOWN": "Unknown"
+  },
+  "risk": {
+    "urgent": "Urgent",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "label": "Risk"
+  },
+  "source": {
+    "os_build": "OS build",
+    "missing_patch": "Missing patch",
+    "app": "Application",
+    "os": "OS version"
+  },
+  "vulns": {
+    "title": "Vulnerabilities",
+    "subtitle": "CVEs detected on machines; the risk score combines CVSS, EPSS probability and CISA KEV.",
+    "searchPlaceholder": "CVE ID or title",
+    "severity": "Severity",
+    "kind": "Source",
+    "kindOs": "Operating system",
+    "kindApp": "Application",
+    "kevOnly": "Actively exploited only (KEV)",
+    "kevHint": "Listed in the CISA Known Exploited Vulnerabilities catalog: actively exploited",
+    "kevRansomwareHint": "Actively exploited and known to be used in ransomware campaigns",
+    "ransomware": "Ransomware",
+    "exploited": "Exploited",
+    "exploitedHint": "Microsoft reports this vulnerability as exploited",
+    "col": {
+      "cve": "CVE",
+      "title": "Title",
+      "severity": "Severity",
+      "cvss": "CVSS",
+      "epss": "EPSS",
+      "risk": "Risk",
+      "affected": "Affected",
+      "kind": "Source",
+      "published": "Published",
+      "fixedBy": "Fixed by",
+      "firstSeen": "First seen",
+      "refs": "Finding"
+    },
+    "empty": "No vulnerabilities match these filters.",
+    "noData": "No vulnerability data yet. It appears here once CVE sources are synced and agents report inventory.",
+    "export": "Export",
+    "epssHint": "Probability of exploitation in the next 30 days (FIRST EPSS)"
+  },
+  "vuln": {
+    "back": "Vulnerabilities",
+    "notFound": "This CVE was not found.",
+    "unknownRecord": "No source record for this CVE yet; it was detected from a missing update's CVE list.",
+    "description": "Description",
+    "scores": "Scores",
+    "cvssVector": "CVSS vector",
+    "epssPercentile": "EPSS percentile",
+    "published": "Published",
+    "modified": "Last modified",
+    "cwe": "Weakness (CWE)",
+    "references": "References",
+    "kevTitle": "CISA KEV entry",
+    "kevAdded": "Added to catalog",
+    "kevDue": "Remediation due (US agencies)",
+    "requiredAction": "Required action",
+    "fixes": "Fixing updates",
+    "affected": "Affected machines ({{count}})",
+    "source": "Source",
+    "nvdLink": "Open in NVD",
+    "msrcLink": "Open in MSRC"
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Reports are generated from current data and every export is written to the audit log.",
+    "formats": {
+      "pdf": "PDF",
+      "xlsx": "Excel",
+      "csv": "CSV"
+    },
+    "compliance": {
+      "title": "Compliance report",
+      "desc": "Missing patches, vulnerabilities, KEV and risk per machine; for management and audit."
+    },
+    "vulnerabilities": {
+      "title": "Vulnerability report",
+      "desc": "Fleet-wide CVE list: severity, CVSS, EPSS, KEV, risk and affected machine count."
+    },
+    "missing-patches": {
+      "title": "Missing patch report",
+      "desc": "Machine × missing update list; for deployment planning."
+    },
+    "apps": {
+      "title": "Application inventory report",
+      "desc": "Installed third-party applications, versions and machine counts."
+    },
+    "platform": "Platform",
+    "severity": "Severity",
+    "kevOnly": "KEV only",
+    "search": "Application name",
+    "lang": "Report language",
+    "pdfNote": "PDFs contain at most 5000 rows; use Excel for larger reports."
+  },
+  "cveSettings": {
+    "title": "CVE sources",
+    "subtitle": "NVD, Microsoft MSRC, CISA KEV and FIRST EPSS data is stored on the server; agents never go to the internet.",
+    "feeds": "Sources",
+    "feed": {
+      "nvd": "NVD (NIST)",
+      "msrc": "Microsoft MSRC",
+      "kev": "CISA KEV",
+      "epss": "FIRST EPSS"
+    },
+    "feedDesc": {
+      "nvd": "CVSS scores and vulnerable version ranges of third-party applications",
+      "msrc": "Windows security updates, KB → CVE mapping and fixed builds",
+      "kev": "Actively exploited vulnerabilities",
+      "epss": "30-day exploitation probability"
+    },
+    "col": {
+      "feed": "Source",
+      "lastSuccess": "Last successful sync",
+      "items": "Records",
+      "duration": "Duration",
+      "status": "Status"
+    },
+    "ok": "Up to date",
+    "error": "Error",
+    "never": "Not synced yet",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…",
+    "syncQueued": "Sync started. Large sources (NVD, MSRC) can take a few minutes on the first run.",
+    "mode": "Mode",
+    "online": "Online (the server connects to the sources directly)",
+    "offline": "Offline folder (environments without internet access)",
+    "disabled": "Sync is disabled in the configuration",
+    "interval": "Sync interval",
+    "intervalValue": "Every {{n}} hours",
+    "apiKey": "NVD API key",
+    "apiKeyYes": "Configured",
+    "apiKeyNo": "Not configured (slower sync)",
+    "msrcMonths": "MSRC history",
+    "msrcMonthsValue": "Last {{n}} months",
+    "tracked": "Tracked products",
+    "rules": "Application → CPE rules",
+    "rulesHelp": "Maps installed application names to NVD products. Custom rules take precedence over the built-in dictionary. Patterns are case-insensitive regular expressions.",
+    "ruleName": "Application name pattern",
+    "rulePublisher": "Publisher pattern (optional)",
+    "ruleIdentifier": "Identifier pattern (optional)",
+    "ruleVendor": "CPE vendor",
+    "ruleProduct": "CPE product",
+    "addRule": "Add rule",
+    "deleteRule": "Delete",
+    "builtin": "Built-in",
+    "custom": "Custom",
+    "showBuiltin": "Show built-in rules ({{count}})",
+    "hideBuiltin": "Hide built-in rules",
+    "rulePattern": "Pattern",
+    "ruleCpe": "CPE product",
+    "ruleType": "Type",
+    "publisherShort": "publisher"
   }
 }

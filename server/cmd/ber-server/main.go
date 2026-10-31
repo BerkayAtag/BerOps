@@ -4,6 +4,7 @@
 //	ber-server migrate      -config ber-server.yaml
 //	ber-server admin create -config ber-server.yaml -username admin [-role admin] [-recovery]
 //	ber-server regkey create -config ber-server.yaml -name "Pilot" [-approval] [-max-uses 10] [-expires-hours 72]
+//	ber-server cve sync     -config ber-server.yaml [-feeds kev,epss,msrc,nvd]
 //	ber-server version
 package main
 
@@ -21,14 +22,17 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	_ "time/tzdata" // raporlarda kullanıcının saat dilimi (Windows sunucularda tz veritabanı yoktur)
 
 	"golang.org/x/term"
 
 	"github.com/BerkayAtag/automation-ber/server/internal/api"
 	"github.com/BerkayAtag/automation-ber/server/internal/auth"
 	"github.com/BerkayAtag/automation-ber/server/internal/config"
+	"github.com/BerkayAtag/automation-ber/server/internal/cve"
 	"github.com/BerkayAtag/automation-ber/server/internal/pki"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
 	"github.com/BerkayAtag/automation-ber/shared/version"
 )
 
@@ -47,6 +51,7 @@ Komutlar:
   migrate        Veritabanı migration'larını uygular
   admin create   Yerel kullanıcı oluşturur (parola BER_ADMIN_PASSWORD'dan veya terminalden okunur)
   regkey create  Ajan kayıt anahtarı oluşturur
+  cve sync       CVE kaynaklarını (KEV, EPSS, MSRC, NVD) hemen eşitler ve bulguları yeniden hesaplar
   version        Sürümü yazdırır
 
 Her komut için ayrıntı: ber-server <komut> -h
@@ -73,6 +78,11 @@ func run(args []string) error {
 			return errors.New("kullanım: ber-server regkey create -name <ad>")
 		}
 		return cmdRegKeyCreate(args[1:])
+	case "cve":
+		if len(args) == 0 || args[0] != "sync" {
+			return errors.New("kullanım: ber-server cve sync [-feeds kev,epss,msrc,nvd]")
+		}
+		return cmdCVESync(args[1:])
 	case "version":
 		fmt.Printf("ber-server %s (%s)\n", version.Version, version.Commit)
 		return nil
@@ -177,6 +187,7 @@ func cmdServe(args []string) error {
 	}
 
 	go srv.RunMaintenance(ctx, 10*time.Minute)
+	srv.RunBackground(ctx)
 
 	errc := make(chan error, len(servers))
 	for _, hs := range servers {
@@ -371,4 +382,44 @@ func cmdRegKeyCreate(args []string) error {
 	fmt.Printf("  CA parmak izi : %s\n\n", ca.Fingerprint())
 	fmt.Println("Anahtar yalnızca şimdi gösterilir; güvenli bir yerde saklayın.")
 	return nil
+}
+
+func cmdCVESync(args []string) error {
+	fs := flag.NewFlagSet("cve sync", flag.ExitOnError)
+	feeds := fs.String("feeds", strings.Join(cve.AllFeeds, ","), "eşitlenecek kaynaklar")
+	cfg, err := loadConfig(fs, args)
+	if err != nil {
+		return err
+	}
+	var list []string
+	for _, f := range strings.Split(*feeds, ",") {
+		if f = strings.TrimSpace(f); f != "" {
+			list = append(list, f)
+		}
+	}
+	log := newLogger(cfg.LogLevel)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	st, err := openStore(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	if _, err := st.Migrate(ctx); err != nil {
+		return err
+	}
+	eng, err := vuln.New(ctx, st, log)
+	if err != nil {
+		return err
+	}
+	syncer := &cve.Syncer{
+		Store: st, Log: log, Products: eng.TrackedProducts, NVDAPIKey: cfg.CVE.NVDAPIKey,
+		MSRCMonths: cfg.CVE.MSRCMonths, OfflineDir: cfg.CVE.OfflineDir,
+	}
+	syncErr := syncer.Sync(ctx, list...)
+	eng.RecomputeAll()
+	if err := eng.Flush(ctx); err != nil {
+		return errors.Join(syncErr, err)
+	}
+	return syncErr
 }

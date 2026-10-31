@@ -94,6 +94,9 @@ export interface MachineListItem extends Machine {
   missing_security_count: number;
   app_count: number;
   reboot_pending: boolean;
+  vuln_count: number;
+  kev_count: number;
+  max_risk: number;
 }
 
 export interface Page<T> {
@@ -162,6 +165,7 @@ export interface MachineDetail {
   online: boolean;
   scan_requested_at: string | null;
   inventory: InventorySummary | null;
+  risk: MachineRisk | null;
 }
 
 export interface MissingPatch {
@@ -210,4 +214,157 @@ export interface AgentSettings {
 export interface AgentSettingsResponse {
   settings: AgentSettings;
   wsus_cab: { size_bytes: number; modified_at: string } | null;
+}
+
+// --- Aşama 3: CVE ve raporlar ---
+
+/** NVD ölçeğindeki önem derecesi. */
+export type CvssSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NONE" | "";
+
+export interface MachineRisk {
+  vuln_count: number;
+  critical_count: number;
+  high_count: number;
+  kev_count: number;
+  max_risk: number;
+  computed_at: string;
+}
+
+export interface VulnListItem {
+  cve_id: string;
+  title: string;
+  severity: CvssSeverity;
+  cvss_score: number | null;
+  epss: number | null;
+  epss_percentile: number | null;
+  kev: boolean;
+  kev_due: string | null;
+  ransomware: boolean;
+  exploited: boolean;
+  published_at: string | null;
+  affected_machines: number;
+  risk_score: number;
+  os: boolean;
+  app: boolean;
+}
+
+export interface AffectedMachine {
+  machine_id: string;
+  hostname: string;
+  os_platform: "windows" | "darwin";
+  os_name: string;
+  os_build: string;
+  sources: string[];
+  refs: string[];
+  fixed_by: string[];
+  first_seen_at: string;
+}
+
+export interface CVEDetail {
+  cve_id: string;
+  known: boolean;
+  source: string;
+  title: string;
+  description: string;
+  published_at: string | null;
+  modified_at: string | null;
+  cvss_score: number | null;
+  cvss_vector: string;
+  cvss_version: string;
+  severity: CvssSeverity;
+  cwes: string[];
+  references: string[];
+  exploited: boolean;
+  epss: number | null;
+  epss_percentile: number | null;
+  kev: {
+    name: string;
+    date_added: string;
+    due_date: string | null;
+    ransomware: boolean;
+    required_action: string;
+  } | null;
+  fixes: string[];
+  affected: AffectedMachine[];
+  risk_score: number;
+}
+
+export interface MachineVuln {
+  cve_id: string;
+  title: string;
+  severity: CvssSeverity;
+  cvss_score: number | null;
+  epss: number | null;
+  kev: boolean;
+  exploited: boolean;
+  sources: string[];
+  refs: string[];
+  fixed_by: string[];
+  risk_score: number;
+  first_seen_at: string;
+  published_at: string | null;
+}
+
+export interface ComplianceSample {
+  day: string;
+  machines: number;
+  with_inventory: number;
+  fully_patched: number;
+  critical_machines: number;
+  kev_machines: number;
+  vuln_total: number;
+  avg_risk: number;
+}
+
+export interface RiskSummary {
+  distinct_cves: number;
+  affected_machines: number;
+  kev_cves: number;
+  kev_machines: number;
+  urgent_cves: number;
+  avg_machine_risk: number;
+  by_severity: Record<string, number>;
+  top_cves: VulnListItem[];
+  top_machines: {
+    id: string;
+    hostname: string;
+    os_platform: "windows" | "darwin";
+    vuln_count: number;
+    critical_count: number;
+    kev_count: number;
+    max_risk: number;
+  }[];
+  trend: ComplianceSample[];
+}
+
+export interface FeedStatus {
+  feed: "nvd" | "msrc" | "kev" | "epss";
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  item_count: number;
+  duration_ms: number;
+  last_error: string;
+}
+
+export interface CVEStatus {
+  enabled: boolean;
+  offline: boolean;
+  running: boolean;
+  sync_interval_hours: number;
+  nvd_api_key: boolean;
+  msrc_months: number;
+  feeds: FeedStatus[];
+  tracked_products: number;
+}
+
+export interface ProductRule {
+  id: string;
+  name?: string;
+  publisher?: string;
+  identifier?: string;
+  os?: string;
+  part?: string;
+  vendor: string;
+  product: string;
+  builtin: boolean;
 }

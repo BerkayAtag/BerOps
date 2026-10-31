@@ -8,15 +8,25 @@ import {
   type InstalledApp,
   type InstalledPatch,
   type MachineDetail,
+  type MachineVuln,
   type MissingPatch,
 } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
-import { OnlinePill, PlatformIcon, SeverityBadge, StatusPill } from "../components/Badges";
+import {
+  CvssBadge,
+  KevBadge,
+  OnlinePill,
+  PlatformIcon,
+  RiskBadge,
+  SeverityBadge,
+  StatusPill,
+} from "../components/Badges";
 import { DataTable } from "../components/DataTable";
-import { formatBytes, formatDate, formatDateTime, formatRelative } from "../format";
+import { formatBytes, formatDate, formatDateTime, formatNumber, formatRelative } from "../format";
+import { EpssValue } from "./VulnerabilitiesPage";
 
-type Tab = "missing" | "installed" | "apps";
+type Tab = "vulns" | "missing" | "installed" | "apps";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -43,7 +53,8 @@ export function MachineDetailPage() {
     hasInv ? `/api/v1/machines/${id}/installed-patches` : null,
   );
   const [apps] = useApi<{ items: InstalledApp[] }>(hasInv ? `/api/v1/machines/${id}/apps` : null);
-  const [tab, setTab] = useState<Tab>("missing");
+  const [vulns] = useApi<{ items: MachineVuln[] }>(hasInv ? `/api/v1/machines/${id}/vulnerabilities` : null);
+  const [tab, setTab] = useState<Tab>("vulns");
   const [notice, setNotice] = useState<string | null>(null);
 
   async function rescan() {
@@ -71,7 +82,7 @@ export function MachineDetailPage() {
     );
   }
 
-  const { machine: m, inventory: inv, online, scan_requested_at } = detail.data;
+  const { machine: m, inventory: inv, online, scan_requested_at, risk } = detail.data;
   const os = inv?.os;
   const canScan = can("machines.manage");
 
@@ -112,6 +123,29 @@ export function MachineDetailPage() {
         <div className="alert alert-info" role="status">
           {t("machine.scanPending", { time: formatRelative(scan_requested_at, lng) })}
         </div>
+      )}
+
+      {risk && (
+        <section className="stat-grid" aria-label={t("machine.risk.title")}>
+          <div className="stat-card tone-danger">
+            <span className="stat-label">{t("machine.risk.maxRisk")}</span>
+            <span className="stat-value">
+              <RiskBadge score={risk.max_risk} />
+            </span>
+          </div>
+          <div className="stat-card tone-warning">
+            <span className="stat-label">{t("machine.risk.vulns")}</span>
+            <span className="stat-value">{formatNumber(risk.vuln_count, lng)}</span>
+          </div>
+          <div className="stat-card tone-danger">
+            <span className="stat-label">{t("machine.risk.critical")}</span>
+            <span className="stat-value">{formatNumber(risk.critical_count, lng)}</span>
+          </div>
+          <div className="stat-card tone-danger">
+            <span className="stat-label">{t("machine.risk.kev")}</span>
+            <span className="stat-value">{formatNumber(risk.kev_count, lng)}</span>
+          </div>
+        </section>
       )}
 
       <div className="detail-grid">
@@ -208,6 +242,7 @@ export function MachineDetailPage() {
           <div className="tabs" role="tablist">
             {(
               [
+                ["vulns", risk?.vuln_count ?? 0],
                 ["missing", inv.missing_count],
                 ["installed", inv.installed_patch_count],
                 ["apps", inv.app_count],
@@ -226,6 +261,7 @@ export function MachineDetailPage() {
             ))}
           </div>
           <div role="tabpanel">
+            {tab === "vulns" && <VulnTable rows={vulns.status === "ok" ? vulns.data.items : []} />}
             {tab === "missing" && <MissingTable rows={missing.status === "ok" ? missing.data.items : []} />}
             {tab === "installed" && (
               <InstalledTable rows={installed.status === "ok" ? installed.data.items : []} />
@@ -235,6 +271,90 @@ export function MachineDetailPage() {
         </section>
       )}
     </div>
+  );
+}
+
+const vcol = createColumnHelper<MachineVuln>();
+
+function VulnTable({ rows }: { rows: MachineVuln[] }) {
+  const { t, i18n } = useTranslation();
+  const [sorting, setSorting] = useState<SortingState>([{ id: "risk", desc: true }]);
+  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+  const columns = useMemo(
+    () => [
+      vcol.accessor("risk_score", {
+        id: "risk",
+        header: t("vulns.col.risk"),
+        cell: (c) => <RiskBadge score={c.getValue()} />,
+      }),
+      vcol.accessor("cve_id", {
+        header: t("vulns.col.cve"),
+        cell: (c) => (
+          <Link to={`/zafiyetler/${c.getValue()}`} className="mono strong">
+            {c.getValue()}
+          </Link>
+        ),
+      }),
+      vcol.accessor("title", {
+        header: t("vulns.col.title"),
+        cell: (c) => (
+          <span className="cell-wrap">
+            {c.getValue() || "—"} {c.row.original.kev && <KevBadge />}
+          </span>
+        ),
+      }),
+      vcol.accessor((r) => r.cvss_score ?? -1, {
+        id: "cvss",
+        header: t("vulns.col.cvss"),
+        cell: (c) => (
+          <span className="pills">
+            <CvssBadge severity={c.row.original.severity} />
+            <span className="mono">{c.row.original.cvss_score?.toFixed(1) ?? ""}</span>
+          </span>
+        ),
+      }),
+      vcol.accessor((r) => r.epss ?? -1, {
+        id: "epss",
+        header: t("vulns.col.epss"),
+        cell: (c) => <EpssValue value={c.row.original.epss} />,
+      }),
+      vcol.accessor((r) => r.sources.join(","), {
+        id: "sources",
+        header: t("vulns.col.kind"),
+        cell: (c) => (
+          <span className="tag-list">
+            {c.row.original.sources.map((s) => (
+              <span key={s} className="tag" title={c.row.original.refs.join(", ")}>
+                {t(`source.${s}`, { defaultValue: s })}
+              </span>
+            ))}
+          </span>
+        ),
+      }),
+      vcol.accessor((r) => r.fixed_by.join(", "), {
+        id: "fixed_by",
+        header: t("vulns.col.fixedBy"),
+        cell: (c) => <span className="mono small cell-wrap">{c.getValue()}</span>,
+      }),
+      vcol.accessor("first_seen_at", {
+        header: t("vulns.col.firstSeen"),
+        cell: (c) => formatDate(c.getValue(), i18n.language),
+      }),
+    ],
+    [t, i18n.language],
+  );
+  return (
+    <DataTable
+      label={t("machine.tabs.vulns", { count: rows.length })}
+      data={rows}
+      columns={columns}
+      getRowId={(r) => r.cve_id}
+      sorting={sorting}
+      onSortingChange={setSorting}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      emptyText={t("machine.vulnsNone")}
+    />
   );
 }
 

@@ -37,6 +37,22 @@ type Config struct {
 	Console     ConsoleConfig `yaml:"console"`
 	Agent       AgentConfig   `yaml:"agent"`
 	Session     SessionConfig `yaml:"session"`
+	CVE         CVEConfig     `yaml:"cve"`
+}
+
+// CVEConfig, CVE kaynaklarının eşitleme ayarlarıdır.
+type CVEConfig struct {
+	// Enabled false ise kaynaklar eşitlenmez (bulgular mevcut verilerle hesaplanmaya devam eder).
+	Enabled      bool     `yaml:"enabled"`
+	SyncInterval Duration `yaml:"sync_interval"`
+	// NVDAPIKey, NVD API anahtarıdır (isteğe bağlı; hız sınırını 10 kat artırır). Dosyada
+	// tutmak yerine BER_NVD_API_KEY ortam değişkeni önerilir.
+	NVDAPIKey string `yaml:"nvd_api_key"`
+	// MSRCMonths, geriye dönük işlenecek MSRC aylık güvenlik güncellemesi belgesi sayısıdır.
+	MSRCMonths int `yaml:"msrc_months"`
+	// OfflineDir doluysa internete çıkılmaz; kaynaklar bu klasördeki dosyalardan okunur
+	// (kev.json, epss*.csv.gz, nvd/*.json.gz, msrc/*.json). Ayrıntı: docs/cve.md.
+	OfflineDir string `yaml:"offline_dir"`
 }
 
 // ConsoleConfig, konsol (UI + API) dinleyicisinin ayarlarıdır.
@@ -84,6 +100,11 @@ func Default() Config {
 			IdleTimeout:     Duration(30 * time.Minute),
 			AbsoluteTimeout: Duration(12 * time.Hour),
 		},
+		CVE: CVEConfig{
+			Enabled:      true,
+			SyncInterval: Duration(24 * time.Hour),
+			MSRCMonths:   12,
+		},
 	}
 }
 
@@ -125,6 +146,9 @@ func applyEnv(cfg *Config) {
 	if v := os.Getenv("BER_CONSOLE_STATIC_DIR"); v != "" {
 		cfg.Console.StaticDir = v
 	}
+	if v := os.Getenv("BER_NVD_API_KEY"); v != "" {
+		cfg.CVE.NVDAPIKey = v
+	}
 }
 
 // Validate, yapılandırmanın tutarlılığını denetler.
@@ -147,6 +171,12 @@ func (c Config) Validate() error {
 	}
 	if c.Session.IdleTimeout.D() <= 0 || c.Session.AbsoluteTimeout.D() < c.Session.IdleTimeout.D() {
 		errs = append(errs, errors.New("session süreleri geçersiz (absolute_timeout >= idle_timeout > 0)"))
+	}
+	if c.CVE.SyncInterval.D() < time.Hour {
+		errs = append(errs, errors.New("cve.sync_interval en az 1h olmalı"))
+	}
+	if c.CVE.MSRCMonths < 1 || c.CVE.MSRCMonths > 60 {
+		errs = append(errs, errors.New("cve.msrc_months 1-60 arasında olmalı"))
 	}
 	return errors.Join(errs...)
 }

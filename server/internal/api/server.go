@@ -11,8 +11,10 @@ import (
 
 	"github.com/BerkayAtag/automation-ber/server/internal/auth"
 	"github.com/BerkayAtag/automation-ber/server/internal/config"
+	"github.com/BerkayAtag/automation-ber/server/internal/cve"
 	"github.com/BerkayAtag/automation-ber/server/internal/pki"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
+	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
 )
 
 //go:embed openapi.yaml
@@ -28,6 +30,10 @@ type Server struct {
 
 	settings settingsCache
 
+	vulns       *vuln.Engine
+	cveSync     *cve.Syncer
+	syncTrigger chan struct{}
+
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
 	// dummyHash, var olmayan kullanıcılar için de parola doğrulaması yapılarak yanıt
@@ -42,13 +48,20 @@ func New(cfg config.Config, st *store.Store, ca *pki.CA, log *slog.Logger) (*Ser
 		return nil, err
 	}
 	s := &Server{
-		cfg:       cfg,
-		store:     st,
-		ca:        ca,
-		log:       log,
-		now:       time.Now,
-		dummyHash: dummy,
+		cfg:         cfg,
+		store:       st,
+		ca:          ca,
+		log:         log,
+		now:         time.Now,
+		dummyHash:   dummy,
+		syncTrigger: make(chan struct{}, 1),
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if s.vulns, err = vuln.New(ctx, st, log); err != nil {
+		return nil, err
+	}
+	s.cveSync = s.newSyncer()
 	clock := func() time.Time { return s.now() }
 	s.loginLimiter = auth.NewAttemptLimiter(5, 15*time.Minute).WithClock(clock)
 	s.enrollLimiter = auth.NewAttemptLimiter(10, 15*time.Minute).WithClock(clock)
@@ -82,11 +95,23 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("GET /api/v1/machines/{id}/missing-patches", s.authed(auth.PermMachinesRead, s.handleMachineMissingPatches))
 	mux.Handle("GET /api/v1/machines/{id}/installed-patches", s.authed(auth.PermMachinesRead, s.handleMachineInstalledPatches))
 	mux.Handle("GET /api/v1/machines/{id}/apps", s.authed(auth.PermMachinesRead, s.handleMachineApps))
+	mux.Handle("GET /api/v1/machines/{id}/vulnerabilities", s.authed(auth.PermMachinesRead, s.handleMachineVulns))
 	mux.Handle("POST /api/v1/machines/{id}/approve", s.authed(auth.PermMachinesManage, s.handleSetMachineStatus("approve")))
 	mux.Handle("POST /api/v1/machines/{id}/reject", s.authed(auth.PermMachinesManage, s.handleSetMachineStatus("reject")))
 
 	mux.Handle("GET /api/v1/settings/agent", s.authed(auth.PermSettingsRead, s.handleGetAgentSettings))
 	mux.Handle("PUT /api/v1/settings/agent", s.authed(auth.PermSettingsWrite, s.handlePutAgentSettings))
+
+	mux.Handle("GET /api/v1/dashboard/risk", s.authed(auth.PermReportsRead, s.handleRiskSummary))
+	mux.Handle("GET /api/v1/vulnerabilities", s.authed(auth.PermReportsRead, s.handleListVulns))
+	mux.Handle("GET /api/v1/vulnerabilities/{id}", s.authed(auth.PermReportsRead, s.handleGetVuln))
+	mux.Handle("GET /api/v1/reports/{type}", s.authed(auth.PermReportsExport, s.handleReport))
+
+	mux.Handle("GET /api/v1/cve/status", s.authed(auth.PermSettingsRead, s.handleCVEStatus))
+	mux.Handle("POST /api/v1/cve/sync", s.authed(auth.PermSettingsWrite, s.handleCVESync))
+	mux.Handle("GET /api/v1/cve/rules", s.authed(auth.PermSettingsRead, s.handleListRules))
+	mux.Handle("POST /api/v1/cve/rules", s.authed(auth.PermSettingsWrite, s.handleCreateRule))
+	mux.Handle("DELETE /api/v1/cve/rules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteRule))
 
 	mux.Handle("GET /api/v1/audit", s.authed(auth.PermAuditRead, s.handleListAudit))
 
@@ -140,6 +165,10 @@ func (s *Server) RunMaintenance(ctx context.Context, every time.Duration) {
 			}
 			s.loginLimiter.Sweep()
 			s.enrollLimiter.Sweep()
+			// Günün uyumluluk özeti her turda güncellenir; geçmiş günler eğilim grafiğinde kalır.
+			if err := s.store.SaveComplianceSnapshot(ctx, s.now()); err != nil {
+				s.log.Warn("uyumluluk özeti yazılamadı", "hata", err)
+			}
 		}
 	}
 }

@@ -1,0 +1,239 @@
+// Package report, rapor tablolarını CSV, Excel (XLSX) ve PDF olarak yazar.
+package report
+
+import (
+	"encoding/csv"
+	"fmt"
+	"io"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// Kind, sütunun veri türüdür; biçimlendirme ve Excel hücre türü buna göre seçilir.
+type Kind int
+
+// Sütun türleri.
+const (
+	Text Kind = iota
+	Number
+	Decimal
+	Percent // 0-1 arası değer
+	DateTime
+	Date
+)
+
+// Column, rapor sütunudur. Width, PDF ve Excel'de göreli genişliktir (karakter sayısı).
+type Column struct {
+	Header string
+	Width  float64
+	Kind   Kind
+}
+
+// Metric, raporun üstünde gösterilen özet değerdir.
+type Metric struct {
+	Label string
+	Value string
+}
+
+// Table, biçimden bağımsız rapor içeriğidir. Hücre değerleri string, int, float64,
+// time.Time, *time.Time veya nil olabilir.
+type Table struct {
+	Title       string
+	Subtitle    string
+	GeneratedAt time.Time
+	GeneratedBy string
+	Lang        string
+	Location    *time.Location
+	Summary     []Metric
+	Columns     []Column
+	Rows        [][]any
+	// Note, PDF'in sonuna eklenen açıklamadır (ör. satır sınırı uyarısı).
+	Note string
+}
+
+func (t *Table) loc() *time.Location {
+	if t.Location != nil {
+		return t.Location
+	}
+	return time.UTC
+}
+
+// Format, desteklenen çıktı biçimidir.
+type Format string
+
+// Biçimler.
+const (
+	CSV  Format = "csv"
+	XLSX Format = "xlsx"
+	PDF  Format = "pdf"
+)
+
+// ContentType, biçimin MIME türüdür.
+func (f Format) ContentType() string {
+	switch f {
+	case CSV:
+		return "text/csv; charset=utf-8"
+	case XLSX:
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case PDF:
+		return "application/pdf"
+	}
+	return "application/octet-stream"
+}
+
+// Write, tabloyu istenen biçimde yazar.
+func Write(w io.Writer, f Format, t *Table) error {
+	switch f {
+	case CSV:
+		return WriteCSV(w, t)
+	case XLSX:
+		return WriteXLSX(w, t)
+	case PDF:
+		return WritePDF(w, t)
+	}
+	return fmt.Errorf("desteklenmeyen biçim: %s", f)
+}
+
+// text, hücre değerini dile göre metne çevirir.
+func (t *Table) text(v any, k Kind) string {
+	switch x := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return x
+	case bool:
+		if x {
+			return tr(t.Lang, "yes")
+		}
+		return tr(t.Lang, "no")
+	case int:
+		return strconv.Itoa(x)
+	case int64:
+		return strconv.FormatInt(x, 10)
+	case float32:
+		return t.text(float64(x), k)
+	case *float32:
+		if x == nil {
+			return ""
+		}
+		return t.text(float64(*x), k)
+	case float64:
+		if k == Percent {
+			s := strconv.FormatFloat(x*100, 'f', 1, 64)
+			if t.Lang == "tr" {
+				return "%" + strings.Replace(s, ".", ",", 1)
+			}
+			return s + "%"
+		}
+		s := strconv.FormatFloat(x, 'f', 1, 64)
+		if t.Lang == "tr" {
+			s = strings.Replace(s, ".", ",", 1)
+		}
+		return s
+	case time.Time:
+		if x.IsZero() {
+			return ""
+		}
+		if k == Date {
+			return x.In(t.loc()).Format("2006-01-02")
+		}
+		return x.In(t.loc()).Format("2006-01-02 15:04")
+	case *time.Time:
+		if x == nil {
+			return ""
+		}
+		return t.text(*x, k)
+	case []string:
+		return strings.Join(x, ", ")
+	}
+	return fmt.Sprint(v)
+}
+
+// csvSafe, hesap tablosu formül enjeksiyonuna karşı "=", "+", "-", "@" ile başlayan metinlerin
+// başına tek tırnak ekler (ajanın bildirdiği uygulama adları gibi dış girdiler için).
+func csvSafe(s string) string {
+	if s != "" && strings.ContainsRune("=+-@\t\r", rune(s[0])) {
+		return "'" + s
+	}
+	return s
+}
+
+// WriteCSV, UTF-8 BOM'lu, virgülle ayrılmış CSV yazar (Excel Türkçe karakterleri doğru açar).
+func WriteCSV(w io.Writer, t *Table) error {
+	if _, err := io.WriteString(w, "\xef\xbb\xbf"); err != nil {
+		return err
+	}
+	cw := csv.NewWriter(w)
+	header := make([]string, len(t.Columns))
+	for i, c := range t.Columns {
+		header[i] = c.Header
+	}
+	if err := cw.Write(header); err != nil {
+		return err
+	}
+	rec := make([]string, len(t.Columns))
+	for _, row := range t.Rows {
+		for i, c := range t.Columns {
+			var v any
+			if i < len(row) {
+				v = row[i]
+			}
+			s := t.text(v, c.Kind)
+			if c.Kind == Decimal || c.Kind == Percent {
+				// CSV'de sayılar makinece okunabilir kalır (ondalık ayırıcı nokta).
+				s = csvNumber(v, c.Kind)
+			}
+			if c.Kind == Text {
+				s = csvSafe(s)
+			}
+			rec[i] = s
+		}
+		if err := cw.Write(rec); err != nil {
+			return err
+		}
+	}
+	cw.Flush()
+	return cw.Error()
+}
+
+func csvNumber(v any, k Kind) string {
+	var f float64
+	switch x := v.(type) {
+	case float64:
+		f = x
+	case float32:
+		f = float64(x)
+	case *float32:
+		if x == nil {
+			return ""
+		}
+		f = float64(*x)
+	case nil:
+		return ""
+	default:
+		return fmt.Sprint(v)
+	}
+	if k == Percent {
+		return strconv.FormatFloat(f, 'f', 5, 64)
+	}
+	return strconv.FormatFloat(f, 'f', 1, 64)
+}
+
+var messages = map[string]map[string]string{
+	"tr": {
+		"yes": "Evet", "no": "Hayır", "generated": "Oluşturulma", "by": "Oluşturan", "page": "Sayfa",
+		"filters": "Filtre", "rows": "Satır",
+	},
+	"en": {
+		"yes": "Yes", "no": "No", "generated": "Generated", "by": "Generated by", "page": "Page",
+		"filters": "Filter", "rows": "Rows",
+	},
+}
+
+func tr(lang, key string) string {
+	if m, ok := messages[lang]; ok {
+		return m[key]
+	}
+	return messages["en"][key]
+}
