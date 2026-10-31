@@ -48,7 +48,7 @@ wix build -arch x64 -culture tr-TR `
   -d Version=$msiVersion -d ServerExe=$((Resolve-Path $ServerExe).Path) `
   -d ConsoleDir=$((Resolve-Path $ConsoleDir).Path) -d LicenseRtf=$rtf `
   -o (Join-Path $OutDir "AutomationBER-Server-$Version-x64.msi") `
-  (Join-Path $here 'server\BerServer.wxs')
+  (Join-Path $here 'server\BerServer.wxs') (Join-Path $here 'server\Firewall.tr-TR.wxl')
 if ($LASTEXITCODE -ne 0) { throw "sunucu MSI derlenemedi" }
 
 Remove-Item $rtf

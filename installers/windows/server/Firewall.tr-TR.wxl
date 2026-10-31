@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  WiX Firewall eklentisi Türkçe (tr-TR) metin içermediği için gerekli ilerleme ve hata
+  metinleri burada tanımlanır.
+-->
+<WixLocalization Culture="tr-TR" Codepage="1254" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="WixSchedFirewallExceptionsInstall" Value="Güvenlik duvarı özel durumları yapılandırılıyor" />
+  <String Id="WixSchedFirewallExceptionsUninstall" Value="Güvenlik duvarı özel durumları yapılandırılıyor" />
+  <String Id="WixRollbackFirewallExceptionsInstall" Value="Güvenlik duvarı özel durumları geri alınıyor" />
+  <String Id="WixExecFirewallExceptionsInstall" Value="Güvenlik duvarı özel durumları ekleniyor" />
+  <String Id="WixRollbackFirewallExceptionsUninstall" Value="Güvenlik duvarı özel durumları geri alınıyor" />
+  <String Id="WixExecFirewallExceptionsUninstall" Value="Güvenlik duvarı özel durumları kaldırılıyor" />
+  <String Id="msierrFirewallCannotConnect" Value="Windows Güvenlik Duvarı'na bağlanılamadı. ([2]   [3]   [4]   [5])" />
+</WixLocalization>
