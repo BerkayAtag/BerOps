@@ -19,6 +19,7 @@ import (
 	mrand "math/rand/v2"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -26,22 +27,21 @@ import (
 
 	"github.com/BerkayAtag/automation-ber/agent/internal/client"
 	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
+	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
 	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
+	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
+	"github.com/BerkayAtag/automation-ber/agent/internal/simdata"
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
 )
 
-type profile struct {
-	platform, name, version, build, arch string
-}
-
-var profiles = []profile{
-	{"windows", "Windows 11 Pro", "23H2", "10.0.22631.4460", "amd64"},
-	{"windows", "Windows 11 Enterprise", "24H2", "10.0.26100.2314", "amd64"},
-	{"windows", "Windows 10 Enterprise", "22H2", "10.0.19045.5131", "amd64"},
-	{"windows", "Windows Server 2022 Standard", "21H2", "10.0.20348.2849", "amd64"},
-	{"darwin", "macOS", "15.1", "24B83", "arm64"},
-	{"darwin", "macOS", "14.7.1", "23H222", "arm64"},
-	{"darwin", "macOS", "13.7.1", "22H221", "amd64"},
+var profiles = []simdata.Profile{
+	{Platform: "windows", Name: "Windows 11 Pro", Version: "23H2", Build: "10.0.22631.4460", Arch: "amd64"},
+	{Platform: "windows", Name: "Windows 11 Enterprise", Version: "24H2", Build: "10.0.26100.2314", Arch: "amd64"},
+	{Platform: "windows", Name: "Windows 10 Enterprise", Version: "22H2", Build: "10.0.19045.5131", Arch: "amd64"},
+	{Platform: "windows", Name: "Windows Server 2022 Standard", Version: "21H2", Build: "10.0.20348.2849", Arch: "amd64"},
+	{Platform: "darwin", Name: "macOS", Version: "15.1", Build: "24B83", Arch: "arm64"},
+	{Platform: "darwin", Name: "macOS", Version: "14.7.1", Build: "23H222", Arch: "arm64"},
+	{Platform: "darwin", Name: "macOS", Version: "13.7.1", Build: "22H221", Arch: "amd64"},
 }
 
 func main() {
@@ -50,6 +50,7 @@ func main() {
 	caHash := flag.String("ca-hash", "", "sunucu CA parmak izi")
 	n := flag.Int("n", 10, "sanal ajan sayısı")
 	prefix := flag.String("prefix", "SIM", "hostname öneki")
+	firstScan := flag.Duration("first-scan", 30*time.Second, "kayıttan sonraki ilk envanterin en uzun gecikmesi")
 	flag.Parse()
 	if *key == "" || *caHash == "" {
 		fmt.Fprintln(os.Stderr, "hata: -key ve -ca-hash gerekli")
@@ -60,21 +61,29 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Her sanal ajanın envanter durumu geçici bir dizinde tutulur ve çıkışta silinir.
+	root, err := os.MkdirTemp("", "ber-agentsim-*")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "hata:", err)
+		os.Exit(1)
+	}
+	defer os.RemoveAll(root)
+
 	var enrolled, failed atomic.Int64
 	var wg sync.WaitGroup
 	for i := 1; i <= *n; i++ {
 		p := profiles[(i-1)%len(profiles)]
 		tag := "WIN"
-		if p.platform == "darwin" {
+		if p.Platform == "darwin" {
 			tag = "MAC"
 		}
 		host := protocol.HostInfo{
 			Hostname:     fmt.Sprintf("%s-%s-%04d", *prefix, tag, i),
-			OSPlatform:   p.platform,
-			OSName:       p.name,
-			OSVersion:    p.version,
-			OSBuild:      p.build,
-			Arch:         p.arch,
+			OSPlatform:   p.Platform,
+			OSName:       p.Name,
+			OSVersion:    p.Version,
+			OSBuild:      p.Build,
+			Arch:         p.Arch,
 			IPAddresses:  []string{fmt.Sprintf("10.%d.%d.%d", 10+i/65536%200, i/256%256, i%256)},
 			AgentVersion: "0.1.0-sim",
 		}
@@ -83,7 +92,8 @@ func main() {
 			defer wg.Done()
 			// Kayıtları zamana yay: sunucuya aynı anda yüzlerce el sıkışma gelmesin.
 			time.Sleep(time.Duration(mrand.Int64N(int64(time.Second) * int64(1+*n/50))))
-			if err := simulate(ctx, log, *server, *caHash, *key, host, &enrolled); err != nil && !errors.Is(err, context.Canceled) {
+			sim := simAgent{index: i, profile: p, host: host, dir: filepath.Join(root, host.Hostname), firstScan: *firstScan}
+			if err := sim.run(ctx, log, *server, *caHash, *key, &enrolled); err != nil && !errors.Is(err, context.Canceled) {
 				failed.Add(1)
 				log.Error("sanal ajan başarısız", "hostname", host.Hostname, "hata", err)
 			}
@@ -106,7 +116,15 @@ func main() {
 	wg.Wait()
 }
 
-func simulate(ctx context.Context, log *slog.Logger, server, caHash, regKey string, host protocol.HostInfo, enrolled *atomic.Int64) error {
+type simAgent struct {
+	index     int
+	profile   simdata.Profile
+	host      protocol.HostInfo
+	dir       string
+	firstScan time.Duration
+}
+
+func (a simAgent) run(ctx context.Context, log *slog.Logger, server, caHash, regKey string, enrolled *atomic.Int64) error {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return err
@@ -119,7 +137,7 @@ func simulate(ctx context.Context, log *slog.Logger, server, caHash, regKey stri
 	if err != nil {
 		return err
 	}
-	resp, err := ec.Enroll(ctx, protocol.EnrollRequest{RegistrationKey: regKey, CSRPEM: string(csr), Host: host})
+	resp, err := ec.Enroll(ctx, protocol.EnrollRequest{RegistrationKey: regKey, CSRPEM: string(csr), Host: a.host})
 	if err != nil {
 		return err
 	}
@@ -133,12 +151,27 @@ func simulate(ctx context.Context, log *slog.Logger, server, caHash, regKey stri
 	if err != nil {
 		return err
 	}
+	alog := log.With("hostname", a.host.Hostname)
+
+	// Gerçek ajanla aynı zamanlayıcı; yalnızca toplama sahte veriyle yapılır.
+	sc := scanner.New(a.dir, a.profile.Platform, hc, alog)
+	sc.FirstScanMaxDelay = a.firstScan
+	sc.Collect = func(_ context.Context, opts inventory.Options) *inventory.Snapshot {
+		return simdata.Generate(a.index, a.profile, opts.IncludeMissing)
+	}
+	if err := sc.Load(); err != nil {
+		return err
+	}
+	go sc.Run(ctx)
+
 	r := &runner.Runner{
-		Client:    hc,
-		Log:       log.With("hostname", host.Hostname),
-		Collect:   func() protocol.HostInfo { return host },
-		Interval:  time.Duration(resp.HeartbeatSeconds) * time.Second,
-		StartedAt: time.Now().UTC(),
+		Client:          hc,
+		Log:             alog,
+		Collect:         func() protocol.HostInfo { return a.host },
+		Interval:        time.Duration(resp.HeartbeatSeconds) * time.Second,
+		StartedAt:       time.Now().UTC(),
+		InventoryHashes: sc.UploadedHashes,
+		OnResponse:      sc.ApplyHeartbeat,
 	}
 	r.Run(ctx)
 	return ctx.Err()

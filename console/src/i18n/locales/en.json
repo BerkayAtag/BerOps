@@ -12,7 +12,20 @@
     "language": "Language",
     "menu": "Menu",
     "never": "Never",
-    "soon": "Coming soon"
+    "soon": "Coming soon",
+    "search": "Search",
+    "all": "All",
+    "yes": "Yes",
+    "no": "No",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "cancel": "Cancel",
+    "back": "Back",
+    "selected": "{{count}} selected",
+    "clearSelection": "Clear selection",
+    "noPermission": "You are not allowed to do this",
+    "seconds": "{{n}} s"
   },
   "theme": {
     "toLight": "Switch to light theme",
@@ -47,7 +60,9 @@
       "invalid": "The request is invalid."
     },
     "network": "Could not reach the server. Check your connection.",
-    "unknown": "An unexpected error occurred."
+    "unknown": "An unexpected error occurred.",
+    "not_found": "Record not found.",
+    "conflict": "The record is not in a state that allows this action."
   },
   "roles": {
     "admin": "Admin",
@@ -64,7 +79,8 @@
     "actions": "Actions",
     "reports": "Reports",
     "audit": "Audit Log",
-    "settings": "Settings"
+    "settings": "Settings",
+    "settingsAgent": "Agent settings"
   },
   "home": {
     "title": "Dashboard",
@@ -90,7 +106,15 @@
     "agentSetupHint": "Installing the agent requires the server address and the CA fingerprint. An administrator creates the registration key.",
     "agentUrl": "Agent server address",
     "caFingerprint": "CA fingerprint (CAHASH)",
-    "serverVersion": "Server version"
+    "serverVersion": "Server version",
+    "compliance": "Patch compliance",
+    "complianceHelp": "Share of machines with no missing patches",
+    "criticalMachines": "With critical missing patches",
+    "rebootPending": "Restart pending",
+    "osDistribution": "Operating systems",
+    "distinctApps": "Distinct applications",
+    "missingTotal": "Total missing patches",
+    "viewAll": "View all"
   },
   "status": {
     "active": "Active",
@@ -99,5 +123,149 @@
     "revoked": "Revoked",
     "online": "Online",
     "offline": "Offline"
+  },
+  "table": {
+    "empty": "No records found.",
+    "range": "{{from}}–{{to}} of {{total}}",
+    "pageSize": "Rows per page",
+    "prev": "Previous page",
+    "next": "Next page",
+    "selectAll": "Select all on this page",
+    "selectRow": "Select row",
+    "sortAsc": "Sort ascending",
+    "sortDesc": "Sort descending"
+  },
+  "machines": {
+    "title": "Machines",
+    "subtitle": "All Windows and macOS clients with the agent installed.",
+    "searchPlaceholder": "Hostname, IP, operating system or OU",
+    "filters": {
+      "platform": "Platform",
+      "status": "Status",
+      "connection": "Connection"
+    },
+    "platform": {
+      "windows": "Windows",
+      "darwin": "macOS"
+    },
+    "col": {
+      "hostname": "Hostname",
+      "os": "Operating system",
+      "build": "Patch level",
+      "missing": "Missing patches",
+      "critical": "Critical",
+      "apps": "Apps",
+      "lastSeen": "Last seen",
+      "agent": "Agent",
+      "status": "Status",
+      "ou": "OU"
+    },
+    "rescan": "Rescan",
+    "rescanSelected": "Rescan selected",
+    "rescanQueued": "Scan requested for {{count}} machines. Agents start scanning at their next heartbeat.",
+    "noInventory": "Waiting for inventory",
+    "rebootPending": "Restart pending"
+  },
+  "machine": {
+    "notFound": "Machine not found.",
+    "general": "General information",
+    "inventoryStatus": "Inventory status",
+    "field": {
+      "hostname": "Hostname",
+      "ip": "IP addresses",
+      "os": "Operating system",
+      "build": "Patch level",
+      "arch": "Architecture",
+      "ou": "AD OU",
+      "domain": "Domain",
+      "lastSeen": "Last seen",
+      "agentVersion": "Agent version",
+      "enrolledAt": "Enrolled",
+      "hardware": "Hardware",
+      "serial": "Serial number",
+      "cpu": "Processor",
+      "memory": "Memory",
+      "lastBoot": "Last boot",
+      "rebootPending": "Restart",
+      "lastInventory": "Last inventory",
+      "lastFull": "Last full scan",
+      "missingSource": "Missing patch source",
+      "missingScannedAt": "Missing patch scan",
+      "scanDuration": "Scan duration",
+      "scanErrors": "Scan errors",
+      "agentErrors": "Agent errors",
+      "certExpires": "Certificate valid until"
+    },
+    "scanSource": {
+      "online": "Windows Update / WSUS",
+      "offline": "Offline catalog (wsusscn2.cab)",
+      "softwareupdate": "Apple softwareupdate",
+      "none": "—"
+    },
+    "scanPending": "Scan requested ({{time}}); waiting for the agent to report.",
+    "noInventoryYet": "No inventory has been received from this machine yet. The first scan runs within a few minutes after enrollment.",
+    "tabs": {
+      "missing": "Missing patches ({{count}})",
+      "installed": "Installed patches ({{count}})",
+      "apps": "Applications ({{count}})"
+    },
+    "missing": {
+      "title": "Title",
+      "kb": "KB",
+      "classification": "Classification",
+      "severity": "Severity",
+      "cves": "CVE",
+      "released": "Released",
+      "reboot": "Restart",
+      "size": "Size",
+      "none": "No missing updates. The machine is up to date."
+    },
+    "installed": {
+      "id": "Patch",
+      "title": "Description",
+      "installedOn": "Installed on",
+      "source": "Source"
+    },
+    "apps": {
+      "name": "Name",
+      "version": "Version",
+      "publisher": "Publisher",
+      "source": "Source",
+      "installDate": "Installed on",
+      "scope": "Scope",
+      "searchPlaceholder": "Search application, version or publisher"
+    },
+    "scope": {
+      "machine": "Machine",
+      "user": "User"
+    }
+  },
+  "severity": {
+    "Critical": "Critical",
+    "Important": "Important",
+    "Moderate": "Moderate",
+    "Low": "Low",
+    "none": "Unspecified"
+  },
+  "settings": {
+    "title": "Settings",
+    "agentTitle": "Agent and scan settings",
+    "agentSubtitle": "These settings reach every agent at its next heartbeat (within a few minutes).",
+    "fullInterval": "Full scan interval (hours)",
+    "fullIntervalHelp": "Full inventory including the missing patch scan. Default: 24 hours.",
+    "deltaInterval": "Change scan interval (hours)",
+    "deltaIntervalHelp": "Applications and installed patches are collected again; only changed sections are sent.",
+    "cpuLimit": "CPU limit during scans (%)",
+    "cpuLimitHelp": "Enforced as a hard cap with a Job Object on Windows; on macOS scans run at background priority.",
+    "deferBattery": "Defer scans while on battery",
+    "deferActive": "Defer scans while the user is active",
+    "deferActiveHelp": "Applies to macOS only. Deferrals last at most 4 hours.",
+    "wuSource": "Windows Update source",
+    "wuOnline": "Online (Windows Update or configured WSUS)",
+    "wuOffline": "Offline (wsusscn2.cab on the server)",
+    "cabPresent": "Catalog on server: {{size}}, {{date}}",
+    "cabMissing": "wsusscn2.cab was not found on the server. Place the file in the wsus/ folder of the server data directory.",
+    "invalid": "Check the values: the change scan interval cannot exceed the full scan interval.",
+    "readOnly": "You can view these settings; changing them requires the Admin role."
   }
 }

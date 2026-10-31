@@ -1,0 +1,10 @@
+Software Update Tool
+
+Finding available software
+Software Update found the following new or updated software:
+* Label: macOS Sequoia 15.1.1-24B91
+	Title: macOS Sequoia 15.1.1, Version: 15.1.1, Size: 1659427KiB, Recommended: YES, Action: restart, 
+* Label: Safari18.1.1VenturaAuto-18.1.1
+	Title: Safari, Version: 18.1.1, Size: 196215KiB, Recommended: YES, 
+* Label: Command Line Tools for Xcode-16.1
+	Title: Command Line Tools for Xcode, Version: 16.1, Size: 1024000K, Recommended: YES, 

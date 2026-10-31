@@ -26,6 +26,8 @@ type Server struct {
 	log   *slog.Logger
 	now   func() time.Time
 
+	settings settingsCache
+
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
 	// dummyHash, var olmayan kullanıcılar için de parola doğrulaması yapılarak yanıt
@@ -74,8 +76,17 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("DELETE /api/v1/registration-keys/{id}", s.authed(auth.PermRegKeysManage, s.handleRevokeRegKey))
 
 	mux.Handle("GET /api/v1/machines", s.authed(auth.PermMachinesRead, s.handleListMachines))
+	mux.Handle("GET /api/v1/machines/summary", s.authed(auth.PermMachinesRead, s.handleFleetSummary))
+	mux.Handle("POST /api/v1/machines/scan", s.authed(auth.PermMachinesManage, s.handleRequestScan))
+	mux.Handle("GET /api/v1/machines/{id}", s.authed(auth.PermMachinesRead, s.handleGetMachine))
+	mux.Handle("GET /api/v1/machines/{id}/missing-patches", s.authed(auth.PermMachinesRead, s.handleMachineMissingPatches))
+	mux.Handle("GET /api/v1/machines/{id}/installed-patches", s.authed(auth.PermMachinesRead, s.handleMachineInstalledPatches))
+	mux.Handle("GET /api/v1/machines/{id}/apps", s.authed(auth.PermMachinesRead, s.handleMachineApps))
 	mux.Handle("POST /api/v1/machines/{id}/approve", s.authed(auth.PermMachinesManage, s.handleSetMachineStatus("approve")))
 	mux.Handle("POST /api/v1/machines/{id}/reject", s.authed(auth.PermMachinesManage, s.handleSetMachineStatus("reject")))
+
+	mux.Handle("GET /api/v1/settings/agent", s.authed(auth.PermSettingsRead, s.handleGetAgentSettings))
+	mux.Handle("PUT /api/v1/settings/agent", s.authed(auth.PermSettingsWrite, s.handlePutAgentSettings))
 
 	mux.Handle("GET /api/v1/audit", s.authed(auth.PermAuditRead, s.handleListAudit))
 
@@ -92,6 +103,8 @@ func (s *Server) AgentHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /agent/v1/enroll", s.handleEnroll)
 	mux.HandleFunc("POST /agent/v1/heartbeat", s.handleHeartbeat)
+	mux.HandleFunc("POST /agent/v1/inventory", s.handleInventory)
+	mux.HandleFunc("GET /agent/v1/files/wsusscn2.cab", s.handleWSUSCab)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "Uç nokta bulunamadı")
 	})

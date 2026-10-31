@@ -85,3 +85,129 @@ export interface ServerInfo {
   agent_url: string;
   ca_fingerprint: string;
 }
+
+export interface MachineListItem extends Machine {
+  ad_ou: string;
+  inventory_at: string | null;
+  missing_count: number;
+  missing_critical_count: number;
+  missing_security_count: number;
+  app_count: number;
+  reboot_pending: boolean;
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface FleetSummary {
+  total: number;
+  online: number;
+  pending: number;
+  with_inventory: number;
+  fully_patched: number;
+  missing_total: number;
+  critical_machines: number;
+  reboot_pending: number;
+  windows: number;
+  macos: number;
+  distinct_apps: number;
+}
+
+export interface OSInventory {
+  platform: string;
+  name: string;
+  version: string;
+  build: string;
+  arch: string;
+  manufacturer?: string;
+  model?: string;
+  serial_number?: string;
+  cpu_model?: string;
+  cpu_cores?: number;
+  memory_bytes?: number;
+  domain?: string;
+  ad_dn?: string;
+  last_boot_at?: string;
+  reboot_pending: boolean;
+}
+
+export interface InventorySummary {
+  os: OSInventory | null;
+  collected_at: string;
+  received_at: string;
+  last_full_at: string | null;
+  scan_duration_ms: number;
+  missing_scan_source: string;
+  missing_scanned_at: string | null;
+  scan_errors: string[];
+  missing_count: number;
+  missing_critical_count: number;
+  missing_security_count: number;
+  installed_patch_count: number;
+  app_count: number;
+  reboot_pending: boolean;
+}
+
+export interface MachineDetail {
+  machine: Machine & {
+    ad_ou: string;
+    cert_expires_at: string;
+    agent_started_at: string | null;
+    last_errors: string[];
+  };
+  online: boolean;
+  scan_requested_at: string | null;
+  inventory: InventorySummary | null;
+}
+
+export interface MissingPatch {
+  id: string;
+  kb?: string;
+  title: string;
+  classification?: string;
+  severity?: string;
+  released_at?: string;
+  reboot_required: boolean;
+  size_bytes?: number;
+  cves?: string[];
+  version?: string;
+  recommended?: boolean;
+  support_url?: string;
+}
+
+export interface InstalledPatch {
+  id: string;
+  title?: string;
+  installed_on?: string;
+  source: string;
+}
+
+export interface InstalledApp {
+  name: string;
+  version: string;
+  publisher?: string;
+  install_date?: string;
+  install_location?: string;
+  source: string;
+  identifier?: string;
+  arch?: string;
+  scope?: string;
+}
+
+export interface AgentSettings {
+  full_scan_interval_hours: number;
+  delta_scan_interval_hours: number;
+  scan_cpu_limit_percent: number;
+  defer_on_battery: boolean;
+  defer_when_user_active: boolean;
+  windows_update_source: "online" | "offline";
+}
+
+export interface AgentSettingsResponse {
+  settings: AgentSettings;
+  wsus_cab: { size_bytes: number; modified_at: string } | null;
+}

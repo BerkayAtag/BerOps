@@ -84,8 +84,12 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
-      - name: Ajan ve ortak paket testleri
-        run: go test ./agent/... ./shared/...
+      - name: Ajan ve ortak paket testleri (gerçek envanter toplama dahil)
+        env:
+          BER_LIVE_INVENTORY: "1"
+        run: go test -v -run 'TestLiveCollect' ./agent/internal/inventory/ && go test ./agent/... ./shared/...
+      - name: Envanter tanılama komutu
+        run: go run ./agent/cmd/ber-agent inventory
 
   console:
     name: Konsol (lint, test, derleme)

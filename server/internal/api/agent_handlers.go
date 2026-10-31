@@ -159,9 +159,18 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return
 	}
-	writeJSON(w, http.StatusOK, protocol.HeartbeatResponse{
+	resp := protocol.HeartbeatResponse{
 		Status:           m.Status,
 		HeartbeatSeconds: s.cfg.Agent.HeartbeatSeconds,
 		ServerTime:       s.now().UTC(),
-	})
+	}
+	if set, err := s.agentSettings(r); err == nil {
+		resp.Settings = &set
+	} else {
+		s.log.Warn("ajan ayarları okunamadı", "hata", err)
+	}
+	if err := s.inventoryInstructions(r, m.ID, req.InventoryHashes, &resp); err != nil {
+		s.log.Warn("envanter durumu okunamadı", "ajan", m.ID, "hata", err)
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

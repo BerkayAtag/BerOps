@@ -59,13 +59,23 @@ type HeartbeatRequest struct {
 	Host           HostInfo  `json:"host"`
 	AgentStartedAt time.Time `json:"agent_started_at"`
 	Errors         []string  `json:"errors,omitempty"`
+	// InventoryHashes, ajanın sunucuya son başarıyla yüklediği envanter bölümlerinin özetleridir.
+	// Sunucudaki özetlerle uyuşmazsa sunucu tam envanter ister.
+	InventoryHashes map[string]string `json:"inventory_hashes,omitempty"`
 }
 
 // HeartbeatResponse, sunucunun ajana verdiği talimatları taşır.
 type HeartbeatResponse struct {
-	Status           string    `json:"status"`
-	HeartbeatSeconds int       `json:"heartbeat_seconds"`
-	ServerTime       time.Time `json:"server_time"`
+	Status           string         `json:"status"`
+	HeartbeatSeconds int            `json:"heartbeat_seconds"`
+	ServerTime       time.Time      `json:"server_time"`
+	Settings         *AgentSettings `json:"settings,omitempty"`
+	// RequestFullInventory, sunucunun envanteri eksik veya tutarsızsa true olur; ajan
+	// elindeki son envanterin tamamını (yoksa yeni bir tarama) gönderir.
+	RequestFullInventory bool `json:"request_full_inventory,omitempty"`
+	// ScanRequestedAt, konsoldan "yeniden tara" istendiğinde isteğin zamanını taşır. Tarama
+	// sonucu sunucuya ulaşana kadar her heartbeat'te tekrarlanır; ajan aynı isteği bir kez işler.
+	ScanRequestedAt *time.Time `json:"scan_requested_at,omitempty"`
 }
 
 // ErrorResponse, tüm API hatalarının ortak gövdesidir. Code makine tarafından okunur
