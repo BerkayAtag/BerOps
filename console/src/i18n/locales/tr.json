@@ -95,7 +95,10 @@
     "settingsUsers": "Kullanıcılar",
     "settingsAd": "Active Directory",
     "account": "Hesabım",
-    "settingsRemote": "Uzaktan yönetim"
+    "settingsRemote": "Uzaktan yönetim",
+    "settingsWindows": "Bakım pencereleri",
+    "settingsRelays": "Relay sunucuları",
+    "settingsNotify": "Bildirimler"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -612,7 +615,25 @@
       "approvalNote": "Komut aksiyonları onay gerektiriyor; başka bir yönetici onaylayana kadar çalıştırılmaz.",
       "platformMismatch": "Bu paket yalnızca {{platform}} makinelerine gönderilebilir.",
       "noPermission": "Bu tür aksiyon için yetkiniz yok.",
-      "commandHint": "Windows: cmd veya PowerShell; macOS: sh veya zsh. Komut SYSTEM/root yetkisiyle çalışır. En fazla 32 KB."
+      "commandHint": "Windows: cmd veya PowerShell; macOS: sh veya zsh. Komut SYSTEM/root yetkisiyle çalışır. En fazla 32 KB.",
+      "rollout": "Kademeli dağıtım",
+      "rolloutHint": "Başarı oranı eşiğin altına düşerse sonraki aşama durdurulur.",
+      "respectWindows": "Bakım penceresine uy",
+      "respectWindowsHint": "İş, makineye yalnızca ona uyan bakım penceresi açıkken verilir. Pencere tanımlı olmayan makinelerde hemen çalışır."
+    },
+    "releaseNext": "Sonraki aşamayı başlat",
+    "releaseConfirm": "Kademeli dağıtımın sonraki aşaması hemen açılsın mı?",
+    "paused": "Kademeli dağıtım duraklatıldı: {{reason}}",
+    "rollout": "Kademeli dağıtım",
+    "stage": "{{n}}. aşama: %{{percent}} · {{hours}} sa sonra",
+    "stageShort": "{{n}}. aşama",
+    "stageWaiting": "{{n}}. aşama (bekliyor)",
+    "rolloutHint": "Sonraki aşama, gecikmesi dolduğunda ve açılmış hedeflerin en az yarısı sonuçlandığında başarı oranı %{{min}} veya üzerindeyse kendiliğinden açılır.",
+    "respectsWindows": "Bu aksiyon yalnızca makinelerin bakım penceresi açıkken çalışır.",
+    "rolloutPreset": {
+      "none": "Kademesiz (tümüne birden)",
+      "pilot": "Pilot: %10, 24 saat sonra kalanı",
+      "rings": "Halkalar: %5 → %25 (1 gün) → %70 (3 gün)"
     }
   },
   "transfer": {
@@ -848,5 +869,142 @@
     "session": "Oturum süresi (dakika)",
     "sessionHint": "Konsoldan açılan oturum bu süre sonunda kendiliğinden kapanır; ajan yalnızca oturum süresince sunucuyu yoklar.",
     "perMachine": "Özellikler makine detayındaki \"Uzaktan yönetim\" sekmesinden makine bazında açılır."
+  },
+  "relays": {
+    "title": "Relay sunucuları",
+    "subtitle": "Şubelerdeki ajanlar sunucuya relay üzerinden bağlanır; paketler relay'de önbelleğe alınır ve WAN trafiği azalır.",
+    "howTitle": "Yeni relay",
+    "how": "Relay sertifikası sunucuda komut satırından üretilir. Oluşan klasörü relay makinesine kopyalayıp ber-relay -server https://sunucu:52311 -dir <klasör> ile başlatın; ajanlarda sunucu adresi olarak relay'i gösterin.",
+    "empty": "Henüz relay yok.",
+    "revoke": "Sertifikayı iptal et",
+    "confirmRevoke": "{{name}} relay'inin sertifikası iptal edilsin mi? Bu relay üzerinden bağlanan ajanlar sunucuya ulaşamaz.",
+    "col": {
+      "name": "Ad",
+      "hostnames": "Ana bilgisayar adları",
+      "status": "Durum",
+      "lastSeen": "Son görülme",
+      "certExpires": "Sertifika bitişi"
+    },
+    "status": {
+      "online": "Çevrimiçi",
+      "offline": "Çevrimdışı",
+      "revoked": "İptal edildi"
+    }
+  },
+  "windows": {
+    "title": "Bakım pencereleri",
+    "subtitle": "\"Bakım penceresine uy\" seçilen aksiyonlar makinelere yalnızca bu zaman aralıklarında verilir.",
+    "new": "Yeni pencere",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "empty": "Tanımlı bakım penceresi yok; tüm aksiyonlar hemen çalışır.",
+    "confirmDelete": "{{name}} penceresi silinsin mi?",
+    "allMachines": "Tüm makineler",
+    "scopeHint": "Boş bırakılırsa tüm makinelere uygulanır. Her satıra bir OU yazın.",
+    "note": "Bir makineye birden fazla pencere uyuyorsa herhangi biri açıkken iş verilir. Gece yarısını aşan pencereler başladıkları güne aittir.",
+    "field": {
+      "name": "Ad",
+      "start": "Başlangıç",
+      "hours": "Süre (saat)",
+      "timezone": "Saat dilimi",
+      "days": "Günler",
+      "scope": "Kapsam (OU)",
+      "enabled": "Etkin"
+    },
+    "col": {
+      "when": "Zaman",
+      "status": "Durum"
+    },
+    "status": {
+      "open": "Şu an açık",
+      "closed": "Kapalı",
+      "disabled": "Devre dışı"
+    },
+    "day": {
+      "0": "Pazar",
+      "1": "Pazartesi",
+      "2": "Salı",
+      "3": "Çarşamba",
+      "4": "Perşembe",
+      "5": "Cuma",
+      "6": "Cumartesi"
+    },
+    "dayShort": {
+      "0": "Paz",
+      "1": "Pzt",
+      "2": "Sal",
+      "3": "Çar",
+      "4": "Per",
+      "5": "Cum",
+      "6": "Cmt"
+    }
+  },
+  "notify": {
+    "title": "Bildirimler",
+    "subtitle": "Önemli olayları e-posta veya webhook ile bildirin, raporları zamanlanmış olarak e-postayla gönderin.",
+    "newChannel": "Yeni kanal",
+    "channels": "Kanallar",
+    "schedules": "Zamanlanmış raporlar",
+    "empty": "Henüz bildirim kanalı yok.",
+    "disabled": "Kapalı",
+    "test": "Dene",
+    "testOk": "Deneme bildirimi gönderildi.",
+    "confirmDelete": "{{name}} silinsin mi?",
+    "secretKept": "Değiştirmek için yeni değer girin",
+    "hmacHint": "Girilirse gövde HMAC-SHA256 ile imzalanır ve X-Ber-Signature başlığında gönderilir.",
+    "col": {
+      "last": "Son gönderim"
+    },
+    "kind": {
+      "email": "E-posta",
+      "webhook": "Webhook"
+    },
+    "security": {
+      "none": "Yok (yalnızca iç ağ)"
+    },
+    "format": {
+      "generic": "Genel JSON"
+    },
+    "field": {
+      "name": "Ad",
+      "kind": "Tür",
+      "smtpHost": "SMTP sunucusu",
+      "smtpPort": "Port",
+      "security": "Güvenlik",
+      "username": "Kullanıcı adı",
+      "password": "Parola",
+      "from": "Gönderen",
+      "to": "Alıcılar (her satıra bir adres)",
+      "url": "Webhook adresi",
+      "format": "Biçim",
+      "hmac": "İmza anahtarı",
+      "events": "Olaylar",
+      "enabled": "Etkin"
+    },
+    "event": {
+      "action_completed": "Aksiyon tamamlandı",
+      "vulnerability_kev_new": "Filoda aktif istismar edilen yeni açık (KEV)",
+      "cve_sync_failed": "CVE kaynağı eşitlenemedi"
+    },
+    "report": {
+      "compliance": "Yama uyumluluğu",
+      "vulnerabilities": "Güvenlik açıkları",
+      "missing-patches": "Eksik yamalar",
+      "apps": "Uygulama envanteri"
+    },
+    "schedule": {
+      "add": "Rapor zamanla",
+      "report": "Rapor",
+      "format": "Biçim",
+      "lang": "Dil",
+      "weekday": "Gün",
+      "daily": "Her gün",
+      "hour": "Saat",
+      "channel": "E-posta kanalı",
+      "when": "Zaman",
+      "lastRun": "Son çalışma",
+      "empty": "Zamanlanmış rapor yok.",
+      "needEmail": "Zamanlanmış rapor için önce bir e-posta kanalı ekleyin."
+    }
   }
 }

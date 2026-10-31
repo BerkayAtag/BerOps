@@ -8,6 +8,9 @@ import { ActionsPage } from "./pages/ActionsPage";
 import { AdSettingsPage } from "./pages/AdSettingsPage";
 import { AgentSettingsPage } from "./pages/AgentSettingsPage";
 import { AuditPage } from "./pages/AuditPage";
+import { MaintenanceWindowsPage } from "./pages/MaintenanceWindowsPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
+import { RelaysPage } from "./pages/RelaysPage";
 import { CveSettingsPage } from "./pages/CveSettingsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -57,6 +60,9 @@ export function App() {
         <Route path="/hesap" element={<AccountPage me={state.me} />} />
         <Route path="/ayarlar/ajan" element={<AgentSettingsPage />} />
         <Route path="/ayarlar/cve" element={<CveSettingsPage />} />
+        <Route path="/ayarlar/relay" element={<RelaysPage />} />
+        <Route path="/ayarlar/bakim-pencereleri" element={<MaintenanceWindowsPage />} />
+        <Route path="/ayarlar/bildirimler" element={<NotificationsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

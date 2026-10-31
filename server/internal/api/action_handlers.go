@@ -438,6 +438,9 @@ type createActionRequest struct {
 	TimeoutSeconds int      `json:"timeout_seconds"`
 	BandwidthKbps  int      `json:"bandwidth_kbps"`
 	ExpiresHours   int      `json:"expires_hours"`
+	RespectWindows bool     `json:"respect_windows"`
+	// Rollout doluysa hedefler aşamalara bölünür (pilot halka → geri kalanlar).
+	Rollout *store.Rollout `json:"rollout"`
 }
 
 // requirePermDenied, kapsam reddini denetim kaydına yazar.
@@ -512,6 +515,10 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		return
 	case utf8.RuneCountInString(req.Name) > 200:
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Aksiyon adı en fazla 200 karakter olabilir")
+		return
+	}
+	if err := validateRollout(req.Rollout); err != nil {
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, err.Error())
 		return
 	}
 	ids := make([]string, 0, len(req.MachineIDs))
@@ -608,6 +615,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		return
 	}
 	job.ID = actionID
+	stages := assignStages(actionID, ids, req.Rollout)
 	targets := make([]store.NewTarget, 0, len(ids))
 	for _, id := range ids {
 		job.MachineID = id
@@ -616,7 +624,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 			writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 			return
 		}
-		targets = append(targets, store.NewTarget{MachineID: id, Payload: sj.Payload, Signature: sj.Signature})
+		targets = append(targets, store.NewTarget{MachineID: id, Payload: sj.Payload, Signature: sj.Signature, Stage: stages[id]})
 	}
 	status := store.ActionActive
 	if req.Kind == protocol.JobRunCommand && set.CommandApproval {
@@ -630,6 +638,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		Params: map[string]any{
 			"kind": req.Kind, "name": req.Name, "package_id": req.PackageID, "shell": job.Shell, "command": job.Command,
 			"machine_ids": ids, "timeout_seconds": req.TimeoutSeconds, "bandwidth_kbps": req.BandwidthKbps, "status": status,
+			"respect_windows": req.RespectWindows, "rollout": req.Rollout,
 		},
 	}
 	if err := s.store.AppendAudit(r.Context(), entry); err != nil {
@@ -641,6 +650,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		ID: actionID, Name: req.Name, Kind: req.Kind, PackageID: req.PackageID, Shell: job.Shell, Command: job.Command,
 		TimeoutSeconds: req.TimeoutSeconds, BandwidthKbps: req.BandwidthKbps, Status: status, CreatedBy: sess.User.ID,
 		CreatedByName: sess.User.Username, CreatedAt: now, ExpiresAt: job.ExpiresAt, Targets: targets,
+		RespectWindows: req.RespectWindows, Rollout: req.Rollout,
 	})
 	if err != nil {
 		s.log.Error("aksiyon kaydedilemedi", "hata", err)
@@ -797,7 +807,7 @@ func (s *Server) handleAgentJobs(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, protocol.JobsResponse{Jobs: []protocol.SignedJob{}})
 		return
 	}
-	jobs, err := s.store.PendingJobs(r.Context(), m.ID, s.now())
+	jobs, err := s.machineJobs(r.Context(), m)
 	if err != nil {
 		s.log.Error("işler okunamadı", "ajan", m.ID, "hata", err)
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
@@ -881,6 +891,10 @@ func (s *Server) handlePackageDownload(w http.ResponseWriter, r *http.Request) {
 	info, err := f.Stat()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+		return
+	}
+	if isRelayRequest(r) && r.Header.Get(HeaderRelayProbe) != "" {
+		relayProbeResponse(w, g.SHA256, info.Size(), s.clientRate(r, g.BandwidthKbps))
 		return
 	}
 	noWriteDeadline(w)

@@ -8,12 +8,34 @@ import {
   type MachineListItem,
   type Package,
   type Page,
+  type Rollout,
   type Shell,
   type TransferSettings,
 } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { PlatformIcon } from "../components/Badges";
+
+// Kademeli dağıtım hazır ayarları: pilot halka, ardından genel dağıtım.
+const ROLLOUT_PRESETS = {
+  none: null,
+  pilot: {
+    stages: [
+      { percent: 10, delay_hours: 0 },
+      { percent: 90, delay_hours: 24 },
+    ],
+    min_success_percent: 90,
+  },
+  rings: {
+    stages: [
+      { percent: 5, delay_hours: 0 },
+      { percent: 25, delay_hours: 24 },
+      { percent: 70, delay_hours: 72 },
+    ],
+    min_success_percent: 95,
+  },
+} satisfies Record<string, Rollout | null>;
+type RolloutPreset = keyof typeof ROLLOUT_PRESETS;
 
 type Kind = "deploy_package" | "run_command";
 type Target = { id: string; hostname: string; os_platform: "windows" | "darwin" };
@@ -81,6 +103,8 @@ export function NewActionPage() {
   const [bandwidth, setBandwidth] = useState(0);
   const [expires, setExpires] = useState(0);
   const [targets, setTargets] = useState<Target[]>([]);
+  const [respectWindows, setRespectWindows] = useState(false);
+  const [rolloutPreset, setRolloutPreset] = useState<RolloutPreset>("none");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,6 +149,8 @@ export function NewActionPage() {
       if (expires > 0) body.expires_hours = expires;
       if (kind === "deploy_package") body.package_id = packageId;
       else Object.assign(body, { shell: effectiveShell, command });
+      if (respectWindows) body.respect_windows = true;
+      if (rolloutPreset !== "none") body.rollout = ROLLOUT_PRESETS[rolloutPreset];
       const a = await api<Action>("/api/v1/actions", { method: "POST", body });
       navigate(`/aksiyonlar/${a.id}`);
     } catch (err) {
@@ -312,6 +338,35 @@ export function NewActionPage() {
                 value={expires || ""}
                 onChange={(e) => setExpires(Number(e.target.value))}
               />
+            </label>
+            <label>
+              {t("actions.wizard.rollout")}
+              <select
+                className="select select-sm"
+                value={rolloutPreset}
+                onChange={(e) => setRolloutPreset(e.target.value as RolloutPreset)}
+              >
+                {(Object.keys(ROLLOUT_PRESETS) as RolloutPreset[]).map((p) => (
+                  <option key={p} value={p}>
+                    {t(`actions.rolloutPreset.${p}`)}
+                  </option>
+                ))}
+              </select>
+              <span className="hint">{t("actions.wizard.rolloutHint")}</span>
+            </label>
+          </div>
+          <div className="card-body">
+            <label className="check">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={respectWindows}
+                onChange={(e) => setRespectWindows(e.target.checked)}
+              />
+              <span>
+                {t("actions.wizard.respectWindows")}
+                <small className="muted block">{t("actions.wizard.respectWindowsHint")}</small>
+              </span>
             </label>
           </div>
         </section>

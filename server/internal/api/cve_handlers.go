@@ -19,6 +19,7 @@ const trendDays = 30
 // kadar çalıştırır.
 func (s *Server) RunBackground(ctx context.Context) {
 	go s.vulns.Run(ctx)
+	go s.runMinutely(ctx)
 	// Başlangıçta envanteri olan tüm makineler bir kez hesaplanır (kural veya kod değişmiş olabilir).
 	s.vulns.RecomputeAll()
 	if !s.cfg.CVE.Enabled {
@@ -311,6 +312,21 @@ func (s *Server) afterRulesChanged(ctx context.Context) {
 		select {
 		case s.syncTrigger <- struct{}{}:
 		default:
+		}
+	}
+}
+
+// runMinutely, dakikalık işleri (kademeli dağıtım, bildirimler, zamanlanmış raporlar) yürütür.
+func (s *Server) runMinutely(ctx context.Context) {
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			s.RunRollouts(ctx)
+			s.RunNotifications(ctx)
 		}
 	}
 }

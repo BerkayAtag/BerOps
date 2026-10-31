@@ -1,0 +1,10 @@
+DROP TABLE IF EXISTS report_schedules;
+DROP TABLE IF EXISTS notification_events;
+DROP TABLE IF EXISTS notification_channels;
+ALTER TABLE action_targets DROP COLUMN IF EXISTS released;
+ALTER TABLE action_targets DROP COLUMN IF EXISTS stage;
+ALTER TABLE actions DROP COLUMN IF EXISTS paused_reason;
+ALTER TABLE actions DROP COLUMN IF EXISTS rollout;
+ALTER TABLE actions DROP COLUMN IF EXISTS respect_windows;
+DROP TABLE IF EXISTS maintenance_windows;
+DROP TABLE IF EXISTS relays;

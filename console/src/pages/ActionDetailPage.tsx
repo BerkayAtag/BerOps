@@ -42,6 +42,20 @@ export function ActionDetailPage() {
   const mine = state.status === "authenticated" && a.created_by === state.me.user.id;
   const kindPerm = a.kind === "run_command" ? "actions.run_command" : "actions.deploy_package";
 
+  async function releaseNext() {
+    if (!window.confirm(t("actions.releaseConfirm"))) return;
+    setError(null);
+    try {
+      await api(`/api/v1/actions/${a.id}/release-next`, { method: "POST" });
+      reload();
+    } catch (err) {
+      setError(t(errorKey(err), { defaultValue: t("errors.unknown") }));
+    }
+  }
+  const stages = a.rollout?.stages ?? [];
+  const canRelease =
+    a.status === "active" && stages.length > 0 && a.released_stages < stages.length && can(kindPerm);
+
   async function transition(op: "approve" | "reject" | "cancel") {
     if (op === "cancel" && !window.confirm(t("actions.cancelConfirm"))) return;
     setError(null);
@@ -78,6 +92,11 @@ export function ActionDetailPage() {
               </button>
             </>
           )}
+          {canRelease && (
+            <button type="button" className="btn btn-primary" onClick={() => void releaseNext()}>
+              {t("actions.releaseNext")}
+            </button>
+          )}
           {(a.status === "pending_approval" || a.status === "active") && can(kindPerm) && (
             <button type="button" className="btn btn-ghost" onClick={() => void transition("cancel")}>
               {t("actions.cancel")}
@@ -93,6 +112,32 @@ export function ActionDetailPage() {
       {a.status === "pending_approval" && (
         <div className="alert alert-info">{t("actions.pendingApprovalNotice")}</div>
       )}
+      {a.paused_reason && a.status === "active" && (
+        <div className="alert alert-warning" role="status">
+          {t("actions.paused", { reason: a.paused_reason })}
+        </div>
+      )}
+      {stages.length > 0 && (
+        <section className="card card-body stack">
+          <h2>{t("actions.rollout")}</h2>
+          <div className="stage-list">
+            {stages.map((st, i) => {
+              const inStage = targets.filter((x) => x.stage === i);
+              const done = inStage.filter((x) => x.status === "succeeded").length;
+              return (
+                <span key={i} className={`pill ${i < a.released_stages ? "pill-success" : "pill-muted"}`}>
+                  {t("actions.stage", { n: i + 1, percent: st.percent, hours: st.delay_hours })} · {done}/
+                  {inStage.length}
+                </span>
+              );
+            })}
+          </div>
+          <p className="muted small">
+            {t("actions.rolloutHint", { min: a.rollout?.min_success_percent ?? 0 })}
+          </p>
+        </section>
+      )}
+      {a.respect_windows && <p className="muted small">{t("actions.respectsWindows")}</p>}
 
       <section className="card">
         <div className="card-header">
@@ -175,6 +220,13 @@ export function ActionDetailPage() {
                       </td>
                       <td>
                         <TargetStatusPill status={tg.status} />
+                        {stages.length > 0 && (
+                          <span className="muted small block">
+                            {t(tg.released ? "actions.stageShort" : "actions.stageWaiting", {
+                              n: tg.stage + 1,
+                            })}
+                          </span>
+                        )}
                       </td>
                       <td className="mono">{tg.exit_code ?? "—"}</td>
                       <td title={formatDateTime(tg.finished_at, lng)}>

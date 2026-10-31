@@ -72,6 +72,7 @@ jobs:
         run: |
           go build -trimpath -o /dev/null ./agent/cmd/ber-agent
           go build -trimpath -o /dev/null ./server/cmd/ber-server
+          go build -trimpath -o /dev/null ./relay/cmd/ber-relay
 
   agent-native:
     name: Ajan testleri (${{ matrix.os }})

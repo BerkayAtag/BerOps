@@ -26,6 +26,7 @@ type NewTarget struct {
 	MachineID string
 	Payload   []byte
 	Signature []byte
+	Stage     int
 }
 
 // NewAction, oluşturulacak aksiyondur. ID, imzalı iş tanımında yer aldığı için önceden üretilir.
@@ -44,6 +45,21 @@ type NewAction struct {
 	CreatedAt      time.Time
 	ExpiresAt      time.Time
 	Targets        []NewTarget
+	RespectWindows bool
+	Rollout        *Rollout
+}
+
+// Rollout, kademeli dağıtım planıdır.
+type Rollout struct {
+	Stages            []RolloutStage `json:"stages"`
+	MinSuccessPercent int            `json:"min_success_percent"`
+}
+
+// RolloutStage, bir aşamadır: hedeflerin yüzdesi ve aksiyon oluşturulduktan sonra en erken
+// kaç saat sonra açılacağı.
+type RolloutStage struct {
+	Percent    int `json:"percent"`
+	DelayHours int `json:"delay_hours"`
 }
 
 // Action, aksiyon kaydı ve hedef durum sayaçlarıdır.
@@ -67,6 +83,11 @@ type Action struct {
 	ApprovedAt     *time.Time     `json:"approved_at"`
 	CompletedAt    *time.Time     `json:"completed_at"`
 	Counts         map[string]int `json:"counts"`
+	RespectWindows bool           `json:"respect_windows"`
+	Rollout        *Rollout       `json:"rollout"`
+	PausedReason   string         `json:"paused_reason"`
+	// ReleasedStages, açılmış aşama sayısıdır (kademeli dağıtımda).
+	ReleasedStages int `json:"released_stages"`
 }
 
 // CreateAction, aksiyonu ve imzalı hedeflerini tek transaction içinde yazar.
@@ -74,18 +95,19 @@ func (s *Store) CreateAction(ctx context.Context, a NewAction) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO actions (id, name, kind, package_id, shell, command, timeout_seconds, bandwidth_kbps, status,
-				target_count, created_by, created_by_name, created_at, expires_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 			a.ID, a.Name, a.Kind, nullableUUID(a.PackageID), a.Shell, a.Command, a.TimeoutSeconds, a.BandwidthKbps,
-			a.Status, len(a.Targets), nullableUUID(a.CreatedBy), a.CreatedByName, a.CreatedAt, a.ExpiresAt); err != nil {
+			a.Status, len(a.Targets), nullableUUID(a.CreatedBy), a.CreatedByName, a.CreatedAt, a.ExpiresAt,
+			a.RespectWindows, a.Rollout); err != nil {
 			return err
 		}
 		rows := make([][]any, len(a.Targets))
 		for i, t := range a.Targets {
-			rows[i] = []any{a.ID, t.MachineID, protocol.TargetPending, t.Payload, t.Signature, a.CreatedAt}
+			rows[i] = []any{a.ID, t.MachineID, protocol.TargetPending, t.Payload, t.Signature, a.CreatedAt, int16(t.Stage), t.Stage == 0}
 		}
 		_, err := tx.CopyFrom(ctx, pgx.Identifier{"action_targets"},
-			[]string{"action_id", "machine_id", "status", "payload", "signature", "updated_at"}, pgx.CopyFromRows(rows))
+			[]string{"action_id", "machine_id", "status", "payload", "signature", "updated_at", "stage", "released"}, pgx.CopyFromRows(rows))
 		return err
 	})
 }
@@ -95,14 +117,17 @@ const actionSelect = `
 	       a.timeout_seconds, a.bandwidth_kbps, a.status, a.target_count, a.created_by, a.created_by_name, a.created_at,
 	       a.expires_at, a.approved_at, a.completed_at,
 	       coalesce((SELECT jsonb_object_agg(status, n) FROM (SELECT status, count(*) n FROM action_targets t
-	                 WHERE t.action_id = a.id GROUP BY status) c), '{}')
+	                 WHERE t.action_id = a.id GROUP BY status) c), '{}'),
+	       a.respect_windows, a.rollout, a.paused_reason,
+	       (SELECT count(DISTINCT stage) FROM action_targets t WHERE t.action_id = a.id AND t.released)
 	FROM actions a LEFT JOIN packages p ON p.id = a.package_id`
 
 func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
 	var a Action
 	if err := row.Scan(&a.ID, &a.Name, &a.Kind, &a.PackageID, &a.PackageName, &a.PackageVersion, &a.Shell, &a.Command,
 		&a.TimeoutSeconds, &a.BandwidthKbps, &a.Status, &a.TargetCount, &a.CreatedBy, &a.CreatedByName, &a.CreatedAt,
-		&a.ExpiresAt, &a.ApprovedAt, &a.CompletedAt, &a.Counts); err != nil {
+		&a.ExpiresAt, &a.ApprovedAt, &a.CompletedAt, &a.Counts, &a.RespectWindows, &a.Rollout, &a.PausedReason,
+		&a.ReleasedStages); err != nil {
 		return nil, notFound(err)
 	}
 	return &a, nil
@@ -178,15 +203,18 @@ type ActionTarget struct {
 	StartedAt  *time.Time `json:"started_at"`
 	FinishedAt *time.Time `json:"finished_at"`
 	UpdatedAt  time.Time  `json:"updated_at"`
+	// Stage, kademeli dağıtımdaki aşamadır (0 = ilk); Released false ise aşama henüz açılmamıştır.
+	Stage    int  `json:"stage"`
+	Released bool `json:"released"`
 }
 
 // ListActionTargets, aksiyonun hedeflerini döner.
 func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]ActionTarget, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT t.machine_id, m.hostname, m.ad_ou, m.os_platform, t.status, t.exit_code, t.stdout, t.stderr, t.error,
-		       t.started_at, t.finished_at, t.updated_at
+		       t.started_at, t.finished_at, t.updated_at, t.stage, t.released
 		FROM action_targets t JOIN machines m ON m.id = t.machine_id
-		WHERE t.action_id = $1 ORDER BY lower(m.hostname)`, actionID)
+		WHERE t.action_id = $1 ORDER BY t.stage, lower(m.hostname)`, actionID)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +223,7 @@ func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]Actio
 	for rows.Next() {
 		var t ActionTarget
 		if err := rows.Scan(&t.MachineID, &t.Hostname, &t.OU, &t.Platform, &t.Status, &t.ExitCode, &t.Stdout, &t.Stderr,
-			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt); err != nil {
+			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt, &t.Stage, &t.Released); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -235,32 +263,32 @@ func (s *Store) SetActionStatus(ctx context.Context, id, to string, from []strin
 	})
 }
 
-// openJobsCond, ajana verilecek işlerin koşuludur: aksiyon etkin ve süresi dolmamış, hedef
-// bekliyor veya indiriliyor (indirme kesildiyse kaldığı yerden sürer). Çalışan işler yeniden
-// verilmez; ajan yeniden başlarsa yarıda kalan işi kendisi "başarısız" bildirir.
-const openJobsCond = `t.machine_id = $1 AND t.status IN ('pending', 'downloading')
+// openJobsCond, ajana verilecek işlerin koşuludur: aksiyon etkin ve süresi dolmamış, hedefin
+// aşaması açılmış, hedef bekliyor veya indiriliyor (indirme kesildiyse kaldığı yerden sürer).
+// Çalışan işler yeniden verilmez; ajan yeniden başlarsa yarıda kalan işi kendisi "başarısız"
+// bildirir. Bakım penceresi denetimi çağıran tarafta yapılır.
+const openJobsCond = `t.machine_id = $1 AND t.status IN ('pending', 'downloading') AND t.released
 	AND a.status = 'active' AND a.expires_at > $2`
 
-// PendingJobCount, makineyi bekleyen iş sayısıdır.
-func (s *Store) PendingJobCount(ctx context.Context, machineID string, now time.Time) (int, error) {
-	var n int
-	err := s.pool.QueryRow(ctx, `SELECT count(*) FROM action_targets t JOIN actions a ON a.id = t.action_id WHERE `+openJobsCond,
-		machineID, now).Scan(&n)
-	return n, err
+// PendingJob, bekleyen iş ve pencere gereksinimidir.
+type PendingJob struct {
+	protocol.SignedJob
+	RespectWindows bool
 }
 
 // PendingJobs, makinenin imzalı işlerini oluşturulma sırasıyla döner.
-func (s *Store) PendingJobs(ctx context.Context, machineID string, now time.Time) ([]protocol.SignedJob, error) {
-	rows, err := s.pool.Query(ctx, `SELECT t.payload, t.signature FROM action_targets t JOIN actions a ON a.id = t.action_id
+func (s *Store) PendingJobs(ctx context.Context, machineID string, now time.Time) ([]PendingJob, error) {
+	rows, err := s.pool.Query(ctx, `SELECT t.payload, t.signature, a.respect_windows FROM action_targets t
+		JOIN actions a ON a.id = t.action_id
 		WHERE `+openJobsCond+` ORDER BY a.created_at LIMIT 20`, machineID, now)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	out := []protocol.SignedJob{}
+	out := []PendingJob{}
 	for rows.Next() {
-		var j protocol.SignedJob
-		if err := rows.Scan(&j.Payload, &j.Signature); err != nil {
+		var j PendingJob
+		if err := rows.Scan(&j.Payload, &j.Signature, &j.RespectWindows); err != nil {
 			return nil, err
 		}
 		out = append(out, j)
@@ -390,4 +418,66 @@ func (s *Store) ActiveMachines(ctx context.Context, ids []string) (map[string]Ta
 		out[strings.ToLower(id)] = t
 	}
 	return out, rows.Err()
+}
+
+// RolloutCandidate, aşaması açılmayı bekleyen kademeli aksiyondur.
+type RolloutCandidate struct {
+	ID        string
+	CreatedAt time.Time
+	Rollout   Rollout
+	NextStage int
+	Released  int
+	Finished  int
+	Succeeded int
+}
+
+// RolloutCandidates, açılmamış aşaması olan etkin kademeli aksiyonları döner.
+func (s *Store) RolloutCandidates(ctx context.Context) ([]RolloutCandidate, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT a.id, a.created_at, a.rollout,
+		       min(t.stage) FILTER (WHERE NOT t.released),
+		       count(*) FILTER (WHERE t.released),
+		       count(*) FILTER (WHERE t.released AND t.status IN ('succeeded', 'failed', 'expired')),
+		       count(*) FILTER (WHERE t.released AND t.status = 'succeeded')
+		FROM actions a JOIN action_targets t ON t.action_id = a.id
+		WHERE a.status = 'active' AND a.rollout IS NOT NULL
+		GROUP BY a.id HAVING bool_or(NOT t.released)`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []RolloutCandidate
+	for rows.Next() {
+		var c RolloutCandidate
+		var next int16
+		if err := rows.Scan(&c.ID, &c.CreatedAt, &c.Rollout, &next, &c.Released, &c.Finished, &c.Succeeded); err != nil {
+			return nil, err
+		}
+		c.NextStage = int(next)
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// ReleaseStage, aksiyonun verilen aşamaya kadarki hedeflerini açar ve duraklatmayı kaldırır.
+func (s *Store) ReleaseStage(ctx context.Context, actionID string, stage int) error {
+	if _, err := s.pool.Exec(ctx, `UPDATE action_targets SET released = true WHERE action_id = $1 AND stage <= $2`,
+		actionID, stage); err != nil {
+		return err
+	}
+	_, err := s.pool.Exec(ctx, `UPDATE actions SET paused_reason = '' WHERE id = $1`, actionID)
+	return err
+}
+
+// PauseRollout, kademeli dağıtımı nedeniyle birlikte duraklatır.
+func (s *Store) PauseRollout(ctx context.Context, actionID, reason string) error {
+	_, err := s.pool.Exec(ctx, `UPDATE actions SET paused_reason = $2 WHERE id = $1 AND paused_reason <> $2`, actionID, reason)
+	return err
+}
+
+// MachineOU, makinenin OU'sunu döner.
+func (s *Store) MachineOU(ctx context.Context, machineID string) (string, error) {
+	var ou string
+	err := s.pool.QueryRow(ctx, `SELECT ad_ou FROM machines WHERE id = $1`, machineID).Scan(&ou)
+	return ou, notFound(err)
 }

@@ -5,12 +5,14 @@
 //	ber-server admin create -config ber-server.yaml -username admin [-role admin] [-recovery]
 //	ber-server regkey create -config ber-server.yaml -name "Pilot" [-approval] [-max-uses 10] [-expires-hours 72]
 //	ber-server cve sync     -config ber-server.yaml [-feeds kev,epss,msrc,nvd]
+//	ber-server relay create -config ber-server.yaml -name İzmir -hostnames relay-izmir.corp.example -out ./relay-izmir
 //	ber-server version
 package main
 
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -19,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -52,6 +55,7 @@ Komutlar:
   migrate        Veritabanı migration'larını uygular
   admin create   Yerel kullanıcı oluşturur (parola BER_ADMIN_PASSWORD'dan veya terminalden okunur)
   regkey create  Ajan kayıt anahtarı oluşturur
+  relay create   Şube relay'i için sertifika üretir (relay.crt, relay.key, ca.crt)
   cve sync       CVE kaynaklarını (KEV, EPSS, MSRC, NVD) hemen eşitler ve bulguları yeniden hesaplar
   version        Sürümü yazdırır
 
@@ -79,6 +83,11 @@ func run(args []string) error {
 			return errors.New("kullanım: ber-server regkey create -name <ad>")
 		}
 		return cmdRegKeyCreate(args[1:])
+	case "relay":
+		if len(args) == 0 || args[0] != "create" {
+			return errors.New("kullanım: ber-server relay create -name <ad> -hostnames <ad1,ad2> -out <klasör>")
+		}
+		return cmdRelayCreate(args[1:])
 	case "cve":
 		if len(args) == 0 || args[0] != "sync" {
 			return errors.New("kullanım: ber-server cve sync [-feeds kev,epss,msrc,nvd]")
@@ -433,4 +442,82 @@ func cmdCVESync(args []string) error {
 		return errors.Join(syncErr, err)
 	}
 	return syncErr
+}
+
+func cmdRelayCreate(args []string) error {
+	fs := flag.NewFlagSet("relay create", flag.ExitOnError)
+	name := fs.String("name", "", "relay adı (ör. İzmir şubesi)")
+	hosts := fs.String("hostnames", "", "ajanların relay'e bağlanacağı DNS adları/IP'ler, virgülle")
+	out := fs.String("out", "", "sertifika dosyalarının yazılacağı yeni klasör")
+	years := fs.Int("years", 2, "sertifika geçerliliği (yıl)")
+	cfg, err := loadConfig(fs, args)
+	if err != nil {
+		return err
+	}
+	var hostList []string
+	for _, h := range strings.Split(*hosts, ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			hostList = append(hostList, h)
+		}
+	}
+	if strings.TrimSpace(*name) == "" || len(hostList) == 0 || *out == "" {
+		return errors.New("-name, -hostnames ve -out gerekli")
+	}
+	if _, err := os.Stat(*out); err == nil {
+		return fmt.Errorf("%s zaten var; yeni bir klasör adı verin", *out)
+	}
+	ctx := context.Background()
+	st, err := openStore(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "Automation BER Root CA")
+	if err != nil {
+		return err
+	}
+	id, err := newRelayID()
+	if err != nil {
+		return err
+	}
+	rc, err := ca.IssueRelayCert(id, hostList, time.Duration(*years)*365*24*time.Hour)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(*out, 0o700); err != nil {
+		return err
+	}
+	for _, f := range []struct {
+		name string
+		data []byte
+		mode os.FileMode
+	}{{"relay.crt", rc.CertPEM, 0o644}, {"relay.key", rc.KeyPEM, 0o600}, {"ca.crt", ca.CertPEM, 0o644}} {
+		if err := os.WriteFile(filepath.Join(*out, f.name), f.data, f.mode); err != nil {
+			return err
+		}
+	}
+	r, err := st.CreateRelay(ctx, id, strings.TrimSpace(*name), hostList, rc.Serial, rc.NotAfter)
+	if err != nil {
+		return err
+	}
+	_ = st.AppendAudit(ctx, store.AuditEntry{
+		ActorType: store.ActorSystem, ActorName: "ber-server cli", Action: "relay.create",
+		TargetType: "relay", TargetID: r.ID, Result: store.ResultSuccess,
+		Params: map[string]any{"name": r.Name, "hostnames": hostList},
+	})
+	fmt.Printf("Relay oluşturuldu: %s (%s)\n", r.Name, r.ID)
+	fmt.Printf("Dosyalar: %s (relay.key gizlidir; yalnızca relay makinesine kopyalayın)\n", *out)
+	fmt.Println("Relay makinesinde: ber-relay -server <sunucu ajan adresi> -dir <klasör>")
+	fmt.Println("Ajanlarda sunucu adresi olarak relay adresini verin; CA parmak izi aynı kalır.")
+	return nil
+}
+
+func newRelayID() (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16]), nil
 }

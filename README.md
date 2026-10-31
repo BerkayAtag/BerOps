@@ -4,14 +4,14 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)**, **Aşama 4 (Paket kütüphanesi ve dağıtım)**, **Aşama 5 (Active Directory ve yetki kapsamları)** ve **Aşama 6 (Uzaktan yönetim)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)**, **Aşama 4 (Paket kütüphanesi ve dağıtım)**, **Aşama 5 (Active Directory ve yetki kapsamları)**, **Aşama 6 (Uzaktan yönetim)** ve **Aşama 7 (Relay, bakım pencereleri, kademeli dağıtım, bildirimler)** tamamlandı. Yol haritası aşağıda.
 
 ## Bileşenler
 
 | Bileşen | Açıklama |
 |---|---|
 | **BER Server** | Merkezi API, PostgreSQL veritabanı, iç sertifika otoritesi, ajan kaydı, iş kuyruğu |
-| **BER Relay** | Şubeler için önbellekleyen dağıtım noktası (Aşama 7) |
+| **BER Relay** | Şubeler için önbellekleyen dağıtım noktası ([relay/README.md](relay/README.md)) |
 | **BER Agent** | Windows servisi / macOS `launchd` daemon'ı olarak çalışan hafif Go ajanı |
 | **BER Console** | React + TypeScript tarayıcı konsolu; Türkçe/İngilizce, açık/karanlık tema |
 
@@ -94,6 +94,16 @@ Ayrıntılar: [docs/ad.md](docs/ad.md), [docs/roller-ve-yetkiler.md](docs/roller
 - **Oturum modeli:** Ajan yalnızca konsolda oturum açıkken uzun yoklama yapar. İstekler Ed25519 ile imzalıdır; kapalı özellik ajan tarafında da reddedilir.
 
 Ayrıntılar: [docs/uzaktan-yonetim.md](docs/uzaktan-yonetim.md). Ölçüm (gerçek macOS ajanı): oturuma 5 sn'de bağlandı, performans isteği 1,25 sn'de (1 sn CPU örneklemesi dahil) döndü.
+
+## Aşama 7'de neler var?
+
+- **Relay:** Şube ajanları relay'e bağlanır. Relay ajan kimliğini doğrulayıp sunucuya iletir, paketleri bir kez indirip SHA-256 ile doğrular ve önbellekten verir (LRU, varsayılan 50 GB). Sertifika `ber-server relay create` ile üretilir, konsoldan iptal edilir.
+- **Bakım pencereleri:** Gün, saat, süre, saat dilimi ve OU kapsamı tanımlanır. "Bakım penceresine uy" seçilen aksiyonların işleri yalnızca pencere açıkken verilir.
+- **Kademeli dağıtım:** Pilot ve halka hazır ayarlarıyla 2–5 aşama kurulur. Sonraki aşama, gecikmesi dolunca ve başarı oranı eşiği geçince kendiliğinden açılır; eşik altında dağıtım duraklar. Duraklatılmış aşama elle de açılabilir.
+- **Bildirimler:** E-posta (SMTP) ve webhook (genel JSON, Teams, Slack, HMAC imzası). Olaylar: aksiyon tamamlandı, filoda yeni KEV açığı, CVE kaynağı eşitlenemedi. Her olay bir kez gönderilir.
+- **Zamanlanmış raporlar:** PDF, Excel veya CSV, haftalık ya da günlük olarak e-posta eki halinde gönderilir.
+
+Ayrıntılar: [docs/gelismis-dagitim.md](docs/gelismis-dagitim.md).
 
 ## Ajan kaynak kullanımı
 
@@ -218,7 +228,7 @@ npm --prefix console test -- --run
 | 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ✅ |
 | 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ✅ |
 | 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ✅ |
-| 7 | Relay, bakım pencereleri, kademeli dağıtım, bildirimler | ⏳ |
+| 7 | Relay, bakım pencereleri, kademeli dağıtım, bildirimler | ✅ |
 | 8 | MSI ve pkg kurulum paketleri, release iş akışı, tanıtım sayfası | ⏳ |
 
 ## Dokümantasyon
@@ -228,6 +238,7 @@ npm --prefix console test -- --run
 - [Paket dağıtımı ve komut çalıştırma](docs/dagitim.md)
 - [Roller ve yetkiler](docs/roller-ve-yetkiler.md)
 - [Active Directory entegrasyonu](docs/ad.md)
+- [Gelişmiş dağıtım: relay, bakım pencereleri, kademeli dağıtım, bildirimler](docs/gelismis-dagitim.md)
 - [Uzaktan yönetim](docs/uzaktan-yonetim.md)
 - [Varsayımlar ve kararlar](docs/varsayimlar.md)
 - [API](docs/api.md)

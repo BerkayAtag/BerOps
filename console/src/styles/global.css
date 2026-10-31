@@ -1822,3 +1822,35 @@ a.user-chip {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.text-danger {
+  color: var(--ber-danger) !important;
+}
+
+/* Gün ve olay seçimi gibi yan yana onay kutusu grupları */
+.day-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.day-picker legend {
+  width: 100%;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.stage-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alert-warning {
+  background: var(--ber-warning-soft);
+  border-color: color-mix(in srgb, var(--ber-warning) 30%, transparent);
+  color: var(--ber-warning);
+}

@@ -421,6 +421,15 @@ export interface Action {
   approved_at: string | null;
   completed_at: string | null;
   counts: Partial<Record<TargetStatus, number>>;
+  respect_windows: boolean;
+  rollout: Rollout | null;
+  paused_reason: string;
+  released_stages: number;
+}
+
+export interface Rollout {
+  stages: { percent: number; delay_hours: number }[];
+  min_success_percent: number;
 }
 
 export interface ActionTarget {
@@ -435,6 +444,8 @@ export interface ActionTarget {
   started_at: string | null;
   finished_at: string | null;
   updated_at: string;
+  stage: number;
+  released: boolean;
 }
 
 export interface TransferSettings {

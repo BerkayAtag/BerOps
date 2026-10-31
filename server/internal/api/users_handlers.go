@@ -296,7 +296,7 @@ func (s *Server) handleChangePassword(w http.ResponseWriter, r *http.Request, se
 	}
 	// Bu oturum dışındakiler kapatılır; yeni oturum açmak gerekmez.
 	if err := s.store.DeleteUserSessions(r.Context(), u.ID); err == nil {
-		_ = s.store.CreateSession(r.Context(), sess.TokenHash, u.ID, sess.CSRFToken, sess.ExpiresAt, clientIP(r), r.UserAgent())
+		_ = s.store.CreateSession(r.Context(), sess.TokenHash, u.ID, sess.CSRFToken, s.now(), sess.ExpiresAt, clientIP(r), r.UserAgent())
 	}
 	s.audit(r.Context(), store.AuditEntry{ActorType: store.ActorUser, ActorID: u.ID, ActorName: u.Username,
 		Action: "auth.password_change", Result: store.ResultSuccess, SourceIP: clientIP(r)})
