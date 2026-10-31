@@ -28,6 +28,9 @@ const (
 	codeEnrollInvalidCSR   = "enroll.invalid_csr"
 	codeAgentUnknown       = "agent.unknown"
 	codeAgentRevoked       = "agent.revoked"
+	// codeDirectoryUnavailable, AD'ye ulaşılamadığında döner; konsol kurtarma hesabını önerir.
+	codeDirectoryUnavailable = "auth.directory_unavailable"
+	codeNoRoleMapping        = "auth.no_role_mapping"
 )
 
 const maxJSONBody = 1 << 20 // 1 MiB

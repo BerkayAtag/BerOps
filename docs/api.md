@@ -41,10 +41,12 @@ Tüm hatalar aynı gövdeyi kullanır:
 | `request.unsupported_media_type` | 415 | `Content-Type: application/json` değil |
 | `not_found` | 404 | Kayıt bulunamadı |
 | `conflict` | 409 | Kayıt bu işleme uygun durumda değil |
+| `auth.directory_unavailable` | 503 | Active Directory'ye ulaşılamıyor (yerel kurtarma hesabı kullanılabilir) |
+| `auth.no_role_mapping` | 403 | AD kullanıcısı hiçbir grup eşlemesine uymuyor |
 
 ### İzinler
 
-Her uç noktanın gerektirdiği izin OpenAPI tanımında `x-ber-permission` alanında yazılıdır. Rol–izin tablosu Aşama 5'te [roller-ve-yetkiler.md](roller-ve-yetkiler.md) dosyasında belgelenecek; şu anki kaynak: [server/internal/auth/rbac.go](../server/internal/auth/rbac.go).
+Her uç noktanın gerektirdiği izin OpenAPI tanımında `x-ber-permission` alanında yazılıdır. Rol–izin tablosu ve OU kapsamı: [roller-ve-yetkiler.md](roller-ve-yetkiler.md).
 
 API anahtarlarıyla erişim (dış sistemler için) Aşama 5'te eklenecek.
 

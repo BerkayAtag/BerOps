@@ -154,6 +154,8 @@ type MachineFilter struct {
 	Now          time.Time
 	// Unlimited, rapor dışa aktarımında sayfa sınırını kaldırır.
 	Unlimited bool
+	// Scope, kullanıcının OU kapsamıdır (boş: tüm makineler).
+	Scope []string
 }
 
 // MachineSortColumns, izin verilen sıralama alanlarıdır. Kullanıcı girdisi SQL'e
@@ -200,6 +202,9 @@ func (s *Store) ListMachinesFiltered(ctx context.Context, f MachineFilter) ([]Ma
 	}
 	if f.Status != "" {
 		where = append(where, "m.status = "+arg(f.Status))
+	}
+	if c := scopeCond("m.ad_ou", f.Scope, arg); c != "" {
+		where = append(where, c)
 	}
 	if f.Online != nil {
 		if *f.Online {
@@ -278,7 +283,18 @@ type FleetSummary struct {
 }
 
 // GetFleetSummary, aktif ve onay bekleyen makineler üzerinden filo sayaçlarını hesaplar.
-func (s *Store) GetFleetSummary(ctx context.Context, now time.Time, onlineWindow time.Duration) (*FleetSummary, error) {
+func (s *Store) GetFleetSummary(ctx context.Context, now time.Time, onlineWindow time.Duration, scope []string) (*FleetSummary, error) {
+	args := []any{now.Add(-onlineWindow)}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	cond := "m.status IN ('active', 'pending')"
+	appsCond := ""
+	if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+		cond += " AND " + c
+		appsCond = " WHERE a.machine_id IN (SELECT m.id FROM machines m WHERE " + c + ")"
+	}
 	var f FleetSummary
 	err := s.pool.QueryRow(ctx, `
 		SELECT count(*),
@@ -291,12 +307,32 @@ func (s *Store) GetFleetSummary(ctx context.Context, now time.Time, onlineWindow
 		       count(*) FILTER (WHERE i.reboot_pending),
 		       count(*) FILTER (WHERE m.os_platform = 'windows'),
 		       count(*) FILTER (WHERE m.os_platform = 'darwin'),
-		       (SELECT count(DISTINCT lower(name)) FROM installed_apps)
+		       (SELECT count(DISTINCT lower(a.name)) FROM installed_apps a`+appsCond+`)
 		FROM machines m LEFT JOIN machine_inventory i ON i.machine_id = m.id
-		WHERE m.status IN ('active', 'pending')`, now.Add(-onlineWindow)).Scan(
+		WHERE `+cond, args...).Scan(
 		&f.Total, &f.Online, &f.Pending, &f.WithInventory, &f.FullyPatched, &f.MissingTotal,
 		&f.CriticalMachines, &f.RebootPending, &f.Windows, &f.MacOS, &f.DistinctAppsCount)
 	return &f, err
+}
+
+// scopeCond, OU kapsamı koşuludur: makinenin OU'su kapsamdaki bir OU'ya eşit veya onun altında
+// olmalıdır. Kapsam boşsa "" döner. Büyük/küçük harf dönüşümü iki tarafta da PostgreSQL'de
+// yapılır (Türkçe İ gibi harflerde Go ile farklılık olmasın).
+func scopeCond(col string, scope []string, arg func(any) string) string {
+	var pats []string
+	for _, sc := range scope {
+		if sc = strings.TrimSpace(sc); sc != "" {
+			e := escapeLike(sc)
+			pats = append(pats, e, "%,"+e)
+		}
+	}
+	if len(scope) > 0 && len(pats) == 0 {
+		return "false"
+	}
+	if len(pats) == 0 {
+		return ""
+	}
+	return "lower(" + col + ") LIKE ANY (SELECT lower(x) FROM unnest(" + arg(pats) + "::text[]) x)"
 }
 
 func prefixed(prefix, cols string) string {

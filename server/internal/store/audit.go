@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -49,14 +51,64 @@ func (s *Store) AppendAudit(ctx context.Context, e AuditEntry) error {
 	return err
 }
 
-// ListAudit, en yeni denetim kayıtlarını döner. Filtreleme ve dışa aktarma Aşama 5'te eklenir.
-func (s *Store) ListAudit(ctx context.Context, limit int) ([]AuditEntry, error) {
+// AuditFilter, denetim kaydı arama parametreleridir.
+type AuditFilter struct {
+	Search string // aktör, eylem, hedef veya ayrıntı içinde
+	Action string // önek (ör. "action." veya "auth.login")
+	Result string
+	Actor  string
+	From   *time.Time
+	To     *time.Time
+	Limit  int
+	Offset int
+}
+
+// ListAudit, filtreye uyan kayıtları yeniden eskiye ve toplam sayıyı döner.
+func (s *Store) ListAudit(ctx context.Context, f AuditFilter) ([]AuditEntry, int, error) {
+	var where []string
+	var args []any
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	if q := strings.TrimSpace(f.Search); q != "" {
+		p := arg("%" + escapeLike(q) + "%")
+		where = append(where, "(actor_name ILIKE "+p+" OR action ILIKE "+p+" OR target_id ILIKE "+p+
+			" OR detail ILIKE "+p+" OR source_ip ILIKE "+p+" OR params::text ILIKE "+p+")")
+	}
+	if f.Action != "" {
+		where = append(where, "action LIKE "+arg(escapeLike(f.Action)+"%"))
+	}
+	if f.Result != "" {
+		where = append(where, "result = "+arg(f.Result))
+	}
+	if f.Actor != "" {
+		where = append(where, "lower(actor_name) = lower("+arg(f.Actor)+")")
+	}
+	if f.From != nil {
+		where = append(where, "occurred_at >= "+arg(*f.From))
+	}
+	if f.To != nil {
+		where = append(where, "occurred_at < "+arg(*f.To))
+	}
+	cond := ""
+	if len(where) > 0 {
+		cond = "WHERE " + strings.Join(where, " AND ")
+	}
+	var total int
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM audit_log `+cond, args...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	limit := f.Limit
+	if limit <= 0 {
+		limit = 50
+	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, occurred_at, actor_type, actor_id, actor_name, action, target_type, target_id,
 		       params, result, detail, source_ip
-		FROM audit_log ORDER BY id DESC LIMIT $1`, limit)
+		FROM audit_log `+cond+` ORDER BY id DESC LIMIT `+arg(limit)+` OFFSET `+arg(max(f.Offset, 0)), args...)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer rows.Close()
 	out := []AuditEntry{}
@@ -64,9 +116,9 @@ func (s *Store) ListAudit(ctx context.Context, limit int) ([]AuditEntry, error) 
 		var e AuditEntry
 		if err := rows.Scan(&e.ID, &e.OccurredAt, &e.ActorType, &e.ActorID, &e.ActorName, &e.Action,
 			&e.TargetType, &e.TargetID, &e.Params, &e.Result, &e.Detail, &e.SourceIP); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		out = append(out, e)
 	}
-	return out, rows.Err()
+	return out, total, rows.Err()
 }

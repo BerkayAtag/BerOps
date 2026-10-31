@@ -31,6 +31,7 @@ import (
 	"github.com/BerkayAtag/automation-ber/server/internal/config"
 	"github.com/BerkayAtag/automation-ber/server/internal/cve"
 	"github.com/BerkayAtag/automation-ber/server/internal/pki"
+	"github.com/BerkayAtag/automation-ber/server/internal/secret"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
 	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
 	"github.com/BerkayAtag/automation-ber/shared/version"
@@ -160,6 +161,11 @@ func cmdServe(args []string) error {
 		return fmt.Errorf("aksiyon imza anahtarı hazırlanamadı: %w", err)
 	}
 	srv.SetSigningKey(signKey)
+	box, err := secret.LoadOrCreate(cfg.PKIDir())
+	if err != nil {
+		return fmt.Errorf("gizli değer anahtarı hazırlanamadı: %w", err)
+	}
+	srv.SetSecretBox(box)
 
 	agentCert, err := ca.IssueServerCert(cfg.Agent.Hostnames, 90*24*time.Hour)
 	if err != nil {

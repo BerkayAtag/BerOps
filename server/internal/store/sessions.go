@@ -29,11 +29,11 @@ func (s *Store) GetSession(ctx context.Context, tokenHash []byte) (*Session, err
 	var u User
 	err := s.pool.QueryRow(ctx, `
 		SELECT s.token_hash, s.csrf_token, s.created_at, s.last_seen_at, s.expires_at,
-		       u.id, u.username, u.display_name, u.source, u.role, u.is_recovery, u.disabled
+		       u.id, u.username, u.display_name, u.source, u.role, u.is_recovery, u.disabled, u.scope_ous
 		FROM sessions s JOIN users u ON u.id = s.user_id
 		WHERE s.token_hash = $1`, tokenHash).Scan(
 		&ss.TokenHash, &ss.CSRFToken, &ss.CreatedAt, &ss.LastSeenAt, &ss.ExpiresAt,
-		&u.ID, &u.Username, &u.DisplayName, &u.Source, &u.Role, &u.IsRecovery, &u.Disabled)
+		&u.ID, &u.Username, &u.DisplayName, &u.Source, &u.Role, &u.IsRecovery, &u.Disabled, &u.ScopeOUs)
 	if err != nil {
 		return nil, notFound(err)
 	}
@@ -57,4 +57,10 @@ func (s *Store) DeleteSession(ctx context.Context, tokenHash []byte) error {
 func (s *Store) DeleteExpiredSessions(ctx context.Context, now time.Time, idle time.Duration) (int64, error) {
 	tag, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE expires_at <= $1 OR last_seen_at <= $2`, now, now.Add(-idle))
 	return tag.RowsAffected(), err
+}
+
+// DeleteUserSessions, kullanıcının tüm oturumlarını kapatır (rol/kapsam değişikliği, devre dışı bırakma).
+func (s *Store) DeleteUserSessions(ctx context.Context, userID string) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM sessions WHERE user_id = $1`, userID)
+	return err
 }

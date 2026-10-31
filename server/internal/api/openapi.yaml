@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Automation BER API
-  version: 0.4.0
+  version: 0.5.0
   description: |
     Automation BER konsol ve ajan API'si.
 
@@ -29,6 +29,7 @@ tags:
   - name: Raporlar
   - name: Paketler
   - name: Aksiyonlar
+  - name: Kullanıcılar
   - name: Ayarlar
   - name: Denetim
   - name: Ajan
@@ -752,11 +753,166 @@ paths:
   /api/v1/audit:
     get:
       tags: [Denetim]
-      summary: Son 200 denetim kaydı
+      summary: Denetim kaydı (filtreli, sayfalı, yeniden eskiye)
       security: [{ session: [] }]
       x-ber-permission: audit.read
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: "Aktör, eylem, hedef, ayrıntı, IP veya parametrelerde arar" }
+        - { name: action, in: query, schema: { type: string }, description: "Eylem öneki, ör. action. veya auth.login" }
+        - { name: result, in: query, schema: { type: string, enum: [success, failure, denied] } }
+        - { name: actor, in: query, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date }, description: Gün dahil }
+        - { name: tz, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 50 } }
       responses:
-        "200": { description: Denetim kayıtları }
+        "200": { description: "items, total, page, page_size" }
+        "400": { description: Geçersiz filtre }
+  /api/v1/audit/export:
+    get:
+      tags: [Denetim]
+      summary: Denetim kaydını CSV veya Excel olarak indir (en fazla 100 000 kayıt)
+      security: [{ session: [] }]
+      x-ber-permission: audit.read
+      parameters:
+        - { name: format, in: query, required: true, schema: { type: string, enum: [csv, xlsx] } }
+        - { name: lang, in: query, schema: { type: string, enum: [tr, en] } }
+      responses:
+        "200": { description: Dosya }
+  /api/v1/auth/password:
+    post:
+      tags: [Kimlik]
+      summary: Kendi parolasını değiştir (yerel hesaplar); diğer oturumlar kapatılır
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password: { type: string }
+                new_password: { type: string, minLength: 12 }
+      responses:
+        "204": { description: Değiştirildi }
+        "400": { description: Mevcut parola hatalı veya yeni parola kurala uymuyor }
+  /api/v1/users:
+    get:
+      tags: [Kullanıcılar]
+      summary: Kullanıcılar
+      security: [{ session: [] }]
+      x-ber-permission: users.manage
+      responses:
+        "200": { description: "items: id, username, display_name, source, role, disabled, scope_ous, last_login_at …" }
+    post:
+      tags: [Kullanıcılar]
+      summary: Yerel kullanıcı oluştur
+      security: [{ session: [] }]
+      x-ber-permission: users.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, role]
+              properties:
+                username: { type: string }
+                display_name: { type: string }
+                password: { type: string, minLength: 12 }
+                role: { type: string, enum: [admin, technician, readonly] }
+                scope_ous: { type: array, items: { type: string }, description: "OU DN'leri; boşsa tüm makineler" }
+      responses:
+        "201": { description: Oluşturuldu }
+        "409": { description: Kullanıcı adı var }
+  /api/v1/users/{id}:
+    patch:
+      tags: [Kullanıcılar]
+      summary: Rol, kapsam, durum veya parola değiştir (açık oturumlar kapatılır)
+      security: [{ session: [] }]
+      x-ber-permission: users.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name: { type: string }
+                role: { type: string, enum: [admin, technician, readonly] }
+                disabled: { type: boolean }
+                scope_ous: { type: array, items: { type: string } }
+                password: { type: string, minLength: 12 }
+      responses:
+        "200": { description: Güncellendi }
+        "400": { description: "Kendi rolünü düşürme/kendini devre dışı bırakma veya AD kullanıcısında rol değiştirme" }
+        "409": { description: Son etkin yönetici kaldırılamaz }
+  /api/v1/settings/ad:
+    get:
+      tags: [Ayarlar]
+      summary: Active Directory ayarları (parola dönmez, has_password döner)
+      security: [{ session: [] }]
+      x-ber-permission: ad.configure
+      responses:
+        "200": { description: AD ayarları }
+    put:
+      tags: [Ayarlar]
+      summary: Active Directory ayarlarını kaydet (yalnızca ldaps://; boş parola mevcut parolayı korur)
+      security: [{ session: [] }]
+      x-ber-permission: ad.configure
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Geçersiz ayar }
+  /api/v1/settings/ad/test:
+    post:
+      tags: [Ayarlar]
+      summary: Bağlantıyı veya bir kullanıcının girişini, gruplarını ve eşlenecek rolünü test et
+      security: [{ session: [] }]
+      x-ber-permission: ad.configure
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: "ok, message, user, role, scope_ous" }
+  /api/v1/settings/ad/mappings:
+    get:
+      tags: [Ayarlar]
+      summary: AD grubu → rol eşlemeleri
+      security: [{ session: [] }]
+      x-ber-permission: ad.configure
+      responses:
+        "200": { description: "items: id, group_dn, role, scope_ous" }
+    post:
+      tags: [Ayarlar]
+      summary: Eşleme ekle
+      security: [{ session: [] }]
+      x-ber-permission: ad.configure
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "201": { description: Eklendi }
+        "409": { description: Bu grup için eşleme var }
+  /api/v1/settings/ad/mappings/{id}:
+    delete:
+      tags: [Ayarlar]
+      summary: Eşlemeyi sil
+      security: [{ session: [] }]
+      x-ber-permission: ad.configure
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
+  /api/v1/ad/computers:
+    get:
+      tags: [Makineler]
+      summary: AD bilgisayarları ve ajan kurulu olup olmadığı (kapsama göre süzülür)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200": { description: "items: name, dns_host_name, dn, ou, operating_system, last_logon, disabled, machine_id" }
+        "409": { description: AD entegrasyonu etkin değil }
+        "502": { description: AD'ye ulaşılamadı }
   /agent/v1/enroll:
     post:
       tags: [Ajan]

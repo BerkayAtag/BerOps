@@ -14,6 +14,7 @@ import (
 	"github.com/BerkayAtag/automation-ber/server/internal/config"
 	"github.com/BerkayAtag/automation-ber/server/internal/cve"
 	"github.com/BerkayAtag/automation-ber/server/internal/pki"
+	"github.com/BerkayAtag/automation-ber/server/internal/secret"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
 	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
 )
@@ -39,6 +40,10 @@ type Server struct {
 	// sunucu açılışta kalıcı anahtarı SetSigningKey ile verir.
 	signKey ed25519.PrivateKey
 
+	// secrets, veritabanındaki gizli değerleri (AD parolası) şifreler; dir AD işlemleridir.
+	secrets *secret.Box
+	dir     directory
+
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
 	// dummyHash, var olmayan kullanıcılar için de parola doğrulaması yapılarak yanıt
@@ -61,6 +66,8 @@ func New(cfg config.Config, st *store.Store, ca *pki.CA, log *slog.Logger) (*Ser
 		dummyHash:   dummy,
 		syncTrigger: make(chan struct{}, 1),
 		signKey:     pki.NewSigningKey(),
+		secrets:     secret.NewRandom(),
+		dir:         ldapDirectory,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -73,6 +80,9 @@ func New(cfg config.Config, st *store.Store, ca *pki.CA, log *slog.Logger) (*Ser
 	s.enrollLimiter = auth.NewAttemptLimiter(10, 15*time.Minute).WithClock(clock)
 	return s, nil
 }
+
+// SetSecretBox, kalıcı gizli değer anahtarını ayarlar.
+func (s *Server) SetSecretBox(b *secret.Box) { s.secrets = b }
 
 // SetSigningKey, kalıcı aksiyon imza anahtarını ayarlar.
 func (s *Server) SetSigningKey(k ed25519.PrivateKey) { s.signKey = k }
@@ -93,6 +103,19 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.HandleFunc("POST /api/v1/auth/login", s.handleLogin)
 	mux.Handle("POST /api/v1/auth/logout", s.authed("", s.handleLogout))
 	mux.Handle("GET /api/v1/auth/me", s.authed("", s.handleMe))
+	mux.Handle("POST /api/v1/auth/password", s.authed("", s.handleChangePassword))
+
+	mux.Handle("GET /api/v1/users", s.authed(auth.PermUsersManage, s.handleListUsers))
+	mux.Handle("POST /api/v1/users", s.authed(auth.PermUsersManage, s.handleCreateUser))
+	mux.Handle("PATCH /api/v1/users/{id}", s.authed(auth.PermUsersManage, s.handleUpdateUser))
+
+	mux.Handle("GET /api/v1/settings/ad", s.authed(auth.PermADConfigure, s.handleGetADSettings))
+	mux.Handle("PUT /api/v1/settings/ad", s.authed(auth.PermADConfigure, s.handlePutADSettings))
+	mux.Handle("POST /api/v1/settings/ad/test", s.authed(auth.PermADConfigure, s.handleTestAD))
+	mux.Handle("GET /api/v1/settings/ad/mappings", s.authed(auth.PermADConfigure, s.handleListADMappings))
+	mux.Handle("POST /api/v1/settings/ad/mappings", s.authed(auth.PermADConfigure, s.handleCreateADMapping))
+	mux.Handle("DELETE /api/v1/settings/ad/mappings/{id}", s.authed(auth.PermADConfigure, s.handleDeleteADMapping))
+	mux.Handle("GET /api/v1/ad/computers", s.authed(auth.PermMachinesRead, s.handleADComputers))
 
 	mux.Handle("GET /api/v1/server-info", s.authed(auth.PermMachinesRead, s.handleServerInfo))
 
@@ -142,6 +165,7 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("DELETE /api/v1/cve/rules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteRule))
 
 	mux.Handle("GET /api/v1/audit", s.authed(auth.PermAuditRead, s.handleListAudit))
+	mux.Handle("GET /api/v1/audit/export", s.authed(auth.PermAuditRead, s.handleExportAudit))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "Uç nokta bulunamadı")

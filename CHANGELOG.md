@@ -5,6 +5,23 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi — Aşama 5: Active Directory, yetki kapsamları ve denetim ekranı
+
+- Active Directory (yalnızca LDAPS):
+  - Hizmet hesabıyla arama, kullanıcı parolasıyla doğrulama, iç içe grup üyelikleri.
+  - Grup → rol ve OU kapsamı eşlemeleri; en yetkili rol seçimi.
+  - Bağlantı ve kullanıcı testi; ajansız AD bilgisayarları listesi.
+  - AD erişilemezse 503 ve kurtarma hesabı önerisi.
+- Gizli değer şifreleme (AES-256-GCM, `data_dir/pki/secret.key`); AD hizmet hesabı parolası API'den dönmez.
+- OU kapsamlı yetki: makineler, filo özeti, güvenlik açıkları, risk özeti, aksiyonlar, raporlar, paket güncelleme listesi ve AD bilgisayarları kapsama göre süzülür; kapsam dışı hedefli işlemler reddedilir.
+- Kullanıcı yönetimi:
+  - Yerel kullanıcı oluşturma; rol/kapsam/durum/parola değiştirme.
+  - Son yönetici ve kendini kilitleme koruması.
+  - Değişiklikte oturumların kapatılması.
+  - Kullanıcının kendi parolasını değiştirmesi.
+- Denetim kaydı: filtreler (arama, eylem öneki, sonuç, tarih), sayfalama, CSV/Excel dışa aktarma.
+- Konsol: Kullanıcılar, Active Directory, Denetim Kaydı ve Hesabım sayfaları; menü öğeleri izinlere göre gösterilir.
+
 ### Eklendi — Aşama 4: Paket kütüphanesi ve dağıtım
 
 - Paket kütüphanesi:

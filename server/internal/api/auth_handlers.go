@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/BerkayAtag/automation-ber/server/internal/ad"
 	"github.com/BerkayAtag/automation-ber/server/internal/auth"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
 )
@@ -78,26 +79,47 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, codeInvalidCredentials, "Kullanıcı adı veya parola hatalı")
 	}
 
-	user, err := s.store.GetUserByUsername(r.Context(), req.Username)
-	switch {
-	case errors.Is(err, store.ErrNotFound):
-		_ = auth.VerifyPassword(s.dummyHash, req.Password)
-		fail("kullanıcı yok")
-		return
-	case err != nil:
+	user, err := s.store.GetUserByUsername(r.Context(), ad.NormalizeUsername(req.Username))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		s.log.Error("kullanıcı okunamadı", "hata", err)
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return
 	}
-	// AD kullanıcıları Aşama 5'te LDAPS ile doğrulanacak; o zamana kadar yalnızca yerel hesaplar.
-	if user.Source != "local" || user.PasswordHash == "" {
-		_ = auth.VerifyPassword(s.dummyHash, req.Password)
-		fail("yerel olmayan hesap")
-		return
-	}
-	if err := auth.VerifyPassword(user.PasswordHash, req.Password); err != nil {
-		fail("hatalı parola")
-		return
+	if user != nil && user.Source == "local" {
+		if err := auth.VerifyPassword(user.PasswordHash, req.Password); err != nil {
+			fail("hatalı parola")
+			return
+		}
+	} else {
+		// Yerel hesabı olmayan (veya AD kaynaklı) kullanıcı AD ile doğrulanır; rol ve kapsam her
+		// girişte grup eşlemelerinden yeniden hesaplanır.
+		adUser, detail, err := s.loginWithAD(r.Context(), req.Username, req.Password)
+		switch {
+		case err == nil && adUser == nil:
+			_ = auth.VerifyPassword(s.dummyHash, req.Password)
+			fail("kullanıcı yok")
+			return
+		case errors.Is(err, ad.ErrUnavailable) || errors.Is(err, ad.ErrConfig):
+			s.audit(r.Context(), store.AuditEntry{
+				ActorType: store.ActorUser, ActorName: req.Username, Action: "auth.login",
+				Result: store.ResultFailure, Detail: "AD: " + detail, SourceIP: ip,
+			})
+			s.log.Warn("AD girişi yapılamadı", "hata", err)
+			writeError(w, http.StatusServiceUnavailable, codeDirectoryUnavailable,
+				"Dizin hizmetine ulaşılamıyor. Yerel kurtarma hesabıyla giriş yapabilirsiniz.")
+			return
+		case errors.Is(err, errNoRoleMapping):
+			s.audit(r.Context(), store.AuditEntry{
+				ActorType: store.ActorUser, ActorName: req.Username, Action: "auth.login",
+				Result: store.ResultDenied, Detail: "AD: " + detail, SourceIP: ip,
+			})
+			writeError(w, http.StatusForbidden, codeNoRoleMapping, "Hesabınız Automation BER kullanmaya yetkili bir AD grubunda değil")
+			return
+		case err != nil:
+			fail("AD: " + detail)
+			return
+		}
+		user = adUser
 	}
 	if user.Disabled {
 		fail("hesap devre dışı")

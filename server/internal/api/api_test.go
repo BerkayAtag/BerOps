@@ -260,7 +260,7 @@ func TestRBACEnforcedAtAPI(t *testing.T) {
 		}
 	}
 
-	entries, err := e.store.ListAudit(context.Background(), 100)
+	entries, _, err := e.store.ListAudit(context.Background(), store.AuditFilter{Limit: 100})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)** ve **Aşama 4 (Paket kütüphanesi ve dağıtım)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)**, **Aşama 4 (Paket kütüphanesi ve dağıtım)** ve **Aşama 5 (Active Directory ve yetki kapsamları)** tamamlandı. Yol haritası aşağıda.
 
 ## Bileşenler
 
@@ -66,6 +66,24 @@ Gerçek kaynaklarla ölçüm (MacBook, PostgreSQL 17, API anahtarı olmadan): il
 - **Denetim:** Aksiyonlar komut metniyle birlikte denetim kaydına yazılır. Kayıt yazılamazsa aksiyon oluşturulmaz.
 
 Ayrıntılar: [docs/dagitim.md](docs/dagitim.md). Ölçüm: 1 MB'lık paket, 10 Mbps sınırla 12 sanal ajana 16 saniye içinde ulaştı; gerçek macOS ajanında komut ve betik paketi uçtan uca doğrulandı.
+
+## Aşama 5'te neler var?
+
+- **Active Directory (yalnızca LDAPS):**
+  - Kullanıcılar AD hesaplarıyla giriş yapar; iç içe grup üyelikleri dikkate alınır.
+  - Rol ve OU kapsamı grup eşlemelerinden her girişte yeniden hesaplanır.
+  - Hizmet hesabı parolası sunucuda AES-256-GCM ile şifreli saklanır.
+  - Bağlantı ve kullanıcı testi yapılabilir; AD'de olup ajanı kurulu olmayan bilgisayarlar listelenir.
+  - AD erişilemezse yerel kurtarma hesabıyla giriş yapılır.
+- **OU kapsamı:** Teknisyen ve salt okunur kullanıcılar belirli OU'larla sınırlandırılabilir. Makineler, güvenlik açıkları, aksiyonlar ve raporlar kapsama göre süzülür; kapsam dışı hedefe işlem reddedilir.
+- **Kullanıcı yönetimi:**
+  - Yerel kullanıcı ekleme, rol/kapsam/durum değiştirme, parola sıfırlama.
+  - Son yöneticiyi ve kendini kilitlemeye karşı koruma.
+  - Değişiklikte açık oturumlar kapatılır.
+  - Kullanıcılar kendi parolasını değiştirebilir.
+- **Denetim kaydı ekranı:** Arama, eylem/sonuç/tarih filtreleri, parametre ayrıntısı ve CSV/Excel dışa aktarma.
+
+Ayrıntılar: [docs/ad.md](docs/ad.md), [docs/roller-ve-yetkiler.md](docs/roller-ve-yetkiler.md).
 
 ## Ajan kaynak kullanımı
 
@@ -188,7 +206,7 @@ npm --prefix console test -- --run
 | 2 | Envanter: yama seviyesi, eksik yamalar, üçüncü parti uygulamalar; kaynak kısıtlama; makine listesi ve detay | ✅ |
 | 3 | CVE motoru: NVD, MSRC, KEV, EPSS; risk skoru; dashboard ve raporlar | ✅ |
 | 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ✅ |
-| 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ⏳ |
+| 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ✅ |
 | 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ⏳ |
 | 7 | Relay, bakım pencereleri, kademeli dağıtım, bildirimler | ⏳ |
 | 8 | MSI ve pkg kurulum paketleri, release iş akışı, tanıtım sayfası | ⏳ |
@@ -198,6 +216,8 @@ npm --prefix console test -- --run
 - [Mimari](docs/mimari.md)
 - [CVE motoru ve raporlar](docs/cve.md)
 - [Paket dağıtımı ve komut çalıştırma](docs/dagitim.md)
+- [Roller ve yetkiler](docs/roller-ve-yetkiler.md)
+- [Active Directory entegrasyonu](docs/ad.md)
 - [Varsayımlar ve kararlar](docs/varsayimlar.md)
 - [API](docs/api.md)
 - [Katkıda bulunma](CONTRIBUTING.md)

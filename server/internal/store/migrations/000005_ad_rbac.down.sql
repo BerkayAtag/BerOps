@@ -1,0 +1,7 @@
+DROP INDEX IF EXISTS machines_ad_ou_idx;
+DROP INDEX IF EXISTS audit_log_actor_idx;
+DROP TABLE IF EXISTS ad_group_roles;
+DROP TABLE IF EXISTS ad_settings;
+ALTER TABLE users DROP COLUMN IF EXISTS email;
+ALTER TABLE users DROP COLUMN IF EXISTS ad_dn;
+ALTER TABLE users DROP COLUMN IF EXISTS scope_ous;

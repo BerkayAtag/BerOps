@@ -100,7 +100,7 @@ Ajan                                         Sunucu (:52311)
 
 ### 3.4 Yetkilendirme (RBAC)
 
-İzinler granülerdir (`machines.read`, `actions.run_command`, `remote.registry.write` …) ve **her API uç noktasında sunucu tarafında** kontrol edilir. Roller izin kümeleridir; Aşama 5'te kapsam (OU / grup) kısıtları ve özel roller eklenir. Ayrıntı: [roller-ve-yetkiler.md](roller-ve-yetkiler.md) (Aşama 5).
+İzinler granülerdir (`machines.read`, `actions.run_command`, `remote.registry.write` …) ve **her API uç noktasında sunucu tarafında** kontrol edilir. Roller izin kümeleridir; teknisyen ve salt okunur kullanıcılar OU kapsamıyla sınırlandırılabilir. Active Directory kullanıcılarının rolü ve kapsamı grup eşlemelerinden gelir. Ayrıntı: [roller-ve-yetkiler.md](roller-ve-yetkiler.md), [ad.md](ad.md).
 
 ### 3.5 Aksiyon imzası (Aşama 4)
 
@@ -258,11 +258,18 @@ Ayrıntılar, risk formülü ve çevrimdışı mod: [cve.md](cve.md).
 | `action_targets` | Hedef başına imzalı iş ve sonuç | `payload`, `signature`, `status`, `exit_code`, `stdout`, `stderr`, `error` |
 | `transfer_settings` | Aktarım ayarları (tek satır) | `per_client_kbps` (varsayılan 10 000), `max_upload_mb`, `command_approval`, `default_expiry_hours` |
 
+### Aşama 5
+
+| Tablo | Amaç | Önemli alanlar |
+|---|---|---|
+| `users` (ek) | OU kapsamı ve AD bilgisi | `scope_ous`, `ad_dn`, `email` |
+| `ad_settings` | AD bağlantısı (tek satır) | `url` (ldaps), `base_dn`, `bind_dn`, `bind_password_enc` (AES-GCM), `user_attr`, `ca_cert_pem` |
+| `ad_group_roles` | Grup → rol eşlemeleri | `group_dn` (benzersiz), `role`, `scope_ous` |
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
 |---|---|
-| 5 – AD / RBAC | `ad_settings` (şifreli bağlantı parolası), `ad_group_role_mappings`, `roles`, `role_permissions`, `role_scopes`, `ad_computers`, `api_keys` |
 | 6 – Uzaktan yönetim | `remote_feature_settings` (makine/grup bazında opt-in), `registry_backups`, `perf_samples` |
 | 7 – Gelişmiş dağıtım | `relays`, `maintenance_windows`, `rollout_rings`, `restart_policies`, `notification_channels`, `notification_rules` |
 | Gruplar (2–5) | `groups` (statik / OU / dinamik kural), `group_members`, `tags`, `machine_tags` |

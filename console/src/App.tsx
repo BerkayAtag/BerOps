@@ -3,8 +3,11 @@ import { Navigate, Route, Routes } from "react-router";
 import { useAuth } from "./auth/AuthProvider";
 import { AppShell } from "./components/AppShell";
 import { ActionDetailPage } from "./pages/ActionDetailPage";
+import { AccountPage } from "./pages/AccountPage";
 import { ActionsPage } from "./pages/ActionsPage";
+import { AdSettingsPage } from "./pages/AdSettingsPage";
 import { AgentSettingsPage } from "./pages/AgentSettingsPage";
+import { AuditPage } from "./pages/AuditPage";
 import { CveSettingsPage } from "./pages/CveSettingsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -15,6 +18,7 @@ import { PackageDetailPage } from "./pages/PackageDetailPage";
 import { PackagesPage } from "./pages/PackagesPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { TransferSettingsPage } from "./pages/TransferSettingsPage";
+import { UsersPage } from "./pages/UsersPage";
 import { VulnerabilitiesPage } from "./pages/VulnerabilitiesPage";
 import { VulnerabilityDetailPage } from "./pages/VulnerabilityDetailPage";
 
@@ -45,6 +49,10 @@ export function App() {
         <Route path="/aksiyonlar/yeni" element={<NewActionPage />} />
         <Route path="/aksiyonlar/:id" element={<ActionDetailPage />} />
         <Route path="/ayarlar/aktarim" element={<TransferSettingsPage />} />
+        <Route path="/ayarlar/kullanicilar" element={<UsersPage />} />
+        <Route path="/ayarlar/ad" element={<AdSettingsPage />} />
+        <Route path="/denetim" element={<AuditPage />} />
+        <Route path="/hesap" element={<AccountPage me={state.me} />} />
         <Route path="/ayarlar/ajan" element={<AgentSettingsPage />} />
         <Route path="/ayarlar/cve" element={<CveSettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
