@@ -200,7 +200,7 @@ jobs:
           MACOS_INSTALLER_IDENTITY: ${{ steps.keychain.outputs.signed == 'true' && secrets.MACOS_INSTALLER_IDENTITY || '' }}
         run: |
           mkdir -p out
-          installers/macos/build-pkg.sh "$VERSION" dist/berops-agent "out/BerOps-Agent-$VERSION.pkg"
+          installers/macos/build-pkg.sh "$VERSION" dist/berops-agent "out/BerOps-Agent.pkg"
           cp installers/macos/pppc-berops-agent.mobileconfig out/
           (cd dist && zip -q "../out/berops-agent-$VERSION-darwin-universal.zip" berops-agent)
       - uses: actions/upload-artifact@v4
@@ -267,11 +267,11 @@ jobs:
             echo
             echo "| Dosya | Açıklama |"
             echo "|---|---|"
-            echo "| \`BerOps-Server-$VERSION-x64.msi\` | **Sunucu kurulumu** (Windows Server, sihirbazlı) |"
+            echo "| \`BerOps-Server-x64.msi\` | **Sunucu kurulumu** (Windows Server, sihirbazlı) |"
             echo "| \`berops-server-$VERSION-linux-*.tar.gz\` | Sunucu (Linux) + konsol |"
             echo "| \`ghcr.io/berkayatag/berops-server:$VERSION\` | Sunucu Docker imajı (\`deploy/docker-compose.yml\`) |"
-            echo "| \`BerOps-Agent-$VERSION-x64.msi\` | Windows ajanı (sessiz kurulum: \`SERVER\`, \`REGKEY\`, \`CAHASH\`) |"
-            echo "| \`BerOps-Agent-$VERSION.pkg\` | macOS ajanı (Intel + Apple Silicon) |"
+            echo "| \`BerOps-Agent-x64.msi\` | Windows ajanı (sessiz kurulum: \`SERVER\`, \`REGKEY\`, \`CAHASH\`) |"
+            echo "| \`BerOps-Agent.pkg\` | macOS ajanı (Intel + Apple Silicon) |"
             echo "| \`pppc-berops-agent.mobileconfig\` | macOS Tam Disk Erişimi örnek MDM profili |"
             echo "| \`berops-relay-$VERSION-*\` | Şube relay'i |"
             echo "| \`SHA256SUMS.txt\` | SHA-256 özetleri |"

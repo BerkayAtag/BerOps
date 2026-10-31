@@ -20,7 +20,7 @@ BerOps sunucusu (`berops-server`) tek bir programdır. Hem konsolu (HTTPS, varsa
 
 ## Windows Server MSI
 
-`BerOps-Server-<sürüm>-x64.msi` dosyasını yönetici olarak çalıştırın. Sihirbazın adımları:
+`BerOps-Server-x64.msi` dosyasını yönetici olarak çalıştırın. Sihirbazın adımları:
 
 1. **Lisans** (Apache 2.0) ve **kurulum dizini.** Varsayılan: `C:\Program Files\BerOps\Server`.
 2. **Sunucu ayarları:**
@@ -39,7 +39,7 @@ Veritabanına bağlanılamazsa kurulum hata verir ve geri alınır. Ayrıntılı
 ### Sessiz kurulum
 
 ```bat
-msiexec /i BerOps-Server-1.0.0-x64.msi /qn ^
+msiexec /i BerOps-Server-x64.msi /qn ^
   DATABASE_URL="postgres://ber:PAROLA@db.ornek.local:5432/ber" ^
   HOSTNAMES=ber.ornek.local ADMIN_USERNAME=admin ADMIN_PASSWORD="EN-AZ-12-KARAKTER"
 ```

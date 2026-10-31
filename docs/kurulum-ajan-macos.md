@@ -1,6 +1,6 @@
 # macOS ajanı kurulumu
 
-macOS ajanı `io.github.berkayatag.berops.agent` etiketli bir `launchd` daemon'ı olarak root yetkisiyle çalışır. Kurulum paketi `BerOps-Agent-<sürüm>.pkg` dosyasıdır ([GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest)). Paket, Intel ve Apple Silicon'u tek dosyada destekleyen universal bir ikili dosya içerir. Paket bilgilerinde yayımcı **Berkay Atağ** olarak görünür.
+macOS ajanı `io.github.berkayatag.berops.agent` etiketli bir `launchd` daemon'ı olarak root yetkisiyle çalışır. Kurulum paketi `BerOps-Agent.pkg` dosyasıdır ([GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest)). Paket, Intel ve Apple Silicon'u tek dosyada destekleyen universal bir ikili dosya içerir. Paket bilgilerinde yayımcı **Berkay Atağ** olarak görünür.
 
 **Desteklenen sürümler:** macOS 12 veya üstü.
 

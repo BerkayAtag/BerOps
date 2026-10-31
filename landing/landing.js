@@ -1,125 +1,129 @@
-// Tanıtım sayfası: dil (TR varsayılan, EN) ve tema düğmeleri. Türkçe metinler HTML'dedir;
-// İngilizce seçildiğinde aşağıdaki sözlükten uygulanır ve tercih konsolla aynı anahtarla saklanır.
+// Tanıtım sayfası: dil (TR varsayılan, EN), tema ve büyük görüntüleme.
+// Türkçe metinler HTML'dedir; İngilizce seçilince aşağıdaki sözlük uygulanır.
+// Ekran görüntüleri dile ve temaya göre img/<ad>-<dil>-<tema>.webp dosyasından gelir.
 (function () {
   "use strict";
 
   var EN = {
     skip: "Skip to content",
+    "nav.label": "Main menu",
     "nav.features": "Features",
+    "nav.screens": "Screens",
     "nav.architecture": "Architecture",
-    "nav.screens": "Screenshots",
     "nav.install": "Install",
-    "nav.faq": "FAQ",
+    "hero.eyebrow": "Version 1.0 · Windows and macOS",
+    "hero.t1": "Patches, vulnerabilities, apps.",
+    "hero.t2": "One console.",
+    "hero.lead": "Agents collect missing patches and CVEs; you prioritise by risk and close them with signed, staged deployments.",
+    "hero.download": "Download server installer",
+    "hero.docs": "Read the docs →",
+    "hero.f1": "Windows and macOS agents",
+    "hero.f2": "Staged rollouts",
+    "hero.f3": "Light and dark theme",
+    "hero.caption": "Real application screen · demo data",
+    "features.eyebrow": "From detection to deployment",
+    "features.t1": "Find the missing patch.",
+    "features.t2": "Close it under control.",
+    "f1.n": "01 / Inventory",
+    "f1.t": "Missing patches and apps",
+    "f1.d": "Windows Update and softwareupdate scans, patch level, installed applications.",
+    "f2.n": "02 / Risk",
+    "f2.t": "CVE engine",
+    "f2.d": "Matching with NVD, MSRC, KEV and EPSS; a 0-100 risk score.",
+    "f3.n": "03 / Deploy",
+    "f3.t": "Patches, packages, commands",
+    "f3.d": "Signed jobs, SHA-256 verification, per-client bandwidth limit.",
+    "f4.n": "04 / Control",
+    "f4.t": "Staged and windowed",
+    "f4.d": "Pilot ring, success threshold and maintenance windows; stops on trouble.",
+    "f5.n": "05 / Access",
+    "f5.t": "Active Directory and roles",
+    "f5.d": "LDAPS sign-in, OU scope; Administrator, Technician, Read-only.",
+    "f6.n": "06 / Scale",
+    "f6.t": "Relays and notifications",
+    "f6.d": "Branch cache, Teams/Slack/email, scheduled reports.",
+    "screens.eyebrow": "Screens",
+    "screens.t1": "Light by default.",
+    "screens.t2": "Dark is one click away.",
+    "screens.lead": "Screenshots follow the theme and language you pick. Click to enlarge.",
+    "shots.open": "Enlarge screenshot",
+    "shots.dashboard": "Dashboard",
+    "shots.patches": "Patches · missing updates across the fleet",
+    "shots.rollout": "Staged patch deployment · stage status",
+    "shots.vulns": "Vulnerabilities · sorted by risk",
+    "shots.machine": "Machine detail · risk, inventory, patches",
+    "arch.eyebrow": "Architecture",
+    "arch.t1": "One server.",
+    "arch.t2": "Every connection verified.",
+    "arch.c1": "Endpoint",
+    "arch.agent": "BerOps agent",
+    "arch.agentD": "Inventory · Patch install · Signature check",
+    "arch.c2": "Your server",
+    "arch.serverD": "Console · Agent API · CVE engine",
+    "arch.relay": "Relay",
+    "arch.c3": "Operator",
+    "arch.console": "Web console",
+    "arch.consoleD": "Local account / AD · Approval · Reports",
+    "arch.note": "Agents only connect outbound; no ports are opened on clients. GitHub Pages only serves this page.",
+    "install.eyebrow": "Download and install",
+    "install.t1": "Next, Install, Finish.",
+    "install.t2": "Agents from the console.",
+    "s1.t": "Download",
+    "s1.d": "Run BerOps-Server-x64.msi on Windows Server (Docker Compose for Linux).",
+    "s2.t": "Next",
+    "s2.d": "PostgreSQL address, server name and the first administrator.",
+    "s3.t": "Install",
+    "s3.d": "Service, certificates, firewall and database are prepared.",
+    "s4.t": "Finish",
+    "s4.d": "Copy the install command from the console's \"Download agent\" page.",
+    "install.notes": "All files and SHA256 →",
+    "install.note": "Packages are unsigned; Programs and Features shows publisher Berkay Atağ. PostgreSQL 15+ is required.",
+    "footer.security": "Security",
+    "footer.changes": "Release history",
+    "lb.close": "Close",
+    "lb.prev": "Previous",
+    "lb.next": "Next",
+    "lb.label": "Screenshot",
     "theme.toDark": "Switch to dark theme",
     "theme.toLight": "Switch to light theme",
-    "hero.eyebrow": "Open source · Windows and macOS",
-    "hero.title": "Manage patches, applications and vulnerabilities from one console",
-    "hero.lead":
-      "BerOps collects missing patches, third-party applications and CVEs across your fleet with agents, prioritises them by risk and closes them with signed, bandwidth-limited, staged deployments.",
-    "hero.download": "Download (GitHub Releases)",
-    "hero.source": "Source code",
-    "hero.b1": "mTLS + signed jobs",
-    "hero.b2": "NVD · MSRC · KEV · EPSS",
-    "hero.b3": "AD / LDAPS and RBAC",
-    "features.title": "Features",
-    "f1.t": "Inventory and missing patches",
-    "f1.d": "Missing patches via Windows Update Agent and softwareupdate, patch level (build/UBR), installed KBs and third-party applications. Delta scans and a CPU limit.",
-    "f2.t": "CVE engine and risk score",
-    "f2.d": "Matching with NVD, MSRC, CISA KEV and EPSS data; a 0-100 risk score from CVSS, exploit probability and active exploitation.",
-    "f3.t": "Patch and package deployment",
-    "f3.d": "OS patches, a package library (MSI, EXE, PKG, DMG) and commands. Ed25519-signed jobs, SHA-256 verification and a per-client bandwidth limit.",
-    "f4.t": "Staged rollouts and maintenance windows",
-    "f4.d": "A pilot ring and stages; the rollout pauses automatically if the success rate drops below the threshold. Jobs run only inside the machine's maintenance window.",
-    "f5.t": "Active Directory and RBAC",
-    "f5.d": "LDAPS sign-in with roles and OU scope from nested groups. Administrator, Technician and Read-only roles; permissions are checked on the server for every API call.",
-    "f6.t": "Opt-in remote management",
-    "f6.d": "Live CPU, memory and disk; services and registry. Off by default, enabled per machine, and every operation is written to the audit log.",
-    "f7.t": "Branch relays",
-    "f7.d": "Branch agents connect through a relay; packages are downloaded once, verified and served from the local cache.",
-    "f8.t": "Reports and notifications",
-    "f8.d": "PDF, Excel and CSV reports with scheduled email. Teams, Slack and signed webhook notifications; an immutable audit log.",
-    "arch.title": "Architecture",
-    "arch.lead":
-      "A single Go server serves the console and the agent API. Agents connect to the server (or to a branch relay) over mutual TLS; the server keeps its data in PostgreSQL.",
-    "arch.console": "Console",
-    "arch.ports": ":8443 console · :52311 agents",
-    "arch.browser": "Browser · HTTPS",
-    "arch.engine": "CVE engine · signed jobs",
-    "arch.agents": "Agents (Windows, macOS)",
-    "arch.relay": "Relay → branch agents",
-    "shots.title": "Screenshots",
-    "shots.lead": "Screenshots were taken with demo data (simulated agents).",
-    "shots.patches": "Missing patches across the fleet and deployment",
-    "shots.rollout": "Staged patch deployment and stage status",
-    "shots.vulns": "Vulnerabilities sorted by risk",
-    "shots.machine": "Machine detail: risk, inventory, patches",
-    "shots.machines": "Machine list and filters",
-    "shots.dark": "Dark theme",
-    "shots.dashboard": "Dashboard: machine, missing patch and risk summaries",
-    "shots.dashboardDark": "Dashboard (dark theme)",
-    "install.title": "Install",
-    "s1.t": "Install the server",
-    "s1.d": "With the wizard-based MSI on Windows Server or with Docker Compose on Linux. PostgreSQL 15 or later is required.",
-    "s2.t": "Create a registration key",
-    "s2.d": "The console's \"Download agent\" page prepares install commands with the server address, registration key and CA fingerprint embedded.",
-    "s3.t": "Deploy the agents",
-    "s3.d": "A silent MSI for Windows (GPO, SCCM, Intune) and a .pkg for macOS (MDM).",
-    "s4.t": "Close the risks",
-    "s4.d": "Review missing patches and vulnerabilities, ship patches with maintenance windows and staged rollouts, and schedule reports.",
-    "install.cta": "Download the latest release",
-    "install.docs": "Installation guide",
-    "req.title": "System requirements",
-    "req.c1": "Component",
-    "req.c2": "Supported",
-    "req.c3": "Resources",
-    "req.server": "Server",
-    "req.serverRes": "Suggested start: 2 vCPU, 4 GB RAM; PostgreSQL 15+",
-    "req.win": "Windows agent",
-    "req.mac": "macOS agent",
-    "req.agentRes": "Idle < 1% CPU, ~15-25 MB RAM",
-    "req.console": "Console",
-    "req.browsers": "Current Chrome, Edge, Firefox, Safari",
-    "req.ports": "Network",
-    "req.portsRes": "One-way connection from agent to server",
-    "faq.title": "Frequently asked questions",
-    q1: "In which direction does the agent connect?",
-    a1: "Only from the agent to the server (or relay). No inbound ports are needed on agents; jobs are fetched by the agent's polling.",
-    q2: "How is it ensured that jobs don't come from a fake server?",
-    a2: "The agent pins the server's CA fingerprint and every job is signed with Ed25519. Downloaded files are verified with SHA-256; expired jobs or jobs for another machine are rejected.",
-    q3: "Does it work in networks without internet access?",
-    a3: "Yes. CVE data can be loaded from an offline folder and the Windows missing patch scan can use an offline wsusscn2.cab.",
-    q4: "What can the Technician role do?",
-    a4: "Only send ready-made packages from the library. Free-form commands, patch deployment and settings require an administrator; scope can be limited by OUs.",
-    q5: "Is remote management on by default?",
-    a5: "No. The global switch and per-machine features are off by default, and when enabled every operation is written to the audit log.",
-    q6: "What is the license?",
-    a6: "Apache License 2.0. You may use, modify and distribute it freely, including commercially.",
-    "footer.by": "Developed by:",
-    "footer.security": "Security",
   };
+  var TR_THEME = { toDark: "Karanlık temaya geç", toLight: "Aydınlık temaya geç" };
+  var TITLE = { tr: document.title, en: "BerOps — Patch management, one console" };
 
   var root = document.documentElement;
   var tr = {};
-  var trAlt = {};
-  var trAria = {};
-  var title = { tr: document.title, en: "BerOps — Agent-based patch and application management" };
+  var trAttr = {};
 
-  function each(attr, fn) {
-    var nodes = document.querySelectorAll("[" + attr + "]");
-    for (var i = 0; i < nodes.length; i++) fn(nodes[i], nodes[i].getAttribute(attr));
+  function all(sel) {
+    return Array.prototype.slice.call(document.querySelectorAll(sel));
   }
 
   // Türkçe metinler ilk yüklemede saklanır; dil değişince geri yüklenir.
-  each("data-i18n", function (el, k) {
+  all("[data-i18n]").forEach(function (el) {
+    var k = el.getAttribute("data-i18n");
     if (!(k in tr)) tr[k] = el.textContent;
   });
-  each("data-i18n-alt", function (el, k) {
-    trAlt[k] = el.getAttribute("alt");
+  all("[data-i18n-alt]").forEach(function (el) {
+    var k = el.getAttribute("data-i18n-alt");
+    trAttr["alt:" + k] = tr[k] || el.getAttribute("alt");
   });
-  each("data-i18n-aria", function (el, k) {
-    trAria[k] = el.getAttribute("aria-label");
+  all("[data-i18n-aria]").forEach(function (el) {
+    var k = el.getAttribute("data-i18n-aria");
+    trAttr["aria:" + k] = el.getAttribute("aria-label") || "Ekran görüntüsünü büyüt";
   });
 
+  function lang() {
+    return root.getAttribute("lang") === "en" ? "en" : "tr";
+  }
+  function theme() {
+    return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+  function text(k, fallback) {
+    return lang() === "en" && EN[k] ? EN[k] : fallback;
+  }
+  function shotSrc(name) {
+    return "img/" + name + "-" + lang() + "-" + theme() + ".webp";
+  }
   function store(key, value) {
     try {
       localStorage.setItem(key, value);
@@ -128,51 +132,95 @@
     }
   }
 
-  function setLang(lang) {
-    var en = lang === "en";
-    each("data-i18n", function (el, k) {
-      el.textContent = en && EN[k] ? EN[k] : tr[k];
+  // Dil, tema veya ikisi değişince bütün metin ve görselleri yeniden uygular.
+  function render() {
+    all("[data-i18n]").forEach(function (el) {
+      var k = el.getAttribute("data-i18n");
+      el.textContent = text(k, tr[k]);
     });
-    each("data-i18n-alt", function (el, k) {
-      el.setAttribute("alt", en && EN[k] ? EN[k] : trAlt[k]);
+    all("[data-i18n-alt]").forEach(function (el) {
+      var k = el.getAttribute("data-i18n-alt");
+      el.setAttribute("alt", text(k, trAttr["alt:" + k]));
     });
-    root.lang = en ? "en" : "tr";
-    document.title = en ? title.en : title.tr;
-    var buttons = document.querySelectorAll("[data-lang]");
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].setAttribute("aria-pressed", String(buttons[i].getAttribute("data-lang") === lang));
-    }
-    syncThemeLabel();
+    all("[data-i18n-aria]").forEach(function (el) {
+      var k = el.getAttribute("data-i18n-aria");
+      el.setAttribute("aria-label", text(k, trAttr["aria:" + k]));
+    });
+    all("[data-shot]").forEach(function (btn) {
+      var img = btn.querySelector("img");
+      var src = shotSrc(btn.getAttribute("data-shot"));
+      if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+    });
+    all("[data-lang]").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang()));
+    });
+    var dark = theme() === "dark";
+    var toggle = document.getElementById("theme-toggle");
+    var label = dark ? text("theme.toLight", TR_THEME.toLight) : text("theme.toDark", TR_THEME.toDark);
+    toggle.setAttribute("aria-pressed", String(dark));
+    toggle.setAttribute("aria-label", label);
+    toggle.setAttribute("title", label);
+    document.title = TITLE[lang()];
+    lightbox.setAttribute("aria-label", text("lb.label", "Ekran görüntüsü"));
+    if (lightbox.open) showShot(current);
   }
 
-  function syncThemeLabel() {
-    var dark = root.getAttribute("data-theme") === "dark";
-    var en = root.lang === "en";
-    var label = dark ? (en ? EN["theme.toLight"] : "Açık temaya geç") : en ? EN["theme.toDark"] : trAria["theme.toDark"];
-    document.getElementById("theme").setAttribute("aria-label", label);
-  }
-
-  document.getElementById("theme").addEventListener("click", function () {
-    var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  document.getElementById("theme-toggle").addEventListener("click", function () {
+    var next = theme() === "dark" ? "light" : "dark";
     root.setAttribute("data-theme", next);
-    store("ber-theme", next);
-    syncThemeLabel();
+    store("berops.site.theme", next);
+    render();
+  });
+  all("[data-lang]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var next = b.getAttribute("data-lang");
+      root.setAttribute("lang", next);
+      store("berops.site.lang", next);
+      render();
+    });
   });
 
-  var langButtons = document.querySelectorAll("[data-lang]");
-  for (var i = 0; i < langButtons.length; i++) {
-    langButtons[i].addEventListener("click", function (e) {
-      var lang = e.currentTarget.getAttribute("data-lang");
-      store("ber-lang", lang);
-      setLang(lang);
-    });
+  // Büyük görüntüleme.
+  var lightbox = document.getElementById("lightbox");
+  var lbImg = lightbox.querySelector("img");
+  var lbCap = lightbox.querySelector("figcaption");
+  var shots = all("[data-shot]");
+  var current = 0;
+
+  function showShot(i) {
+    current = (i + shots.length) % shots.length;
+    var btn = shots[current];
+    var img = btn.querySelector("img");
+    lbImg.setAttribute("src", shotSrc(btn.getAttribute("data-shot")));
+    lbImg.setAttribute("alt", img.getAttribute("alt"));
+    var cap = btn.parentNode.querySelector("figcaption");
+    lbCap.textContent = cap ? cap.textContent : img.getAttribute("alt");
   }
 
-  var saved = null;
-  try {
-    saved = localStorage.getItem("ber-lang");
-  } catch (e) {
-    saved = null;
-  }
-  setLang(saved === "en" ? "en" : "tr");
+  shots.forEach(function (btn, i) {
+    btn.addEventListener("click", function () {
+      showShot(i);
+      if (typeof lightbox.showModal === "function") lightbox.showModal();
+      else lightbox.setAttribute("open", "");
+    });
+  });
+  lightbox.querySelector(".lb-close").addEventListener("click", function () {
+    lightbox.close();
+  });
+  lightbox.querySelector(".lb-prev").addEventListener("click", function () {
+    showShot(current - 1);
+  });
+  lightbox.querySelector(".lb-next").addEventListener("click", function () {
+    showShot(current + 1);
+  });
+  // Görselin dışına (koyu alana) tıklanınca kapanır.
+  lightbox.addEventListener("click", function (e) {
+    if (e.target === lightbox) lightbox.close();
+  });
+  lightbox.addEventListener("keydown", function (e) {
+    if (e.key === "ArrowLeft") showShot(current - 1);
+    if (e.key === "ArrowRight") showShot(current + 1);
+  });
+
+  render();
 })();
