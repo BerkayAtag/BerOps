@@ -30,7 +30,9 @@ interface CreatedKey {
   install: { windows: string; macos: string };
 }
 
+// Sürüm dosyalarının adı sabittir; bağlantılar her zaman son sürümü indirir.
 const RELEASES = "https://github.com/BerkayAtag/BerOps/releases/latest";
+const DOWNLOAD = `${RELEASES}/download`;
 
 function NewKeyForm({ onCreated }: { onCreated: (k: CreatedKey) => void }) {
   const { t } = useTranslation();
@@ -146,10 +148,10 @@ export function AgentDownloadPage() {
         <h2>{t("agentDownload.packages")}</h2>
         <p className="muted small">{t("agentDownload.packagesHint")}</p>
         <div className="report-actions">
-          <a className="btn btn-primary btn-sm" href={RELEASES} target="_blank" rel="noreferrer">
+          <a className="btn btn-primary btn-sm" href={`${DOWNLOAD}/BerOps-Agent-x64.msi`}>
             {t("agentDownload.windows")}
           </a>
-          <a className="btn btn-primary btn-sm" href={RELEASES} target="_blank" rel="noreferrer">
+          <a className="btn btn-primary btn-sm" href={`${DOWNLOAD}/BerOps-Agent.pkg`}>
             {t("agentDownload.macos")}
           </a>
         </div>

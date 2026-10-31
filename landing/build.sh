@@ -5,9 +5,9 @@ set -eu
 OUT=${1:?çıktı klasörü gerekli}
 HERE=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$OUT/img"
-cp "$HERE/index.html" "$HERE/landing.css" "$HERE/landing.js" "$OUT/"
+cp "$HERE/index.html" "$HERE/landing.css" "$HERE/landing.js" "$HERE/init.js" "$OUT/"
 cp "$HERE"/img/*.webp "$OUT/img/"
 cp "$HERE/../design/tokens.css" "$OUT/tokens.css"
-cp "$HERE/../console/public/favicon.svg" "$HERE/../console/public/theme-init.js" "$OUT/"
+cp "$HERE/../console/public/favicon.svg" "$OUT/"
 touch "$OUT/.nojekyll"
 echo "Tanıtım sayfası hazır: $OUT"

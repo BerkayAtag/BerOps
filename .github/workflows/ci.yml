@@ -148,7 +148,7 @@ jobs:
           Start-Service $svc.Name
       - name: Kurulum, Yayımcı alanı ve temiz kaldırma doğrulaması
         shell: pwsh
-        run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-0.0.0-ci-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-0.0.0-ci-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
+        run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
       - name: Kurulum günlükleri
         if: failure()
         uses: actions/upload-artifact@v4
@@ -174,10 +174,10 @@ jobs:
           lipo -create -output dist/berops-agent dist/berops-agent-arm64 dist/berops-agent-amd64
           lipo -archs dist/berops-agent
       - name: Paket
-        run: installers/macos/build-pkg.sh 0.0.0-ci dist/berops-agent dist/BerOps-Agent-0.0.0-ci.pkg
+        run: installers/macos/build-pkg.sh 0.0.0-ci dist/berops-agent dist/BerOps-Agent.pkg
       - name: Kurulum ve daemon doğrulaması
         run: |
-          sudo installer -pkg dist/BerOps-Agent-0.0.0-ci.pkg -target /
+          sudo installer -pkg dist/BerOps-Agent.pkg -target /
           sleep 3
           sudo launchctl print system/io.github.berkayatag.berops.agent | grep -E "state = running"
           /usr/local/bin/berops-agent version

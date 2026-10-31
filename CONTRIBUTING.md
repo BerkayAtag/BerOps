@@ -8,7 +8,7 @@ BerOps'e katkıda bulunmak istediğiniz için teşekkürler. Bu belge geliştirm
 - Node.js 24+
 - Docker (PostgreSQL için)
 
-Kurulum adımları için [README.md](README.md) dosyasındaki "Hızlı başlangıç" bölümüne bakın.
+Geliştirme ortamı kurulumu için [docs/gelistirme.md](docs/gelistirme.md) dosyasına bakın.
 
 ## Dil
 

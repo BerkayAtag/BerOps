@@ -5,6 +5,23 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.0.1] — 2026-11-01
+
+### Değişti
+
+- Tanıtım sayfası BeRDP ve WFI ile aynı tasarım diline taşındı:
+  - Aydınlık varsayılan, yuvarlak tema düğmesi, kısa metinler.
+  - Ekran görüntüleri seçilen dile (TR/EN) ve temaya (aydınlık/karanlık) göre değişir.
+  - Görsele tıklanınca büyük görünüm açılır (ok tuşları, Esc).
+- README kısaltıldı; temaya göre değişen ekran görüntüleri eklendi. Geliştirme adımları `docs/gelistirme.md` dosyasına taşındı.
+- Kurulum dosyalarının adı sürüm numarası içermiyor (`BerOps-Server-x64.msi`, `BerOps-Agent-x64.msi`, `BerOps-Agent.pkg`); `releases/latest/download/...` bağlantıları her sürümde çalışır.
+
+### Düzeltildi
+
+- Konsolun ürettiği kurulum komutlarındaki dosya adları, sürümdeki dosya adlarıyla uyuşmuyordu.
+- Ajan indir sayfasındaki düğmeler sürüm sayfasına gidiyordu; artık dosyayı doğrudan indirir.
+- Sürüme gereksiz `.wixpdb` hata ayıklama dosyaları ekleniyordu.
+
 ## [1.0.0] — 2026-10-31
 
 İlk kararlı sürüm: spesifikasyondaki sekiz aşamanın tümü. Ürün adı **BerOps**.
@@ -175,5 +192,6 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - Konsol: giriş ekranı, gösterge paneli iskeleti, Türkçe/İngilizce, açık/karanlık tema; ortak tasarım token'ları (`design/tokens.css`).
 - GitHub Actions: Go lint/test/govulncheck, Windows ve macOS ajan testleri, çapraz derleme, konsol lint/test/derleme, CodeQL, bağımlılık incelemesi, Dependabot.
 
-[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...HEAD
+[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/BerkayAtag/BerOps/releases/tag/v1.0.0

@@ -1,6 +1,6 @@
 # Windows ajanı kurulumu
 
-Windows ajanı `BerOpsAgent` adlı bir Windows servisi olarak `LocalSystem` hesabıyla çalışır. Kurulum paketi: `BerOps-Agent-<sürüm>-x64.msi` ([GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest)). Yayımcı alanı **Berkay Atağ**'dır.
+Windows ajanı `BerOpsAgent` adlı bir Windows servisi olarak `LocalSystem` hesabıyla çalışır. Kurulum paketi: `BerOps-Agent-x64.msi` ([GitHub Releases](https://github.com/BerkayAtag/BerOps/releases/latest)). Yayımcı alanı **Berkay Atağ**'dır.
 
 **Desteklenen sürümler:** Windows 10/11 ve Windows Server 2016 veya üstü (x64).
 
@@ -9,7 +9,7 @@ Windows ajanı `BerOpsAgent` adlı bir Windows servisi olarak `LocalSystem` hesa
 Konsoldaki **Ajan indir** sayfası komutu sunucu adresi, kayıt anahtarı ve CA parmak izi gömülü olarak üretir:
 
 ```bat
-msiexec /i BerOps-Agent-1.0.0-x64.msi /qn SERVER="https://ber.ornek.local:52311" REGKEY="berreg_..." CAHASH="sha256:..."
+msiexec /i BerOps-Agent-x64.msi /qn SERVER="https://ber.ornek.local:52311" REGKEY="berreg_..." CAHASH="sha256:..."
 ```
 
 | Özellik | Açıklama |
@@ -53,7 +53,7 @@ Aynı kayıt anahtarını birçok makinede kullanabilirsiniz. Kullanım sınır�
 ## Güncelleme ve kaldırma
 
 - **Güncelleme:** Yeni MSI'ı aynı şekilde kurun. Kimlik ve yapılandırma korunur, ajan yeniden kayıt yapmaz.
-- **Kaldırma:** Programlar ve Özellikler'den ya da `msiexec /x BerOps-Agent-1.0.0-x64.msi /qn` ile. Servis, program dosyaları ve `C:\ProgramData\BerOps\Agent` (kimlik, günlükler) silinir; iz kalmaz. Makine konsolda çevrimdışı görünür ve oradan silinebilir.
+- **Kaldırma:** Programlar ve Özellikler'den ya da `msiexec /x BerOps-Agent-x64.msi /qn` ile. Servis, program dosyaları ve `C:\ProgramData\BerOps\Agent` (kimlik, günlükler) silinir; iz kalmaz. Makine konsolda çevrimdışı görünür ve oradan silinebilir.
 
 Kaldırma için yerel yönetici yetkisi gerekir. Sunucu tarafında ayrı bir kurcalama koruması yoktur; bkz. [varsayimlar.md](varsayimlar.md) 8.4.
 
