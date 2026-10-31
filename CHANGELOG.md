@@ -5,6 +5,29 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi — Aşama 7: Relay, bakım pencereleri, kademeli dağıtım, bildirimler
+
+- **BER Relay (`ber-relay`):**
+  - Ajan TLS'ini sonlandırır; ajan sertifikasını doğrulayıp `X-Ber-Agent-Cert` ile sunucuya iletir.
+  - Paketleri sunucu yetkisi aldıktan sonra bir kez indirir, SHA-256 ile doğrular, önbellekten hız sınırlı ve Range destekli verir.
+  - LRU önbellek temizliği yapar.
+- Sunucu: relay sertifikaları (`ber-server relay create`), relay listesi ve iptali, relay'e özel paket dosyası uç noktası.
+- **Bakım pencereleri:** Haftanın günleri, başlangıç, süre, saat dilimi ve OU kapsamı. "Bakım penceresine uy" seçilen aksiyonlar yalnızca pencere içinde verilir.
+- **Kademeli dağıtım:**
+  - 2–5 aşama; sihirbazda pilot ve halka hazır ayarları.
+  - Gecikme ve başarı oranı eşiğiyle otomatik ilerleme; eşik altında duraklama.
+  - "Sonraki aşamayı başlat" düğmesi; hedeflerde aşama bilgisi.
+- **Bildirimler:**
+  - Kanallar: e-posta (STARTTLS/TLS) ve webhook (genel JSON, Teams, Slack, HMAC-SHA256 imzası). Deneme gönderimi.
+  - Olaylar: aksiyon tamamlandı, filoda yeni KEV açığı, CVE kaynağı eşitlenemedi. Her olay tekilleştirilerek bir kez gönderilir.
+- **Zamanlanmış raporlar:** PDF/Excel/CSV, günlük veya haftalık, e-posta eki olarak; her gönderim denetim kaydına yazılır.
+- Konsol: Ayarlar altında Relay sunucuları, Bakım pencereleri ve Bildirimler sayfaları; sihirbaza kademeli dağıtım ve bakım penceresi seçenekleri; aksiyon detayında aşama durumu.
+- Belgeler: `docs/gelismis-dagitim.md`, `relay/README.md`.
+
+### Düzeltildi
+
+- Oturumun oluşturma ve son etkinlik zamanı uygulama saatinden yazılıyor (önceden veritabanı saati kullanılıyordu; saatler farklıysa boşta kalma süresi yanlış hesaplanabiliyordu).
+
 ### Eklendi — Aşama 6: Uzaktan yönetim
 
 - İsteğe bağlı uzaktan yönetim: genel ana anahtar ve makine başına özellikler (performans, servisler, kayıt defteri okuma/yazma), varsayılan kapalı.

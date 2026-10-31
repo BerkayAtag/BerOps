@@ -95,7 +95,10 @@
     "settingsUsers": "Users",
     "settingsAd": "Active Directory",
     "account": "My account",
-    "settingsRemote": "Remote management"
+    "settingsRemote": "Remote management",
+    "settingsWindows": "Maintenance windows",
+    "settingsRelays": "Relays",
+    "settingsNotify": "Notifications"
   },
   "home": {
     "title": "Dashboard",
@@ -612,7 +615,25 @@
       "approvalNote": "Command actions require approval; they do not run until another administrator approves.",
       "platformMismatch": "This package can only be deployed to {{platform}} machines.",
       "noPermission": "You do not have permission for this action type.",
-      "commandHint": "Windows: cmd or PowerShell; macOS: sh or zsh. Runs as SYSTEM/root. Up to 32 KB."
+      "commandHint": "Windows: cmd or PowerShell; macOS: sh or zsh. Runs as SYSTEM/root. Up to 32 KB.",
+      "rollout": "Staged rollout",
+      "rolloutHint": "If the success rate falls below the threshold, the next stage is held.",
+      "respectWindows": "Respect maintenance windows",
+      "respectWindowsHint": "The job is given to a machine only while a matching maintenance window is open. Machines without a window run it immediately."
+    },
+    "releaseNext": "Start next stage",
+    "releaseConfirm": "Open the next rollout stage now?",
+    "paused": "Rollout paused: {{reason}}",
+    "rollout": "Staged rollout",
+    "stage": "Stage {{n}}: {{percent}}% · after {{hours}} h",
+    "stageShort": "Stage {{n}}",
+    "stageWaiting": "Stage {{n}} (waiting)",
+    "rolloutHint": "The next stage opens automatically once its delay has passed, at least half of the released targets have finished, and the success rate is {{min}}% or higher.",
+    "respectsWindows": "This action runs only while the machines' maintenance window is open.",
+    "rolloutPreset": {
+      "none": "No stages (all at once)",
+      "pilot": "Pilot: 10%, the rest after 24 hours",
+      "rings": "Rings: 5% → 25% (1 day) → 70% (3 days)"
     }
   },
   "transfer": {
@@ -848,5 +869,142 @@
     "session": "Session length (minutes)",
     "sessionHint": "A session opened from the console closes automatically after this time; agents poll the server only during a session.",
     "perMachine": "Features are enabled per machine on the \"Remote management\" tab of the machine detail page."
+  },
+  "relays": {
+    "title": "Relays",
+    "subtitle": "Agents at branch offices connect to the server through a relay; packages are cached on the relay to reduce WAN traffic.",
+    "howTitle": "New relay",
+    "how": "Relay certificates are issued from the server command line. Copy the generated folder to the relay host, start it with ber-relay -server https://server:52311 -dir <folder>, and point agents at the relay as their server address.",
+    "empty": "No relays yet.",
+    "revoke": "Revoke certificate",
+    "confirmRevoke": "Revoke the certificate of relay {{name}}? Agents connecting through it will no longer reach the server.",
+    "col": {
+      "name": "Name",
+      "hostnames": "Host names",
+      "status": "Status",
+      "lastSeen": "Last seen",
+      "certExpires": "Certificate expires"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "revoked": "Revoked"
+    }
+  },
+  "windows": {
+    "title": "Maintenance windows",
+    "subtitle": "Actions with \"Respect maintenance windows\" are given to machines only during these time ranges.",
+    "new": "New window",
+    "edit": "Edit",
+    "delete": "Delete",
+    "empty": "No maintenance windows defined; all actions run immediately.",
+    "confirmDelete": "Delete window {{name}}?",
+    "allMachines": "All machines",
+    "scopeHint": "Leave empty to apply to all machines. One OU per line.",
+    "note": "If several windows match a machine, jobs are given while any of them is open. Windows crossing midnight belong to the day they start.",
+    "field": {
+      "name": "Name",
+      "start": "Start",
+      "hours": "Duration (hours)",
+      "timezone": "Time zone",
+      "days": "Days",
+      "scope": "Scope (OU)",
+      "enabled": "Enabled"
+    },
+    "col": {
+      "when": "When",
+      "status": "Status"
+    },
+    "status": {
+      "open": "Open now",
+      "closed": "Closed",
+      "disabled": "Disabled"
+    },
+    "day": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "dayShort": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    }
+  },
+  "notify": {
+    "title": "Notifications",
+    "subtitle": "Send important events by email or webhook and email reports on a schedule.",
+    "newChannel": "New channel",
+    "channels": "Channels",
+    "schedules": "Scheduled reports",
+    "empty": "No notification channels yet.",
+    "disabled": "Off",
+    "test": "Test",
+    "testOk": "Test notification sent.",
+    "confirmDelete": "Delete {{name}}?",
+    "secretKept": "Enter a new value to change it",
+    "hmacHint": "If set, the body is signed with HMAC-SHA256 and sent in the X-Ber-Signature header.",
+    "col": {
+      "last": "Last sent"
+    },
+    "kind": {
+      "email": "Email",
+      "webhook": "Webhook"
+    },
+    "security": {
+      "none": "None (internal network only)"
+    },
+    "format": {
+      "generic": "Generic JSON"
+    },
+    "field": {
+      "name": "Name",
+      "kind": "Type",
+      "smtpHost": "SMTP server",
+      "smtpPort": "Port",
+      "security": "Security",
+      "username": "User name",
+      "password": "Password",
+      "from": "From",
+      "to": "Recipients (one address per line)",
+      "url": "Webhook URL",
+      "format": "Format",
+      "hmac": "Signing key",
+      "events": "Events",
+      "enabled": "Enabled"
+    },
+    "event": {
+      "action_completed": "Action completed",
+      "vulnerability_kev_new": "New actively exploited vulnerability in the fleet (KEV)",
+      "cve_sync_failed": "CVE feed sync failed"
+    },
+    "report": {
+      "compliance": "Patch compliance",
+      "vulnerabilities": "Vulnerabilities",
+      "missing-patches": "Missing patches",
+      "apps": "Application inventory"
+    },
+    "schedule": {
+      "add": "Schedule report",
+      "report": "Report",
+      "format": "Format",
+      "lang": "Language",
+      "weekday": "Day",
+      "daily": "Every day",
+      "hour": "Hour",
+      "channel": "Email channel",
+      "when": "When",
+      "lastRun": "Last run",
+      "empty": "No scheduled reports.",
+      "needEmail": "Add an email channel before scheduling a report."
+    }
   }
 }

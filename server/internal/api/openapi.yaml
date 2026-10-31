@@ -41,6 +41,10 @@ components:
       name: __Host-ber_session
     agentCert:
       type: mutualTLS
+      description: "Ajan sertifikası. Relay üzerinden gelen isteklerde relay, ajanın sertifikasını X-Ber-Agent-Cert başlığında iletir; sunucu bu başlığa yalnızca relay sertifikalı bağlantılarda güvenir."
+    relayCert:
+      type: mutualTLS
+      description: "Relay sertifikası (CN relay:<id>), ber-server relay create ile üretilir."
   parameters:
     CSRF:
       name: X-CSRF-Token
@@ -691,6 +695,130 @@ paths:
       responses:
         "200": { description: İptal edildi }
         "409": { description: Aksiyon zaten bitmiş }
+  /api/v1/actions/{id}/release-next:
+    post:
+      tags: [Aksiyonlar]
+      summary: Kademeli dağıtımın sonraki aşamasını elle aç (duraklatılmış olsa da)
+      security: [{ session: [] }]
+      x-ber-permission: "actions.deploy_package veya actions.run_command (türe göre)"
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Güncel aksiyon (released_stages arttı) }
+        "409": { description: Açılacak aşama yok }
+  /api/v1/maintenance-windows:
+    get:
+      tags: [Ayarlar]
+      summary: Bakım pencereleri (open_now ile)
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "items: [{id, name, weekdays (0=Pazar), start_minute, duration_minutes, timezone, scope_ous, enabled, open_now}]" }
+    post:
+      tags: [Ayarlar]
+      summary: Bakım penceresi ekle
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Geçersiz değer }
+  /api/v1/maintenance-windows/{id}:
+    put:
+      tags: [Ayarlar]
+      summary: Bakım penceresini güncelle
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+    delete:
+      tags: [Ayarlar]
+      summary: Bakım penceresini sil
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
+  /api/v1/relays:
+    get:
+      tags: [Ayarlar]
+      summary: Relay sunucuları (online = son 5 dakikada istek iletti)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200": { description: "items: [{id, name, hostnames, cert_expires_at, last_seen_at, last_ip, revoked_at, online}]" }
+  /api/v1/relays/{id}:
+    delete:
+      tags: [Ayarlar]
+      summary: Relay sertifikasını iptal et
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: İptal edildi }
+  /api/v1/notifications:
+    get:
+      tags: [Ayarlar]
+      summary: Bildirim kanalları, olay listesi ve zamanlanmış raporlar (gizli değerler dönmez)
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      responses:
+        "200": { description: "items: [kanal], events: [olay], schedules: [zamanlanmış rapor]" }
+  /api/v1/notifications/channels:
+    post:
+      tags: [Ayarlar]
+      summary: "Kanal ekle: email {smtp_host, smtp_port, security, username, from, to} veya webhook {url, format: generic|teams|slack}; secret = SMTP parolası veya HMAC anahtarı"
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Geçersiz değer }
+  /api/v1/notifications/channels/{id}:
+    put:
+      tags: [Ayarlar]
+      summary: Kanalı güncelle (secret boşsa mevcut değer korunur)
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+    delete:
+      tags: [Ayarlar]
+      summary: Kanalı sil (bağlı zamanlanmış raporlar da silinir)
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
+  /api/v1/notifications/channels/{id}/test:
+    post:
+      tags: [Ayarlar]
+      summary: Kanala deneme bildirimi gönder
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: "ok, message" }
+  /api/v1/notifications/schedules:
+    post:
+      tags: [Ayarlar]
+      summary: "Zamanlanmış rapor: report, format (pdf|xlsx|csv), lang, weekday (boş = her gün), hour, timezone, channel_id (e-posta kanalı)"
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "201": { description: Oluşturuldu }
+        "400": { description: Geçersiz değer }
+  /api/v1/notifications/schedules/{id}:
+    delete:
+      tags: [Ayarlar]
+      summary: Zamanlanmış raporu sil
+      security: [{ session: [] }]
+      x-ber-permission: settings.write
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
   /api/v1/settings/transfer:
     get:
       tags: [Ayarlar]
@@ -1111,3 +1239,13 @@ paths:
       responses:
         "204": { description: Teslim edildi }
         "404": { description: İstek bulunamadı veya zaman aşımına uğradı }
+  /agent/v1/relay/files/{sha256}:
+    get:
+      tags: [Ajan]
+      summary: "Relay önbelleği için paket dosyası (yalnızca relay sertifikası, hız sınırsız)"
+      security: [{ relayCert: [] }]
+      parameters: [{ name: sha256, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Dosya }
+        "403": { description: Relay sertifikası değil }
+        "404": { description: Dosya yok }

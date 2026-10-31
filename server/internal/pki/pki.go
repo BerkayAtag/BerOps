@@ -285,3 +285,68 @@ func randomSerial() (*big.Int, error) {
 	}
 	return n, nil
 }
+
+// RelayPrefix, relay sertifikalarının CN önekidir; sunucu bu önekle ajan kimliğinin relay
+// tarafından iletildiğini anlar.
+const RelayPrefix = "relay:"
+
+// RelayCert, relay için üretilen anahtar ve sertifikadır.
+type RelayCert struct {
+	CertPEM  []byte
+	KeyPEM   []byte
+	Serial   string
+	NotAfter time.Time
+}
+
+// IssueRelayCert, relay için anahtar üretir ve hem sunucu (ajanlara karşı) hem istemci
+// (sunucuya karşı) kullanımlı sertifika imzalar. Ajanlar relay'e de CA parmak iziyle güvenir.
+func (ca *CA) IssueRelayCert(relayID string, hosts []string, validity time.Duration) (*RelayCert, error) {
+	if len(hosts) == 0 {
+		return nil, errors.New("relay sertifikası için en az bir ana makine adı gerekli")
+	}
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	serial, err := randomSerial()
+	if err != nil {
+		return nil, err
+	}
+	start := ca.now().Add(-backdate)
+	tmpl := &x509.Certificate{
+		SerialNumber: serial,
+		Subject:      pkix.Name{CommonName: RelayPrefix + relayID, OrganizationalUnit: []string{"BER Relay"}},
+		NotBefore:    start,
+		NotAfter:     start.Add(validity),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+	}
+	for _, h := range hosts {
+		if ip := net.ParseIP(h); ip != nil {
+			tmpl.IPAddresses = append(tmpl.IPAddresses, ip)
+		} else {
+			tmpl.DNSNames = append(tmpl.DNSNames, h)
+		}
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, ca.Cert, &key.PublicKey, ca.key)
+	if err != nil {
+		return nil, fmt.Errorf("relay sertifikası imzalanamadı: %w", err)
+	}
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return nil, err
+	}
+	keyDER, err := x509.MarshalECPrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+	// Zincire CA da eklenir: ajanlar CA parmak izini sunulan zincirden doğrular.
+	chain := append(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
+		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Cert.Raw})...)
+	return &RelayCert{
+		CertPEM:  chain,
+		KeyPEM:   pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}),
+		Serial:   SerialString(cert),
+		NotAfter: cert.NotAfter,
+	}, nil
+}

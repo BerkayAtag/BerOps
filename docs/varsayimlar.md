@@ -118,3 +118,23 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 6.6 | Servisler (macOS) | launchd işleri `launchctl list` ile okunur; ajan root ise sistem, değilse kullanıcı alanı. Yalnızca kickstart (başlat/yeniden başlat) ve SIGTERM (durdur); etiket düzenli ifadeyle doğrulanır ve kabuk kullanılmaz. | `services_darwin.go` |
 | 6.7 | Kayıt defteri | 64 bit görünüm (`KEY_WOW64_64KEY`); HKCU kapsam dışı (servis SYSTEM hesabıyla çalışır, HKU üzerinden kullanıcı hive'larına erişilir). Yazma türleri: SZ, EXPAND_SZ, MULTI_SZ, DWORD, QWORD, BINARY. | `registry_windows.go` |
 | 6.8 | Yetkiler | Uzaktan yönetim izinleri yalnızca Admin rolünde. Teknisyene açmak için özel roller ileride eklenebilir. | `auth/rbac.go` |
+
+## Aşama 7 — Relay, bakım pencereleri, kademeli dağıtım, bildirimler
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 7.1 | Relay kimliği | Relay ayrı bir sertifika türüdür (CN `relay:<id>`, sunucu + istemci EKU). Zincire CA eklenir; ajanın CA parmak izi sabitlemesi değişmeden çalışır. Sertifika iptali veritabanındaki `revoked_at` ile yapılır, CRL/OCSP yoktur. | `pki.IssueRelayCert`, `relays` |
+| 7.2 | Ajan kimliğinin iletilmesi | Relay TLS'i sonlandırır ve ajan sertifikasını `X-Ber-Agent-Cert` (base64 DER) başlığıyla iletir. Sunucu başlığa yalnızca relay sertifikalı bağlantıda güvenir ve sertifikayı yeniden doğrular. TLS geçişi (SNI ile tünel) yerine bu yol seçildi; çünkü relay'in paket isteklerini görüp önbellekten yanıtlaması gerekir. | `api/relay_handlers.go`, `relay/relay` |
+| 7.3 | Relay önbelleği | İçerik adresli (SHA-256), LRU temizleme, varsayılan 50 GB. Relay dosyayı ancak sunucu bir ajanın indirme yetkisini onayladıktan sonra çeker; relay'e sunucudan hız sınırı uygulanmaz, ajana sunucunun belirlediği istemci başına sınır uygulanır. | `relay/relay/relay.go` |
+| 7.4 | Relay kaydı | Relay'ler konsoldan değil, sunucuda `ber-server relay create` komutuyla oluşturulur (özel anahtar ağ üzerinden taşınmaz). Konsol listeler ve iptal eder. | `cmd/ber-server` |
+| 7.5 | Bakım penceresi semantiği | Pencere yalnızca "Bakım penceresine uy" seçilen aksiyonları etkiler. Makineye uyan etkin pencere yoksa iş hemen verilir. Birden çok pencere uyuyorsa herhangi biri yeterlidir. Gece yarısını aşan pencere başladığı güne aittir. | `store/windows.go` |
+| 7.6 | Pencere ve geçerlilik süresi | Pencere dışında bekleyen işin geçerlilik süresi durmaz. Kullanıcının geçerlilik süresini pencereyi kapsayacak şekilde seçmesi beklenir; otomatik uzatma yapılmaz. | `api/rollout_handlers.go` |
+| 7.7 | Kademeli dağıtım kararı | Aşama açılmadan önce açılmış hedeflerin en az yarısının sonuçlanması beklenir. Başarı oranı = başarılı / (başarılı + başarısız + süresi dolan). Eşik altında dağıtım duraklar ve yalnızca elle devam ettirilir. | `RunRollouts` |
+| 7.8 | Aşama dağılımı | Hedefler aksiyon kimliği + makine kimliğinin FNV özetine göre sıralanıp yüzdelere bölünür. Ayrı "halka grubu" tablosu yerine yüzde tabanlı model seçildi; sabit pilot grupları ileride gruplar özelliğiyle eklenebilir. | `assignStages` |
+| 7.9 | Bildirim teslimi | Olaylar dakikalık döngüde üretilir ve `dedupe_key` ile bir kez gönderilir. Başarısız gönderim yeniden denenmez; hata kanalın `last_error` alanında görünür. Kuyruk/yeniden deneme ileride eklenebilir. | `api/notify_handlers.go` |
+| 7.10 | Webhook güvenliği | Yalnızca https (localhost için http). İsteğe bağlı HMAC-SHA256 imzası `X-Ber-Signature` başlığında. Webhook adresleri gizli sayılır; bildirim ayarları `settings.write` ister. | `validateChannel` |
+| 7.11 | E-posta | SMTP AUTH PLAIN; STARTTLS varsayılan. Gövde UTF-8 düz metin, konu RFC 2047 ile kodlanır. Ek boyutu raporla sınırlıdır; büyük filolarda Excel/CSV önerilir. | `sendEmail` |
+| 7.12 | Zamanlanmış raporlar | Tüm filo için üretilir (kapsam uygulanmaz); yalnızca e-posta kanalına gider. Saat ve gün kanalın değil zamanlamanın saat dilimine göredir. Kaçırılan çalışma telafi edilmez. | `runSchedules` |
+| 7.13 | Oturum saati | Oturum oluşturma ve son etkinlik zamanı veritabanı saatinden değil uygulama saatinden yazılır; boşta kalma kontrolü de aynı saatle yapılır. | `store.CreateSession` |
+| 7.14 | Yeniden başlatma politikaları | Spesifikasyondaki yeniden başlatma politikaları (erteleme, kullanıcıya bildirim) Aşama 7'de yok. Kurulum komutunun çıkış kodu 3010/1641 "yeniden başlatma gerekli" olarak kaydedilir; zorla yeniden başlatma yapılmaz. | — |
+

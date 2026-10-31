@@ -44,7 +44,8 @@ type Server struct {
 	secrets *secret.Box
 	dir     directory
 
-	remote remoteBroker
+	remote  remoteBroker
+	windows windowCache
 
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
@@ -119,6 +120,9 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("DELETE /api/v1/settings/ad/mappings/{id}", s.authed(auth.PermADConfigure, s.handleDeleteADMapping))
 	mux.Handle("GET /api/v1/ad/computers", s.authed(auth.PermMachinesRead, s.handleADComputers))
 
+	mux.Handle("GET /api/v1/relays", s.authed(auth.PermMachinesRead, s.handleListRelays))
+	mux.Handle("DELETE /api/v1/relays/{id}", s.authed(auth.PermSettingsWrite, s.handleRevokeRelay))
+
 	mux.Handle("GET /api/v1/settings/remote", s.authed(auth.PermSettingsRead, s.handleGetRemoteSettings))
 	mux.Handle("PUT /api/v1/settings/remote", s.authed(auth.PermRemoteSettings, s.handlePutRemoteSettings))
 	mux.Handle("GET /api/v1/machines/{id}/remote", s.authed(auth.PermMachinesRead, s.handleGetRemote))
@@ -156,6 +160,20 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("POST /api/v1/actions/{id}/approve", s.authed("", s.handleActionTransition("approve")))
 	mux.Handle("POST /api/v1/actions/{id}/reject", s.authed("", s.handleActionTransition("reject")))
 	mux.Handle("POST /api/v1/actions/{id}/cancel", s.authed("", s.handleActionTransition("cancel")))
+	mux.Handle("POST /api/v1/actions/{id}/release-next", s.authed("", s.handleReleaseNextStage))
+
+	mux.Handle("GET /api/v1/notifications", s.authed(auth.PermSettingsWrite, s.handleListChannels))
+	mux.Handle("POST /api/v1/notifications/channels", s.authed(auth.PermSettingsWrite, s.handleSaveChannel))
+	mux.Handle("PUT /api/v1/notifications/channels/{id}", s.authed(auth.PermSettingsWrite, s.handleSaveChannel))
+	mux.Handle("DELETE /api/v1/notifications/channels/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteChannel))
+	mux.Handle("POST /api/v1/notifications/channels/{id}/test", s.authed(auth.PermSettingsWrite, s.handleTestChannel))
+	mux.Handle("POST /api/v1/notifications/schedules", s.authed(auth.PermSettingsWrite, s.handleCreateSchedule))
+	mux.Handle("DELETE /api/v1/notifications/schedules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteSchedule))
+
+	mux.Handle("GET /api/v1/maintenance-windows", s.authed(auth.PermSettingsRead, s.handleListWindows))
+	mux.Handle("POST /api/v1/maintenance-windows", s.authed(auth.PermSettingsWrite, s.handleSaveWindow))
+	mux.Handle("PUT /api/v1/maintenance-windows/{id}", s.authed(auth.PermSettingsWrite, s.handleSaveWindow))
+	mux.Handle("DELETE /api/v1/maintenance-windows/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteWindow))
 
 	mux.Handle("GET /api/v1/settings/transfer", s.authed(auth.PermSettingsRead, s.handleGetTransferSettings))
 	mux.Handle("PUT /api/v1/settings/transfer", s.authed(auth.PermRateLimitManage, s.handlePutTransferSettings))
@@ -196,6 +214,7 @@ func (s *Server) AgentHandler() http.Handler {
 	mux.HandleFunc("POST /agent/v1/jobs/{id}/status", s.handleAgentJobStatus)
 	mux.HandleFunc("GET /agent/v1/packages/{id}/file", s.handlePackageDownload)
 	mux.HandleFunc("GET /agent/v1/remote/poll", s.handleRemotePoll)
+	mux.HandleFunc("GET /agent/v1/relay/files/{sha}", s.handleRelayFile)
 	mux.HandleFunc("POST /agent/v1/remote/{id}/result", s.handleRemoteResult)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "Uç nokta bulunamadı")

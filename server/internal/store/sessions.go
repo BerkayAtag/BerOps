@@ -15,11 +15,12 @@ type Session struct {
 	User       User
 }
 
-// CreateSession, yeni oturum kaydı ekler.
-func (s *Store) CreateSession(ctx context.Context, tokenHash []byte, userID, csrf string, expiresAt time.Time, ip, userAgent string) error {
+// CreateSession, yeni oturum kaydı ekler. Oluşturma ve son etkinlik zamanı uygulama saatinden
+// (now) yazılır; boşta kalma kontrolü de aynı saatle yapılır.
+func (s *Store) CreateSession(ctx context.Context, tokenHash []byte, userID, csrf string, now, expiresAt time.Time, ip, userAgent string) error {
 	_, err := s.pool.Exec(ctx, `
-		INSERT INTO sessions (token_hash, user_id, csrf_token, expires_at, ip, user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6)`, tokenHash, userID, csrf, expiresAt, ip, userAgent)
+		INSERT INTO sessions (token_hash, user_id, csrf_token, created_at, last_seen_at, expires_at, ip, user_agent)
+		VALUES ($1, $2, $3, $4, $4, $5, $6, $7)`, tokenHash, userID, csrf, now, expiresAt, ip, userAgent)
 	return err
 }
 

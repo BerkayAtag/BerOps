@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/BerkayAtag/automation-ber/server/internal/auth"
+	"github.com/BerkayAtag/automation-ber/server/internal/pki"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
 )
@@ -110,6 +111,15 @@ func (s *Server) agentFromTLS(w http.ResponseWriter, r *http.Request) (*store.Ma
 		return nil, false
 	}
 	leaf := r.TLS.VerifiedChains[0][0]
+	if strings.HasPrefix(leaf.Subject.CommonName, pki.RelayPrefix) {
+		// İstek bir relay üzerinden geldi: relay doğrulanır, ajanın sertifikası relay'in
+		// eklediği başlıktan alınır ve CA'ya göre yeniden doğrulanır.
+		agent, ok := s.agentViaRelay(w, r, leaf)
+		if !ok {
+			return nil, false
+		}
+		leaf = agent
+	}
 	id := leaf.Subject.CommonName
 	if !validUUID(id) {
 		writeError(w, http.StatusUnauthorized, codeAgentUnknown, "Ajan tanınmıyor")
@@ -176,8 +186,8 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	resp.ActionKey = s.actionPublicKey()
 	s.heartbeatRemote(r, m, &resp)
 	if m.Status == protocol.StatusActive {
-		if n, err := s.store.PendingJobCount(r.Context(), m.ID, s.now()); err == nil {
-			resp.PendingJobs = n
+		if jobs, err := s.machineJobs(r.Context(), m); err == nil {
+			resp.PendingJobs = len(jobs)
 		} else {
 			s.log.Warn("bekleyen işler okunamadı", "ajan", m.ID, "hata", err)
 		}

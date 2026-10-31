@@ -138,7 +138,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	now := s.now()
 	expires := now.Add(s.cfg.Session.AbsoluteTimeout.D())
-	if err := s.store.CreateSession(r.Context(), auth.HashToken(token), user.ID, csrf, expires, ip, r.UserAgent()); err != nil {
+	if err := s.store.CreateSession(r.Context(), auth.HashToken(token), user.ID, csrf, s.now(), expires, ip, r.UserAgent()); err != nil {
 		s.log.Error("oturum oluşturulamadı", "hata", err)
 		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
 		return

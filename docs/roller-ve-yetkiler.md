@@ -17,8 +17,8 @@ Automation BER'de her API uç noktası **sunucu tarafında** granüler bir izinl
 | `actions.approve` | Dört göz onayı (kendi aksiyonu hariç) | ✅ | — | — |
 | `actions.deploy_patch` | İşletim sistemi yaması dağıtımı (ileride) | ✅ | — | — |
 | `remote.*` | Uzaktan performans, servis, kayıt defteri (Aşama 6) | ✅ | — | — |
-| `settings.read` | Ayarları görme | ✅ | ✅ | ✅ |
-| `settings.write` | Ajan ve CVE ayarları | ✅ | — | — |
+| `settings.read` | Ayarları görme (bakım pencereleri dahil; bildirim ayarları hariç) | ✅ | ✅ | ✅ |
+| `settings.write` | Ajan, CVE, bakım penceresi ve bildirim ayarları; relay iptali | ✅ | — | — |
 | `transfer.limits.manage` | Hız sınırı ve komut onayı ayarı | ✅ | — | — |
 | `users.manage` | Kullanıcı yönetimi | ✅ | — | — |
 | `ad.configure` | Active Directory ayarları ve eşlemeler | ✅ | — | — |

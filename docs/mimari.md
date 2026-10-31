@@ -31,7 +31,7 @@ Bu belge Automation BER'in bileşenlerini, aralarındaki iletişimi, güvenlik m
 | Bileşen | Dil / Teknoloji | Görev |
 |---|---|---|
 | **BER Server** (`server/`) | Go, `net/http`, PostgreSQL (pgx) | Merkezi API, kimlik doğrulama, RBAC, iç CA, ajan kaydı, iş kuyruğu, CVE motoru, paket deposu, raporlama |
-| **BER Relay** (`relay/`) | Go | Şube/segment için önbellekleyen dağıtım noktası (Aşama 7) |
+| **BER Relay** (`relay/`) | Go | Şube/segment için önbellekleyen dağıtım noktası; ajan TLS'ini sonlandırır, ajan kimliğini sunucuya iletir, paketleri SHA-256 ile doğrulayıp önbelleğe alır |
 | **BER Agent** (`agent/`) | Go, tek binary | Envanter, yama tespiti, iş yürütme, heartbeat. Windows servisi / macOS `launchd` daemon'ı |
 | **BER Console** (`console/`) | React + TypeScript + Vite | Tarayıcı tabanlı yönetim arayüzü |
 | **Tanıtım sayfası** (`landing/`) | Statik HTML/CSS | GitHub Pages (Aşama 8) |
@@ -287,19 +287,33 @@ Ayrıntılar: [uzaktan-yonetim.md](uzaktan-yonetim.md).
 
 Kayıt defteri değişikliklerinin önceki değerleri denetim kaydında tutulur.
 
+### Aşama 7 — Gelişmiş dağıtım
+
+| Tablo | Amaç | Önemli alanlar |
+|---|---|---|
+| `relays` | Relay kayıtları | `name`, `hostnames`, `cert_serial`, `cert_expires_at`, `last_seen_at`, `revoked_at` |
+| `maintenance_windows` | Bakım pencereleri | `weekdays`, `start_minute`, `duration_minutes`, `timezone`, `scope_ous`, `enabled` |
+| `notification_channels` | E-posta / webhook kanalları | `kind`, `config` (jsonb), `secret_enc`, `events`, `last_sent_at`, `last_error` |
+| `notification_events` | Gönderilen olayların tekilleştirilmesi | `event`, `dedupe_key` (benzersiz), `payload` |
+| `report_schedules` | Zamanlanmış raporlar | `report`, `format`, `lang`, `weekday`, `hour`, `timezone`, `channel_id` |
+
+`actions` tablosuna `respect_windows`, `rollout` (jsonb) ve `paused_reason`; `action_targets` tablosuna `stage` ve `released` eklendi. Ajan yalnızca `released` hedeflerin işlerini alır.
+
+Ayrıntılar: [gelismis-dagitim.md](gelismis-dagitim.md).
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
 |---|---|
-| 7 – Gelişmiş dağıtım | `relays`, `maintenance_windows`, `rollout_rings`, `restart_policies`, `notification_channels`, `notification_rules` |
-| Gruplar (2–5) | `groups` (statik / OU / dinamik kural), `group_members`, `tags`, `machine_tags` |
+| Yeniden başlatma politikaları | `restart_policies` |
+| Gruplar | `groups` (statik / OU / dinamik kural), `group_members`, `tags`, `machine_tags` |
 
 ## 7. Klasör yapısı
 
 ```
 agent/                 Ajan (cmd/ber-agent, cmd/ber-agentsim, internal/…)
 server/                Sunucu (cmd/ber-server, internal/…, api/openapi.yaml)
-relay/                 Relay (Aşama 7)
+relay/                 Relay (cmd/ber-relay, relay/)
 shared/                Ortak Go paketleri (protocol, version)
 console/               React + TS + Vite konsol
 design/                Ortak tasarım token'ları (tokens.css)
