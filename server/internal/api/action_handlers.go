@@ -848,7 +848,7 @@ func (s *Server) handlePackageDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	noWriteDeadline(w)
-	w.Header().Set("Content-Type", "application/octet-stream")
+	fileDownloadHeaders(w, "application/octet-stream")
 	w.Header().Set("ETag", `"`+g.SHA256+`"`)
 	w.Header().Set("X-Ber-Rate-Kbps", strconv.Itoa(s.clientRate(r, g.BandwidthKbps)))
 	http.ServeContent(newThrottledWriter(r.Context(), w, s.clientRate(r, g.BandwidthKbps)), r, g.FileName, info.ModTime(), f)
