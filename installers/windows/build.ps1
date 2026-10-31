@@ -52,4 +52,6 @@ wix build -arch x64 -culture tr-TR `
 if ($LASTEXITCODE -ne 0) { throw "sunucu MSI derlenemedi" }
 
 Remove-Item $rtf
+# WiX hata ayıklama dosyaları (.wixpdb) kurulum için gerekmez; yayına girmesin.
+Remove-Item (Join-Path $OutDir '*.wixpdb') -ErrorAction SilentlyContinue
 Get-ChildItem $OutDir -Filter *.msi | Format-Table Name, Length
