@@ -12,12 +12,13 @@ const NAV_ITEMS: { key: string; to?: string; end?: boolean }[] = [
   { key: "machines", to: "/makineler" },
   { key: "patches" },
   { key: "vulnerabilities", to: "/zafiyetler" },
-  { key: "packages" },
-  { key: "actions" },
+  { key: "packages", to: "/paketler" },
+  { key: "actions", to: "/aksiyonlar" },
   { key: "reports", to: "/raporlar" },
   { key: "audit" },
   { key: "settingsAgent", to: "/ayarlar/ajan" },
   { key: "settingsCve", to: "/ayarlar/cve" },
+  { key: "settingsTransfer", to: "/ayarlar/aktarim" },
 ];
 
 export function AppShell({ me, children }: { me: Me; children: ReactNode }) {

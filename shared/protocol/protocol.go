@@ -52,6 +52,9 @@ type EnrollResponse struct {
 	CertificatePEM   string `json:"certificate_pem"`
 	CACertificatePEM string `json:"ca_certificate_pem"`
 	HeartbeatSeconds int    `json:"heartbeat_seconds"`
+	// ActionKey, sunucunun aksiyon imza anahtarının (Ed25519) açık anahtarıdır. Ajan bu anahtarı
+	// sabitler ve yalnızca bu anahtarla imzalanmış işleri çalıştırır.
+	ActionKey []byte `json:"action_key,omitempty"`
 }
 
 // HeartbeatRequest, mTLS ile gönderilir; ajan kimliği istemci sertifikasından alınır.
@@ -76,6 +79,11 @@ type HeartbeatResponse struct {
 	// ScanRequestedAt, konsoldan "yeniden tara" istendiğinde isteğin zamanını taşır. Tarama
 	// sonucu sunucuya ulaşana kadar her heartbeat'te tekrarlanır; ajan aynı isteği bir kez işler.
 	ScanRequestedAt *time.Time `json:"scan_requested_at,omitempty"`
+	// PendingJobs, ajanı bekleyen iş sayısıdır; sıfırdan büyükse ajan işleri çeker.
+	PendingJobs int `json:"pending_jobs,omitempty"`
+	// ActionKey, aksiyon imza anahtarıdır. Aşama 4'ten önce kaydolan ajanlar anahtarı ilk
+	// heartbeat'te öğrenip sabitler.
+	ActionKey []byte `json:"action_key,omitempty"`
 }
 
 // ErrorResponse, tüm API hatalarının ortak gövdesidir. Code makine tarafından okunur

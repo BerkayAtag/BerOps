@@ -3,6 +3,7 @@ package api
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/tls"
 	_ "embed"
 	"log/slog"
@@ -34,6 +35,10 @@ type Server struct {
 	cveSync     *cve.Syncer
 	syncTrigger chan struct{}
 
+	// signKey, ajanlara gönderilen işleri imzalar. Varsayılan bellekte üretilir (testler);
+	// sunucu açılışta kalıcı anahtarı SetSigningKey ile verir.
+	signKey ed25519.PrivateKey
+
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
 	// dummyHash, var olmayan kullanıcılar için de parola doğrulaması yapılarak yanıt
@@ -55,6 +60,7 @@ func New(cfg config.Config, st *store.Store, ca *pki.CA, log *slog.Logger) (*Ser
 		now:         time.Now,
 		dummyHash:   dummy,
 		syncTrigger: make(chan struct{}, 1),
+		signKey:     pki.NewSigningKey(),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -67,6 +73,12 @@ func New(cfg config.Config, st *store.Store, ca *pki.CA, log *slog.Logger) (*Ser
 	s.enrollLimiter = auth.NewAttemptLimiter(10, 15*time.Minute).WithClock(clock)
 	return s, nil
 }
+
+// SetSigningKey, kalıcı aksiyon imza anahtarını ayarlar.
+func (s *Server) SetSigningKey(k ed25519.PrivateKey) { s.signKey = k }
+
+// actionPublicKey, ajanların sabitlediği açık anahtardır.
+func (s *Server) actionPublicKey() []byte { return s.signKey.Public().(ed25519.PublicKey) }
 
 // ConsoleHandler, konsol dinleyicisinin işleyicisidir.
 func (s *Server) ConsoleHandler() http.Handler {
@@ -99,6 +111,22 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("POST /api/v1/machines/{id}/approve", s.authed(auth.PermMachinesManage, s.handleSetMachineStatus("approve")))
 	mux.Handle("POST /api/v1/machines/{id}/reject", s.authed(auth.PermMachinesManage, s.handleSetMachineStatus("reject")))
 
+	mux.Handle("GET /api/v1/packages", s.authed(auth.PermPackagesRead, s.handleListPackages))
+	mux.Handle("POST /api/v1/packages", s.authed(auth.PermPackagesUpload, s.handleUploadPackage))
+	mux.Handle("GET /api/v1/packages/{id}", s.authed(auth.PermPackagesRead, s.handleGetPackage))
+	mux.Handle("DELETE /api/v1/packages/{id}", s.authed(auth.PermPackagesDelete, s.handleDeletePackage))
+
+	// Aksiyon oluşturma izni türe göre (paket / komut) işleyicide denetlenir.
+	mux.Handle("POST /api/v1/actions", s.authed("", s.handleCreateAction))
+	mux.Handle("GET /api/v1/actions", s.authed(auth.PermMachinesRead, s.handleListActions))
+	mux.Handle("GET /api/v1/actions/{id}", s.authed(auth.PermMachinesRead, s.handleGetAction))
+	mux.Handle("POST /api/v1/actions/{id}/approve", s.authed("", s.handleActionTransition("approve")))
+	mux.Handle("POST /api/v1/actions/{id}/reject", s.authed("", s.handleActionTransition("reject")))
+	mux.Handle("POST /api/v1/actions/{id}/cancel", s.authed("", s.handleActionTransition("cancel")))
+
+	mux.Handle("GET /api/v1/settings/transfer", s.authed(auth.PermSettingsRead, s.handleGetTransferSettings))
+	mux.Handle("PUT /api/v1/settings/transfer", s.authed(auth.PermRateLimitManage, s.handlePutTransferSettings))
+
 	mux.Handle("GET /api/v1/settings/agent", s.authed(auth.PermSettingsRead, s.handleGetAgentSettings))
 	mux.Handle("PUT /api/v1/settings/agent", s.authed(auth.PermSettingsWrite, s.handlePutAgentSettings))
 
@@ -130,6 +158,9 @@ func (s *Server) AgentHandler() http.Handler {
 	mux.HandleFunc("POST /agent/v1/heartbeat", s.handleHeartbeat)
 	mux.HandleFunc("POST /agent/v1/inventory", s.handleInventory)
 	mux.HandleFunc("GET /agent/v1/files/wsusscn2.cab", s.handleWSUSCab)
+	mux.HandleFunc("GET /agent/v1/jobs", s.handleAgentJobs)
+	mux.HandleFunc("POST /agent/v1/jobs/{id}/status", s.handleAgentJobStatus)
+	mux.HandleFunc("GET /agent/v1/packages/{id}/file", s.handlePackageDownload)
 	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "Uç nokta bulunamadı")
 	})
@@ -165,6 +196,11 @@ func (s *Server) RunMaintenance(ctx context.Context, every time.Duration) {
 			}
 			s.loginLimiter.Sweep()
 			s.enrollLimiter.Sweep()
+			if n, err := s.store.ExpireActions(ctx, s.now()); err != nil {
+				s.log.Warn("süresi dolan aksiyonlar kapatılamadı", "hata", err)
+			} else if n > 0 {
+				s.log.Info("süresi dolan aksiyon hedefleri kapatıldı", "adet", n)
+			}
 			// Günün uyumluluk özeti her turda güncellenir; geçmiş günler eğilim grafiğinde kalır.
 			if err := s.store.SaveComplianceSnapshot(ctx, s.now()); err != nil {
 				s.log.Warn("uyumluluk özeti yazılamadı", "hata", err)

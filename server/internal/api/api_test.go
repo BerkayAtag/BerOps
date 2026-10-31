@@ -49,6 +49,7 @@ func newEnv(t *testing.T) *env {
 	}
 	cfg := config.Default()
 	cfg.DatabaseURL = "test"
+	cfg.DataDir = t.TempDir()
 	srv, err := New(cfg, st, ca, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err != nil {
 		t.Fatal(err)

@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -81,5 +82,28 @@ func TestSaveEnrollmentRejectsGarbage(t *testing.T) {
 	s := Store{Dir: t.TempDir()}
 	if err := s.SaveEnrollment(&protocol.EnrollResponse{CertificatePEM: "çöp"}, time.Now()); err == nil {
 		t.Fatal("PEM olmayan sertifika reddedilmeli")
+	}
+}
+
+func TestPinActionKey(t *testing.T) {
+	s := Store{Dir: t.TempDir()}
+	if s.ActionKey() != nil {
+		t.Fatal("başlangıçta anahtar olmamalı")
+	}
+	k1 := make([]byte, 32)
+	k1[0] = 1
+	k2 := make([]byte, 32)
+	k2[0] = 2
+	if err := s.PinActionKey(k1); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PinActionKey(k1); err != nil {
+		t.Errorf("aynı anahtar kabul edilmeli: %v", err)
+	}
+	if err := s.PinActionKey(k2); !errors.Is(err, ErrActionKeyMismatch) {
+		t.Errorf("farklı anahtar reddedilmeli: %v", err)
+	}
+	if got := s.ActionKey(); got[0] != 1 {
+		t.Error("sabitlenen anahtar değişmemeli")
 	}
 }

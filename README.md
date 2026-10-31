@@ -4,7 +4,7 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)** ve **Aşama 3 (CVE motoru ve raporlar)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)** ve **Aşama 4 (Paket kütüphanesi ve dağıtım)** tamamlandı. Yol haritası aşağıda.
 
 ## Bileşenler
 
@@ -46,6 +46,26 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 - **Raporlar:** Uyumluluk, zafiyet, eksik yama ve uygulama envanteri raporları PDF, Excel ve CSV olarak; Türkçe veya İngilizce, kullanıcının saat diliminde. Her dışa aktarma denetim kaydına yazılır.
 
 Gerçek kaynaklarla ölçüm (MacBook, PostgreSQL 17, API anahtarı olmadan): ilk eşitleme 3 dk 24 sn sürdü (KEV 1 sn, EPSS 1,4 sn, MSRC 12 ay 47 sn, NVD 41 ürün 2 dk 29 sn). 31 makinenin yeniden hesaplanması 5,6 sn sürdü.
+
+## Aşama 4'te neler var?
+
+- **Paket kütüphanesi:**
+  - Desteklenen türler: MSI, EXE, PKG, DMG ve "dosya + komut" paketleri.
+  - Yükleme akış halinde yapılır ve sunucuda SHA-256 hesaplanır; dosyalar içerik adresli saklanır.
+  - Kurulu uygulama kalıbıyla paketten eski sürümü çalıştıran makineler bulunur; tek tıkla güncelleme gönderilir.
+- **Aksiyonlar:**
+  - Paket dağıtımı ve CMD/PowerShell (Windows) ile sh/zsh (macOS) komutları desteklenir.
+  - Makine başına durum, çıkış kodu, standart ve hata çıktısı görülür.
+  - Zaman aşımı, geçerlilik süresi ve iptal ayarlanabilir.
+- **Rol kuralları:** Teknisyen yalnızca kütüphanedeki paketleri gönderebilir; serbest komut ayrı bir izindir. İsteğe bağlı dört göz onayında oluşturan kişi kendi komutunu onaylayamaz.
+- **İmzalı işler:**
+  - Her iş, hedef makine kimliği ve dosya özetiyle birlikte sunucunun Ed25519 anahtarıyla imzalanır.
+  - Ajan anahtarı sabitler; imza, makine, süre ve SHA-256 doğrulanmadan hiçbir şey çalışmaz.
+  - Aynı iş ikinci kez çalıştırılmaz.
+- **Hız sınırı:** İstemci başına sunucu tarafında uygulanır; varsayılan 10 Mbps, aksiyon bazında düşürülebilir. İndirmeler kaldığı yerden sürer. Aynı sınır Windows Update kataloğuna da uygulanır.
+- **Denetim:** Aksiyonlar komut metniyle birlikte denetim kaydına yazılır. Kayıt yazılamazsa aksiyon oluşturulmaz.
+
+Ayrıntılar: [docs/dagitim.md](docs/dagitim.md). Ölçüm: 1 MB'lık paket, 10 Mbps sınırla 12 sanal ajana 16 saniye içinde ulaştı; gerçek macOS ajanında komut ve betik paketi uçtan uca doğrulandı.
 
 ## Ajan kaynak kullanımı
 
@@ -167,7 +187,7 @@ npm --prefix console test -- --run
 | 1 | Repo iskeleti, CI, veritabanı şeması, API iskeleti, mTLS ajan kaydı ve heartbeat, giriş ekranı ve tema | ✅ |
 | 2 | Envanter: yama seviyesi, eksik yamalar, üçüncü parti uygulamalar; kaynak kısıtlama; makine listesi ve detay | ✅ |
 | 3 | CVE motoru: NVD, MSRC, KEV, EPSS; risk skoru; dashboard ve raporlar | ✅ |
-| 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ⏳ |
+| 4 | Dağıtım: paket kütüphanesi, hız limitli ve imzalı transfer, aksiyonlar | ✅ |
 | 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ⏳ |
 | 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ⏳ |
 | 7 | Relay, bakım pencereleri, kademeli dağıtım, bildirimler | ⏳ |
@@ -177,6 +197,7 @@ npm --prefix console test -- --run
 
 - [Mimari](docs/mimari.md)
 - [CVE motoru ve raporlar](docs/cve.md)
+- [Paket dağıtımı ve komut çalıştırma](docs/dagitim.md)
 - [Varsayımlar ve kararlar](docs/varsayimlar.md)
 - [API](docs/api.md)
 - [Katkıda bulunma](CONTRIBUTING.md)

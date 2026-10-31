@@ -81,7 +81,8 @@
     "audit": "Audit Log",
     "settings": "Settings",
     "settingsAgent": "Agent settings",
-    "settingsCve": "CVE sources"
+    "settingsCve": "CVE sources",
+    "settingsTransfer": "Transfer settings"
   },
   "home": {
     "title": "Dashboard",
@@ -179,7 +180,9 @@
     "rescanSelected": "Rescan selected",
     "rescanQueued": "Scan requested for {{count}} machines. Agents start scanning at their next heartbeat.",
     "noInventory": "Waiting for inventory",
-    "rebootPending": "Restart pending"
+    "rebootPending": "Restart pending",
+    "deploySelected": "Deploy package",
+    "runCommandSelected": "Run command"
   },
   "machine": {
     "notFound": "Machine not found.",
@@ -263,7 +266,10 @@
       "kev": "KEV",
       "computedAt": "Computed"
     },
-    "vulnsNone": "No known vulnerabilities on this machine."
+    "vulnsNone": "No known vulnerabilities on this machine.",
+    "deploy": "Deploy package",
+    "runCommand": "Run command",
+    "actionsTab": "Actions"
   },
   "severity": {
     "Critical": "Critical",
@@ -457,5 +463,153 @@
     "ruleCpe": "CPE product",
     "ruleType": "Type",
     "publisherShort": "publisher"
+  },
+  "packages": {
+    "title": "Package Library",
+    "subtitle": "Installation packages ready for deployment. Technicians can only deploy packages from here.",
+    "upload": "Upload package",
+    "uploadTitle": "New package",
+    "searchPlaceholder": "Package name or publisher",
+    "empty": "No packages yet.",
+    "col": {
+      "name": "Package",
+      "version": "Version",
+      "platform": "Platform",
+      "installer": "Type",
+      "size": "Size",
+      "created": "Added"
+    },
+    "field": {
+      "name": "Package name",
+      "version": "Version",
+      "publisher": "Publisher",
+      "platform": "Platform",
+      "installer": "Installer type",
+      "file": "File",
+      "command": "Install command",
+      "shell": "Shell",
+      "successCodes": "Success exit codes",
+      "detectName": "Installed app name pattern",
+      "description": "Description"
+    },
+    "hint": {
+      "command": "Leave empty to use the default for the type. {file} is the full path of the downloaded file.",
+      "successCodes": "Comma separated; defaults to 0, 1641, 3010 for MSI.",
+      "detectName": "E.g. ^7-zip — machines with this app at an older version appear under \"update required\".",
+      "dmg": "For DMG with an empty command the agent mounts the image, installs the .pkg inside or copies the .app to Applications."
+    },
+    "installer": {
+      "msi": "MSI",
+      "exe": "EXE",
+      "pkg": "PKG",
+      "dmg": "DMG",
+      "file": "File + command"
+    },
+    "uploading": "Uploading… {{pct}}",
+    "uploaded": "Package uploaded.",
+    "delete": "Delete package",
+    "deleteConfirm": "Remove \"{{name}}\" from the library? Past action records are kept.",
+    "detail": "Package details",
+    "sha": "SHA-256",
+    "outdated": "Machines needing an update ({{count}})",
+    "upToDate": "{{count}} machines have this version or newer.",
+    "noDetect": "No installed-app pattern is defined for this package.",
+    "deployOutdated": "Deploy to these machines",
+    "deploy": "Deploy",
+    "installedVersion": "Installed version"
+  },
+  "actions": {
+    "title": "Actions",
+    "subtitle": "Package deployments and command runs. Every action is signed and written to the audit log.",
+    "new": "New action",
+    "empty": "No actions yet.",
+    "kind": {
+      "deploy_package": "Package deployment",
+      "run_command": "Run command"
+    },
+    "status": {
+      "pending_approval": "Awaiting approval",
+      "active": "In progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected"
+    },
+    "target": {
+      "pending": "Pending",
+      "downloading": "Downloading",
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "col": {
+      "name": "Action",
+      "kind": "Type",
+      "status": "Status",
+      "progress": "Progress",
+      "createdBy": "Created by",
+      "created": "Created",
+      "machine": "Machine",
+      "exitCode": "Exit code",
+      "finished": "Finished",
+      "output": "Output"
+    },
+    "progress": "{{done}} / {{total}}",
+    "filterStatus": "Status",
+    "filterKind": "Type",
+    "approve": "Approve",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "cancelConfirm": "Cancel this action? Targets that have not started will not run.",
+    "detail": "Action details",
+    "command": "Command",
+    "package": "Package",
+    "shell": "Shell",
+    "timeout": "Timeout",
+    "bandwidth": "Per-client speed",
+    "expires": "Expires",
+    "approvedAt": "Approved",
+    "noOutput": "No output",
+    "stdout": "Standard output",
+    "stderr": "Error output",
+    "error": "Error",
+    "showOutput": "Show output",
+    "hideOutput": "Hide output",
+    "pendingApprovalNotice": "Under the four-eyes rule this command is waiting for another administrator's approval.",
+    "wizard": {
+      "title": "New action",
+      "kind": "What to do?",
+      "package": "Package",
+      "pickPackage": "Choose a package",
+      "command": "Command",
+      "shell": "Shell",
+      "targets": "Target machines ({{count}})",
+      "searchMachines": "Search and add machines",
+      "noTargets": "No machines selected yet.",
+      "remove": "Remove",
+      "options": "Options",
+      "timeout": "Timeout (seconds)",
+      "bandwidth": "Per-client speed (kbps)",
+      "bandwidthHint": "Global limit: {{kbps}} kbps. You can set a lower value.",
+      "expires": "Valid for (hours)",
+      "name": "Action name (optional)",
+      "submit": "Start action",
+      "submitting": "Submitting…",
+      "approvalNote": "Command actions require approval; they do not run until another administrator approves.",
+      "platformMismatch": "This package can only be deployed to {{platform}} machines.",
+      "noPermission": "You do not have permission for this action type.",
+      "commandHint": "Windows: cmd or PowerShell; macOS: sh or zsh. Runs as SYSTEM/root. Up to 32 KB."
+    }
+  },
+  "transfer": {
+    "title": "Transfer settings",
+    "subtitle": "Per-client speed limit for file transfers, upload limit and command approval.",
+    "perClient": "Maximum speed per client (kbps)",
+    "perClientHint": "Default 10,000 kbps (10 Mbps). Applies to package and Windows Update catalog downloads.",
+    "maxUpload": "Maximum package size (MB)",
+    "approval": "Command actions require four-eyes approval",
+    "approvalHint": "When enabled, a command created by an administrator does not run until another administrator approves it.",
+    "expiry": "Default action validity (hours)"
   }
 }

@@ -81,7 +81,8 @@
     "audit": "Denetim Kaydı",
     "settings": "Ayarlar",
     "settingsAgent": "Ajan ayarları",
-    "settingsCve": "CVE kaynakları"
+    "settingsCve": "CVE kaynakları",
+    "settingsTransfer": "Aktarım ayarları"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -179,7 +180,9 @@
     "rescanSelected": "Seçilenleri yeniden tara",
     "rescanQueued": "{{count}} makine için tarama istendi. Ajanlar bir sonraki heartbeat'te taramaya başlar.",
     "noInventory": "Envanter bekleniyor",
-    "rebootPending": "Yeniden başlatma bekliyor"
+    "rebootPending": "Yeniden başlatma bekliyor",
+    "deploySelected": "Paket gönder",
+    "runCommandSelected": "Komut çalıştır"
   },
   "machine": {
     "notFound": "Makine bulunamadı.",
@@ -263,7 +266,10 @@
       "kev": "KEV",
       "computedAt": "Hesaplanma"
     },
-    "vulnsNone": "Bu makinede bilinen açık bulunamadı."
+    "vulnsNone": "Bu makinede bilinen açık bulunamadı.",
+    "deploy": "Paket gönder",
+    "runCommand": "Komut çalıştır",
+    "actionsTab": "Aksiyonlar"
   },
   "severity": {
     "Critical": "Kritik",
@@ -457,5 +463,153 @@
     "ruleCpe": "CPE ürünü",
     "ruleType": "Tür",
     "publisherShort": "yayıncı"
+  },
+  "packages": {
+    "title": "Paket Kütüphanesi",
+    "subtitle": "Dağıtıma hazır kurulum paketleri. Teknisyenler yalnızca buradaki paketleri gönderebilir.",
+    "upload": "Paket yükle",
+    "uploadTitle": "Yeni paket",
+    "searchPlaceholder": "Paket adı veya yayıncı",
+    "empty": "Henüz paket yok.",
+    "col": {
+      "name": "Paket",
+      "version": "Sürüm",
+      "platform": "Platform",
+      "installer": "Tür",
+      "size": "Boyut",
+      "created": "Eklenme"
+    },
+    "field": {
+      "name": "Paket adı",
+      "version": "Sürüm",
+      "publisher": "Yayıncı",
+      "platform": "Platform",
+      "installer": "Yükleyici türü",
+      "file": "Dosya",
+      "command": "Kurulum komutu",
+      "shell": "Kabuk",
+      "successCodes": "Başarılı çıkış kodları",
+      "detectName": "Kurulu uygulama adı kalıbı",
+      "description": "Açıklama"
+    },
+    "hint": {
+      "command": "Boş bırakılırsa türe göre varsayılan kullanılır. {file} indirilen dosyanın tam yoludur.",
+      "successCodes": "Virgülle ayırın; boşsa MSI için 0, 1641, 3010.",
+      "detectName": "Örn. ^7-zip — bu adla kurulu ve daha eski sürümdeki makineler \"güncelleme gerekli\" listesinde görünür.",
+      "dmg": "DMG için komut boş bırakılırsa ajan imajı bağlar; içindeki .pkg'yi kurar veya .app'i Uygulamalar klasörüne kopyalar."
+    },
+    "installer": {
+      "msi": "MSI",
+      "exe": "EXE",
+      "pkg": "PKG",
+      "dmg": "DMG",
+      "file": "Dosya + komut"
+    },
+    "uploading": "Yükleniyor… {{pct}}",
+    "uploaded": "Paket yüklendi.",
+    "delete": "Paketi sil",
+    "deleteConfirm": "\"{{name}}\" paketi kütüphaneden kaldırılsın mı? Geçmiş aksiyon kayıtları korunur.",
+    "detail": "Paket bilgileri",
+    "sha": "SHA-256",
+    "outdated": "Güncelleme gereken makineler ({{count}})",
+    "upToDate": "{{count}} makinede bu sürüm veya daha yenisi kurulu.",
+    "noDetect": "Bu paket için kurulu uygulama kalıbı tanımlanmamış.",
+    "deployOutdated": "Bu makinelere gönder",
+    "deploy": "Gönder",
+    "installedVersion": "Kurulu sürüm"
+  },
+  "actions": {
+    "title": "Aksiyonlar",
+    "subtitle": "Paket dağıtımları ve komut çalıştırmaları. Her aksiyon imzalanır ve denetim kaydına yazılır.",
+    "new": "Yeni aksiyon",
+    "empty": "Henüz aksiyon yok.",
+    "kind": {
+      "deploy_package": "Paket dağıtımı",
+      "run_command": "Komut çalıştırma"
+    },
+    "status": {
+      "pending_approval": "Onay bekliyor",
+      "active": "Sürüyor",
+      "completed": "Tamamlandı",
+      "cancelled": "İptal edildi",
+      "rejected": "Reddedildi"
+    },
+    "target": {
+      "pending": "Bekliyor",
+      "downloading": "İndiriliyor",
+      "running": "Çalışıyor",
+      "succeeded": "Başarılı",
+      "failed": "Başarısız",
+      "cancelled": "İptal",
+      "expired": "Süresi doldu"
+    },
+    "col": {
+      "name": "Aksiyon",
+      "kind": "Tür",
+      "status": "Durum",
+      "progress": "İlerleme",
+      "createdBy": "Oluşturan",
+      "created": "Oluşturulma",
+      "machine": "Makine",
+      "exitCode": "Çıkış kodu",
+      "finished": "Bitiş",
+      "output": "Çıktı"
+    },
+    "progress": "{{done}} / {{total}}",
+    "filterStatus": "Durum",
+    "filterKind": "Tür",
+    "approve": "Onayla",
+    "reject": "Reddet",
+    "cancel": "İptal et",
+    "cancelConfirm": "Aksiyon iptal edilsin mi? Henüz başlamamış hedefler çalıştırılmaz.",
+    "detail": "Aksiyon bilgileri",
+    "command": "Komut",
+    "package": "Paket",
+    "shell": "Kabuk",
+    "timeout": "Zaman aşımı",
+    "bandwidth": "İstemci başına hız",
+    "expires": "Geçerlilik sonu",
+    "approvedAt": "Onay",
+    "noOutput": "Çıktı yok",
+    "stdout": "Standart çıktı",
+    "stderr": "Hata çıktısı",
+    "error": "Hata",
+    "showOutput": "Çıktıyı göster",
+    "hideOutput": "Çıktıyı gizle",
+    "pendingApprovalNotice": "Bu komut dört göz ilkesi gereği başka bir yöneticinin onayını bekliyor.",
+    "wizard": {
+      "title": "Yeni aksiyon",
+      "kind": "Ne yapılacak?",
+      "package": "Paket",
+      "pickPackage": "Paket seçin",
+      "command": "Komut",
+      "shell": "Kabuk",
+      "targets": "Hedef makineler ({{count}})",
+      "searchMachines": "Makine ara ve ekle",
+      "noTargets": "Henüz makine seçilmedi.",
+      "remove": "Çıkar",
+      "options": "Seçenekler",
+      "timeout": "Zaman aşımı (saniye)",
+      "bandwidth": "İstemci başına hız (kbps)",
+      "bandwidthHint": "Genel sınır: {{kbps}} kbps. Daha düşük bir değer girilebilir.",
+      "expires": "Geçerlilik (saat)",
+      "name": "Aksiyon adı (isteğe bağlı)",
+      "submit": "Aksiyonu başlat",
+      "submitting": "Gönderiliyor…",
+      "approvalNote": "Komut aksiyonları onay gerektiriyor; başka bir yönetici onaylayana kadar çalıştırılmaz.",
+      "platformMismatch": "Bu paket yalnızca {{platform}} makinelerine gönderilebilir.",
+      "noPermission": "Bu tür aksiyon için yetkiniz yok.",
+      "commandHint": "Windows: cmd veya PowerShell; macOS: sh veya zsh. Komut SYSTEM/root yetkisiyle çalışır. En fazla 32 KB."
+    }
+  },
+  "transfer": {
+    "title": "Aktarım ayarları",
+    "subtitle": "Dosya aktarımında istemci başına hız sınırı, yükleme sınırı ve komut onayı.",
+    "perClient": "İstemci başına en yüksek hız (kbps)",
+    "perClientHint": "Varsayılan 10.000 kbps (10 Mbps). Paket ve Windows Update katalog indirmelerine uygulanır.",
+    "maxUpload": "En büyük paket boyutu (MB)",
+    "approval": "Komut aksiyonları dört göz onayı gerektirsin",
+    "approvalHint": "Açıksa bir yöneticinin oluşturduğu komut, başka bir yönetici onaylayana kadar çalıştırılmaz.",
+    "expiry": "Varsayılan aksiyon geçerliliği (saat)"
   }
 }

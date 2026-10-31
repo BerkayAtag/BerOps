@@ -31,6 +31,7 @@ import (
 	"github.com/BerkayAtag/automation-ber/agent/internal/hostinfo"
 	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
 	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
+	"github.com/BerkayAtag/automation-ber/agent/internal/jobs"
 	"github.com/BerkayAtag/automation-ber/agent/internal/paths"
 	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
@@ -277,6 +278,11 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	}
 	go sc.Run(ctx)
 
+	jr := jobs.New(filepath.Join(dataDir, "jobs"), c, log, st.AgentID, ids.ActionKey)
+	jr.OnFinished = func(*protocol.Job) { sc.RequestDeltaScan() }
+	go jr.Run(ctx)
+
+	keyWarned := false
 	r := &runner.Runner{
 		Client:          c,
 		Log:             log,
@@ -285,6 +291,14 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 		InventoryHashes: sc.UploadedHashes,
 		OnResponse: func(resp *protocol.HeartbeatResponse) {
 			sc.ApplyHeartbeat(resp)
+			if len(resp.ActionKey) > 0 {
+				if err := ids.PinActionKey(resp.ActionKey); err != nil && !keyWarned {
+					// Anahtar uyuşmazsa sabitlenen anahtar korunur; yeni anahtarla imzalı işler çalışmaz.
+					log.Error("aksiyon imza anahtarı kabul edilmedi", "hata", err)
+					keyWarned = true
+				}
+			}
+			jr.Notify(resp.PendingJobs)
 			// Heartbeat'ler arasında soket açık tutulmaz; binlerce ajan sunucuda bağlantı biriktirmez.
 			c.CloseIdle()
 		},

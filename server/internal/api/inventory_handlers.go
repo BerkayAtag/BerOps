@@ -162,10 +162,11 @@ func (s *Server) handleWSUSCab(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// ServeContent, Range (kaldığı yerden devam) ve If-Modified-Since isteklerini destekler.
-	// Aktarım hız sınırı Aşama 4'te bu uç noktaya da uygulanacak.
-	w.Header().Set("Content-Type", "application/vnd.ms-cab-compressed")
+	// İstemci başına hız sınırı paket indirmeleriyle aynıdır.
+	noWriteDeadline(w)
+	fileDownloadHeaders(w, "application/vnd.ms-cab-compressed")
 	w.Header().Set("ETag", `"`+strconv.FormatInt(info.ModTime().Unix(), 16)+"-"+strconv.FormatInt(info.Size(), 16)+`"`)
-	http.ServeContent(w, r, "wsusscn2.cab", info.ModTime(), f)
+	http.ServeContent(newThrottledWriter(r.Context(), w, s.clientRate(r, 0)), r, "wsusscn2.cab", info.ModTime(), f)
 }
 
 // --- Konsol ---

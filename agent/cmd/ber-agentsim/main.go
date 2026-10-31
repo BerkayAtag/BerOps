@@ -8,6 +8,7 @@ package main
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/tls"
@@ -28,6 +29,7 @@ import (
 	"github.com/BerkayAtag/automation-ber/agent/internal/client"
 	"github.com/BerkayAtag/automation-ber/agent/internal/identity"
 	"github.com/BerkayAtag/automation-ber/agent/internal/inventory"
+	"github.com/BerkayAtag/automation-ber/agent/internal/jobs"
 	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/simdata"
@@ -164,6 +166,16 @@ func (a simAgent) run(ctx context.Context, log *slog.Logger, server, caHash, reg
 	}
 	go sc.Run(ctx)
 
+	// İşler gerçek ajanla aynı yoldan işlenir (imza doğrulama, hız sınırlı indirme, SHA-256
+	// kontrolü); yalnızca komut çalıştırılmaz, başarılı sonuç taklit edilir.
+	actionKey := ed25519.PublicKey(resp.ActionKey)
+	jr := jobs.New(filepath.Join(a.dir, "jobs"), hc, alog, resp.AgentID, func() ed25519.PublicKey { return actionKey })
+	jr.Exec = func(_ context.Context, s jobs.Spec) jobs.Result {
+		time.Sleep(time.Duration(500+mrand.IntN(2500)) * time.Millisecond)
+		return jobs.Result{Stdout: fmt.Sprintf("[sanal ajan] %s kabuğunda çalıştırıldı:\n%s\n", s.Shell, s.Command)}
+	}
+	go jr.Run(ctx)
+
 	r := &runner.Runner{
 		Client:          hc,
 		Log:             alog,
@@ -171,7 +183,10 @@ func (a simAgent) run(ctx context.Context, log *slog.Logger, server, caHash, reg
 		Interval:        time.Duration(resp.HeartbeatSeconds) * time.Second,
 		StartedAt:       time.Now().UTC(),
 		InventoryHashes: sc.UploadedHashes,
-		OnResponse:      sc.ApplyHeartbeat,
+		OnResponse: func(hr *protocol.HeartbeatResponse) {
+			sc.ApplyHeartbeat(hr)
+			jr.Notify(hr.PendingJobs)
+		},
 	}
 	r.Run(ctx)
 	return ctx.Err()

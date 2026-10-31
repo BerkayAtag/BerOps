@@ -26,6 +26,9 @@ type APIError struct {
 	Message string
 }
 
+// StatusCode, HTTP durum kodunu döner.
+func (e *APIError) StatusCode() int { return e.Status }
+
 func (e *APIError) Error() string {
 	return fmt.Sprintf("sunucu %d döndü: %s (%s)", e.Status, e.Message, e.Code)
 }
@@ -192,4 +195,97 @@ func readAPIError(resp *http.Response) error {
 	var e protocol.ErrorResponse
 	_ = json.Unmarshal(data, &e)
 	return &APIError{Status: resp.StatusCode, Code: e.Code, Message: e.Message}
+}
+
+// Jobs, bekleyen imzalı işleri alır.
+func (c *Client) Jobs(ctx context.Context) ([]protocol.SignedJob, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base.JoinPath(protocol.PathJobs).String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, readAPIError(resp)
+	}
+	var out protocol.JobsResponse
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 16<<20)).Decode(&out); err != nil {
+		return nil, err
+	}
+	return out.Jobs, nil
+}
+
+// JobStatus, işin durumunu bildirir.
+func (c *Client) JobStatus(ctx context.Context, jobID string, r protocol.JobStatusRequest) error {
+	body, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		c.base.JoinPath(fmt.Sprintf(protocol.PathJobStatusFmt, url.PathEscape(jobID))).String(), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNoContent {
+		return readAPIError(resp)
+	}
+	return nil
+}
+
+// DownloadPackage, paket dosyasını dest yoluna indirir. Kesilen indirme dest.part dosyasından
+// kaldığı yerden sürdürülür; sunucu istemci başına hız sınırını uygular.
+func (c *Client) DownloadPackage(ctx context.Context, packageID, actionID, dest string) error {
+	u := c.base.JoinPath(fmt.Sprintf(protocol.PathPackageFileFmt, url.PathEscape(packageID)))
+	u.RawQuery = url.Values{"action": {actionID}}.Encode()
+	part := dest + ".part"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	var offset int64
+	if st, err := os.Stat(part); err == nil && st.Size() > 0 {
+		offset = st.Size()
+		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+	}
+	hc := *c.http
+	hc.Timeout = 0 // büyük dosya: yalnızca bağlam ile sınırlı
+	resp, err := hc.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	flags := os.O_CREATE | os.O_WRONLY
+	switch resp.StatusCode {
+	case http.StatusPartialContent:
+		flags |= os.O_APPEND
+	case http.StatusOK:
+		flags |= os.O_TRUNC
+	case http.StatusRequestedRangeNotSatisfiable:
+		// .part dosyası sunucudakinden büyük veya bozuk: baştan indirilecek.
+		_ = os.Remove(part)
+		return fmt.Errorf("kısmi dosya geçersiz, yeniden indirilecek")
+	default:
+		return readAPIError(resp)
+	}
+	f, err := os.OpenFile(part, flags, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		f.Close()
+		return fmt.Errorf("indirme yarıda kaldı: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Rename(part, dest)
 }

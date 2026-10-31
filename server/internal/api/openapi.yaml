@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Automation BER API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     Automation BER konsol ve ajan API'si.
 
@@ -27,6 +27,8 @@ tags:
   - name: Makineler
   - name: Zafiyetler
   - name: Raporlar
+  - name: Paketler
+  - name: Aksiyonlar
   - name: Ayarlar
   - name: Denetim
   - name: Ajan
@@ -552,6 +554,159 @@ paths:
       responses:
         "204": { description: Silindi }
         "404": { description: Bulunamadı }
+  /api/v1/packages:
+    get:
+      tags: [Paketler]
+      summary: Paket kütüphanesi
+      security: [{ session: [] }]
+      x-ber-permission: packages.read
+      parameters:
+        - { name: platform, in: query, schema: { type: string, enum: [windows, darwin] } }
+        - { name: q, in: query, schema: { type: string } }
+      responses:
+        "200": { description: "items: paketler" }
+    post:
+      tags: [Paketler]
+      summary: Paket yükle (multipart; önce metadata, sonra file)
+      security: [{ session: [] }]
+      x-ber-permission: packages.upload
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [metadata, file]
+              properties:
+                metadata:
+                  type: string
+                  description: |
+                    JSON: name, version, publisher, platform (windows|darwin), installer (msi|exe|pkg|dmg|file),
+                    install_command ({file} yer tutucusu), shell, success_codes, detect_name, description
+                file: { type: string, format: binary }
+      responses:
+        "201": { description: Yüklendi (SHA-256 sunucuda hesaplanır) }
+        "400": { description: Geçersiz bilgi veya uzantı }
+        "409": { description: Aynı platformda aynı ad ve sürüm var }
+        "413": { description: Dosya sınırı aşıldı }
+  /api/v1/packages/{id}:
+    get:
+      tags: [Paketler]
+      summary: Paket ayrıntısı ve güncelleme gereken makineler
+      security: [{ session: [] }]
+      x-ber-permission: packages.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: "Paket + outdated (machine_id, hostname, name, version) + up_to_date" }
+        "404": { description: Bulunamadı }
+    delete:
+      tags: [Paketler]
+      summary: Paketi kütüphaneden kaldır
+      security: [{ session: [] }]
+      x-ber-permission: packages.delete
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
+  /api/v1/actions:
+    get:
+      tags: [Aksiyonlar]
+      summary: Aksiyonlar (yeniden eskiye) ve hedef durum sayaçları
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending_approval, active, completed, cancelled, rejected] } }
+        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, run_command] } }
+        - { name: machine_id, in: query, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+      responses:
+        "200": { description: "items, total, page, page_size" }
+    post:
+      tags: [Aksiyonlar]
+      summary: Paket dağıtımı veya komut aksiyonu oluştur
+      description: |
+        İzin türe göre denetlenir: deploy_package → actions.deploy_package (teknisyen dahil),
+        run_command → actions.run_command. Her hedef için iş tanımı sunucunun Ed25519 anahtarıyla imzalanır.
+        Denetim kaydı yazılamazsa aksiyon oluşturulmaz (503).
+      security: [{ session: [] }]
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [kind, machine_ids]
+              properties:
+                kind: { type: string, enum: [deploy_package, run_command] }
+                name: { type: string, maxLength: 200 }
+                package_id: { type: string, format: uuid }
+                shell: { type: string, enum: [cmd, powershell, sh, zsh] }
+                command: { type: string, maxLength: 32768 }
+                machine_ids: { type: array, items: { type: string, format: uuid }, minItems: 1, maxItems: 10000 }
+                timeout_seconds: { type: integer, minimum: 30, maximum: 86400, default: 3600 }
+                bandwidth_kbps: { type: integer, minimum: 64, description: Genel sınırın üstündeyse genel sınır uygulanır }
+                expires_hours: { type: integer, minimum: 1, maximum: 720 }
+      responses:
+        "201": { description: "Oluşturuldu (status: active veya pending_approval)" }
+        "400": { description: "Geçersiz istek, aktif olmayan makine veya platform/kabuk uyuşmazlığı" }
+        "403": { description: Yetki yok }
+  /api/v1/actions/{id}:
+    get:
+      tags: [Aksiyonlar]
+      summary: Aksiyon ve hedef başına sonuçlar (çıkış kodu, stdout, stderr)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: "action, targets" }
+  /api/v1/actions/{id}/approve:
+    post:
+      tags: [Aksiyonlar]
+      summary: Onay bekleyen aksiyonu onayla (oluşturan kişi onaylayamaz)
+      security: [{ session: [] }]
+      x-ber-permission: actions.approve
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Onaylandı }
+        "409": { description: Onay beklemiyor }
+  /api/v1/actions/{id}/reject:
+    post:
+      tags: [Aksiyonlar]
+      summary: Onay bekleyen aksiyonu reddet
+      security: [{ session: [] }]
+      x-ber-permission: actions.approve
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Reddedildi }
+  /api/v1/actions/{id}/cancel:
+    post:
+      tags: [Aksiyonlar]
+      summary: Aksiyonu iptal et (başlamamış hedefler çalıştırılmaz)
+      security: [{ session: [] }]
+      x-ber-permission: "actions.deploy_package veya actions.run_command (türe göre)"
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: İptal edildi }
+        "409": { description: Aksiyon zaten bitmiş }
+  /api/v1/settings/transfer:
+    get:
+      tags: [Ayarlar]
+      summary: Aktarım ayarları
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "per_client_kbps, max_upload_mb, command_approval, default_expiry_hours" }
+    put:
+      tags: [Ayarlar]
+      summary: Aktarım ayarlarını değiştir
+      security: [{ session: [] }]
+      x-ber-permission: transfer.limits.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Geçersiz değer }
   /api/v1/settings/agent:
     get:
       tags: [Ayarlar]
@@ -685,3 +840,31 @@ paths:
         "206": { description: Kısmi içerik }
         "304": { description: Değişmedi }
         "404": { description: Sunucuda katalog yok }
+  /agent/v1/jobs:
+    get:
+      tags: [Ajan]
+      summary: Bekleyen imzalı işler (heartbeat pending_jobs > 0 olduğunda çağrılır)
+      security: [{ agentCert: [] }]
+      responses:
+        "200": { description: "jobs: [{payload (base64 JSON), signature (base64 Ed25519)}]" }
+  /agent/v1/jobs/{id}/status:
+    post:
+      tags: [Ajan]
+      summary: İş durumunu bildir (downloading, running, succeeded, failed)
+      security: [{ agentCert: [] }]
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        "204": { description: Kaydedildi }
+        "409": { description: İş zaten sonuçlanmış veya iptal edilmiş }
+  /agent/v1/packages/{id}/file:
+    get:
+      tags: [Ajan]
+      summary: Paket dosyası (istemci başına hız sınırlı, Range destekli)
+      security: [{ agentCert: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: action, in: query, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Dosya }
+        "206": { description: Kısmi içerik }
+        "404": { description: Bu makine için açık dağıtım yok }
