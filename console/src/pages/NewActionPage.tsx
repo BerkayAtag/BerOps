@@ -8,34 +8,13 @@ import {
   type MachineListItem,
   type Package,
   type Page,
-  type Rollout,
   type Shell,
   type TransferSettings,
 } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { PlatformIcon } from "../components/Badges";
-
-// Kademeli dağıtım hazır ayarları: pilot halka, ardından genel dağıtım.
-const ROLLOUT_PRESETS = {
-  none: null,
-  pilot: {
-    stages: [
-      { percent: 10, delay_hours: 0 },
-      { percent: 90, delay_hours: 24 },
-    ],
-    min_success_percent: 90,
-  },
-  rings: {
-    stages: [
-      { percent: 5, delay_hours: 0 },
-      { percent: 25, delay_hours: 24 },
-      { percent: 70, delay_hours: 72 },
-    ],
-    min_success_percent: 95,
-  },
-} satisfies Record<string, Rollout | null>;
-type RolloutPreset = keyof typeof ROLLOUT_PRESETS;
+import { ROLLOUT_PRESETS, type RolloutPreset } from "../rollout";
 
 type Kind = "deploy_package" | "run_command";
 type Target = { id: string; hostname: string; os_platform: "windows" | "darwin" };

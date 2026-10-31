@@ -429,11 +429,13 @@ func (s *Server) handlePutTransferSettings(w http.ResponseWriter, r *http.Reques
 // --- Aksiyonlar ---
 
 type createActionRequest struct {
-	Name           string   `json:"name"`
-	Kind           string   `json:"kind"`
-	PackageID      string   `json:"package_id"`
-	Shell          string   `json:"shell"`
-	Command        string   `json:"command"`
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	PackageID string `json:"package_id"`
+	Shell     string `json:"shell"`
+	Command   string `json:"command"`
+	// Patches, deploy_patch için kurulacak güncellemelerdir (Windows UpdateID / macOS etiketi).
+	Patches        []string `json:"patches"`
 	MachineIDs     []string `json:"machine_ids"`
 	TimeoutSeconds int      `json:"timeout_seconds"`
 	BandwidthKbps  int      `json:"bandwidth_kbps"`
@@ -467,8 +469,11 @@ func (s *Server) requirePerm(w http.ResponseWriter, r *http.Request, sess *store
 }
 
 func kindPermission(kind string) auth.Permission {
-	if kind == protocol.JobRunCommand {
+	switch kind {
+	case protocol.JobRunCommand:
 		return auth.PermActionsRunCommand
+	case protocol.JobDeployPatch:
+		return auth.PermActionsDeployPatch
 	}
 	return auth.PermActionsDeployPackage
 }
@@ -478,8 +483,8 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	if !decodeJSON(w, r, &req, 2<<20) {
 		return
 	}
-	if req.Kind != protocol.JobDeployPackage && req.Kind != protocol.JobRunCommand {
-		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Aksiyon türü deploy_package veya run_command olmalı")
+	if req.Kind != protocol.JobDeployPackage && req.Kind != protocol.JobRunCommand && req.Kind != protocol.JobDeployPatch {
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Aksiyon türü deploy_package, deploy_patch veya run_command olmalı")
 		return
 	}
 	// Teknisyen yalnızca kütüphanedeki paketleri gönderebilir; serbest komut ayrı izindir.
@@ -555,7 +560,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	now := s.now()
 	job := protocol.Job{
 		Kind: req.Kind, IssuedAt: now.UTC(), ExpiresAt: now.Add(time.Duration(req.ExpiresHours) * time.Hour).UTC(),
-		TimeoutSeconds: req.TimeoutSeconds, RescanAfter: req.Kind == protocol.JobDeployPackage,
+		TimeoutSeconds: req.TimeoutSeconds, RescanAfter: req.Kind != protocol.JobRunCommand,
 	}
 	var pkg *store.Package
 	switch req.Kind {
@@ -607,6 +612,27 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		if req.Name == "" {
 			req.Name = firstLineOf(req.Command, 80)
 		}
+	case protocol.JobDeployPatch:
+		platform := platforms[ids[0]].Platform
+		for _, p := range platforms {
+			if p.Platform != platform {
+				writeError(w, http.StatusBadRequest, codeInvalidRequest, "Yamalar tek platforma gönderilebilir; Windows ve macOS'u ayrı aksiyonlarla hedefleyin")
+				return
+			}
+		}
+		job.Shell, job.Command, job.SuccessCodes, err = patchJob(platform, req.Patches)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, codeInvalidRequest, err.Error())
+			return
+		}
+		job.Patches = req.Patches
+		// Yama kurulumu uzun sürebilir: varsayılan zaman aşımı 2 saat.
+		if req.TimeoutSeconds == 3600 {
+			job.TimeoutSeconds = 7200
+		}
+		if req.Name == "" {
+			req.Name = fmt.Sprintf("Yama dağıtımı (%d güncelleme)", len(req.Patches))
+		}
 	}
 
 	actionID, err := newUUID()
@@ -648,9 +674,9 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	}
 	err = s.store.CreateAction(r.Context(), store.NewAction{
 		ID: actionID, Name: req.Name, Kind: req.Kind, PackageID: req.PackageID, Shell: job.Shell, Command: job.Command,
-		TimeoutSeconds: req.TimeoutSeconds, BandwidthKbps: req.BandwidthKbps, Status: status, CreatedBy: sess.User.ID,
+		TimeoutSeconds: job.TimeoutSeconds, BandwidthKbps: req.BandwidthKbps, Status: status, CreatedBy: sess.User.ID,
 		CreatedByName: sess.User.Username, CreatedAt: now, ExpiresAt: job.ExpiresAt, Targets: targets,
-		RespectWindows: req.RespectWindows, Rollout: req.Rollout,
+		RespectWindows: req.RespectWindows, Rollout: req.Rollout, Patches: job.Patches,
 	})
 	if err != nil {
 		s.log.Error("aksiyon kaydedilemedi", "hata", err)

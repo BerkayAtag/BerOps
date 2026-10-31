@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="tr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Automation BER — Ajan tabanlı yama ve uygulama yönetimi</title>
+    <meta
+      name="description"
+      content="Windows ve macOS için açık kaynak, ajan tabanlı yama, üçüncü parti uygulama ve güvenlik açığı yönetimi platformu."
+    />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <script src="theme-init.js"></script>
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="landing.css" />
+  </head>
+  <body>
+    <a class="skip" href="#icerik" data-i18n="skip">İçeriğe geç</a>
+    <header class="topbar">
+      <div class="wrap topbar-inner">
+        <a class="brand" href="#" aria-label="Automation BER">
+          <svg viewBox="0 0 32 32" aria-hidden="true">
+            <path class="shield" d="M16 2.5 4.5 6.8v8.4c0 7 4.9 12.6 11.5 14.3 6.6-1.7 11.5-7.3 11.5-14.3V6.8L16 2.5Z" />
+            <path class="check" d="m10.5 16.2 3.8 3.8 7.4-8" />
+          </svg>
+          <span><span class="light">Automation</span> <strong>BER</strong></span>
+        </a>
+        <nav class="nav" aria-label="Sayfa">
+          <a href="#ozellikler" data-i18n="nav.features">Özellikler</a>
+          <a href="#mimari" data-i18n="nav.architecture">Mimari</a>
+          <a href="#ekranlar" data-i18n="nav.screens">Ekranlar</a>
+          <a href="#kurulum" data-i18n="nav.install">Kurulum</a>
+          <a href="#sss" data-i18n="nav.faq">SSS</a>
+        </nav>
+        <div class="tools">
+          <div class="seg" role="group" aria-label="Dil / Language">
+            <button type="button" data-lang="tr" aria-pressed="true">TR</button>
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <button type="button" class="icon-btn" id="theme" aria-label="Karanlık temaya geç" data-i18n-aria="theme.toDark">
+            <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z" /></svg>
+            <svg class="sun" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="icerik">
+      <section class="hero">
+        <div class="wrap hero-inner">
+          <div class="hero-text">
+            <p class="eyebrow" data-i18n="hero.eyebrow">Açık kaynak · Windows ve macOS</p>
+            <h1 data-i18n="hero.title">Yamaları, uygulamaları ve açıkları tek konsoldan yönetin</h1>
+            <p class="lead" data-i18n="hero.lead">
+              Automation BER; filonuzdaki eksik yamaları, üçüncü parti uygulamaları ve CVE'leri ajanlarla toplar, riske göre
+              önceliklendirir ve imzalı, hız sınırlı, kademeli dağıtımlarla kapatır.
+            </p>
+            <div class="cta">
+              <a class="btn btn-primary" href="https://github.com/BerkayAtag/automation-ber/releases/latest" data-i18n="hero.download">İndir (GitHub Releases)</a>
+              <a class="btn btn-ghost" href="https://github.com/BerkayAtag/automation-ber" data-i18n="hero.source">Kaynak kodu</a>
+            </div>
+            <ul class="badges">
+              <li data-i18n="hero.b1">mTLS + imzalı işler</li>
+              <li data-i18n="hero.b2">NVD · MSRC · KEV · EPSS</li>
+              <li data-i18n="hero.b3">AD / LDAPS ve RBAC</li>
+            </ul>
+          </div>
+          <figure class="hero-shot">
+            <img class="shot-light" src="img/dashboard.webp" width="1440" height="900" alt="Gösterge paneli: makine, eksik yama ve risk özetleri" data-i18n-alt="shots.dashboard" />
+            <img class="shot-dark" src="img/dashboard-dark.webp" width="1440" height="900" alt="Gösterge paneli (karanlık tema)" data-i18n-alt="shots.dashboardDark" />
+          </figure>
+        </div>
+      </section>
+
+      <section id="ozellikler" class="section">
+        <div class="wrap">
+          <h2 data-i18n="features.title">Özellikler</h2>
+          <div class="grid">
+            <article class="feature">
+              <h3 data-i18n="f1.t">Envanter ve eksik yamalar</h3>
+              <p data-i18n="f1.d">Windows Update Agent ve softwareupdate ile eksik yamalar, yama seviyesi (build/UBR), kurulu KB'ler ve üçüncü parti uygulamalar. Değişiklik taraması ve CPU sınırı.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f2.t">CVE motoru ve risk skoru</h3>
+              <p data-i18n="f2.d">NVD, MSRC, CISA KEV ve EPSS verileriyle eşleştirme; CVSS, istismar olasılığı ve aktif istismara göre 0-100 risk skoru.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f3.t">Yama ve paket dağıtımı</h3>
+              <p data-i18n="f3.d">İşletim sistemi yamaları, paket kütüphanesi (MSI, EXE, PKG, DMG) ve komutlar. Ed25519 imzalı işler, SHA-256 doğrulama, istemci başına hız sınırı.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f4.t">Kademeli dağıtım ve bakım pencereleri</h3>
+              <p data-i18n="f4.d">Pilot halka ve aşamalar; başarı oranı eşiğin altına düşerse otomatik duraklama. İşler yalnızca makinenin bakım penceresinde çalışır.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f5.t">Active Directory ve RBAC</h3>
+              <p data-i18n="f5.d">LDAPS ile giriş, iç içe gruplardan rol ve OU kapsamı. Yönetici, Teknisyen ve Salt okunur roller; yetki her API çağrısında sunucuda denetlenir.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f6.t">İsteğe bağlı uzaktan yönetim</h3>
+              <p data-i18n="f6.d">Canlı CPU, bellek ve disk; servisler ve kayıt defteri. Varsayılan kapalıdır, makine bazında açılır ve her işlem denetim kaydına yazılır.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f7.t">Şube relay'leri</h3>
+              <p data-i18n="f7.d">Şubelerdeki ajanlar relay üzerinden bağlanır; paketler bir kez indirilip doğrulanır ve yerel önbellekten verilir.</p>
+            </article>
+            <article class="feature">
+              <h3 data-i18n="f8.t">Raporlar ve bildirimler</h3>
+              <p data-i18n="f8.d">PDF, Excel ve CSV raporlar; zamanlanmış e-posta. Teams, Slack ve imzalı webhook bildirimleri; değiştirilemez denetim kaydı.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="mimari" class="section alt">
+        <div class="wrap">
+          <h2 data-i18n="arch.title">Mimari</h2>
+          <p class="section-lead" data-i18n="arch.lead">Tek Go sunucusu konsolu ve ajan API'sini sunar. Ajanlar sunucuya (veya şubedeki relay'e) karşılıklı TLS ile bağlanır; sunucu veriyi PostgreSQL'de tutar.</p>
+          <figure class="diagram">
+            <svg viewBox="0 0 880 330" role="img" aria-labelledby="arch-title">
+              <title id="arch-title">Automation BER mimari şeması</title>
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0 10 5 0 10z" class="d-arrow" />
+                </marker>
+              </defs>
+              <g class="d-box"><rect x="20" y="30" width="190" height="70" rx="12" /><text x="115" y="60" data-i18n="arch.console">Konsol</text><text x="115" y="82" class="d-sub" data-i18n="arch.browser">Tarayıcı · HTTPS</text></g>
+              <g class="d-box d-main"><rect x="330" y="110" width="220" height="110" rx="14" /><text x="440" y="150">BER Server</text><text x="440" y="174" class="d-sub" data-i18n="arch.ports">:8443 konsol · :52311 ajan</text><text x="440" y="196" class="d-sub" data-i18n="arch.engine">CVE motoru · imzalı işler</text></g>
+              <g class="d-box"><rect x="330" y="255" width="220" height="56" rx="12" /><text x="440" y="289">PostgreSQL</text></g>
+              <g class="d-box"><rect x="660" y="30" width="200" height="70" rx="12" /><text x="760" y="60">NVD · MSRC</text><text x="760" y="82" class="d-sub">KEV · EPSS</text></g>
+              <g class="d-box"><rect x="20" y="230" width="190" height="70" rx="12" /><text x="115" y="260">Active Directory</text><text x="115" y="282" class="d-sub">LDAPS :636</text></g>
+              <g class="d-box"><rect x="660" y="150" width="200" height="56" rx="12" /><text x="760" y="183" data-i18n="arch.agents">Ajanlar (Windows, macOS)</text></g>
+              <g class="d-box"><rect x="660" y="255" width="200" height="56" rx="12" /><text x="760" y="288" data-i18n="arch.relay">Relay → şube ajanları</text></g>
+              <path class="d-line" d="M210 65 C 280 65, 300 130, 330 140" marker-end="url(#arr)" />
+              <path class="d-line" d="M440 220 V 255" marker-end="url(#arr)" />
+              <path class="d-line" d="M550 135 C 600 120, 620 80, 660 70" marker-end="url(#arr)" />
+              <path class="d-line" d="M330 200 C 280 220, 250 250, 210 260" marker-end="url(#arr)" />
+              <path class="d-line d-tls" d="M660 178 H 550" marker-end="url(#arr)" />
+              <path class="d-line d-tls" d="M660 280 C 610 280, 590 220, 550 205" marker-end="url(#arr)" />
+              <text x="605" y="170" class="d-label">mTLS</text>
+            </svg>
+          </figure>
+        </div>
+      </section>
+
+      <section id="ekranlar" class="section">
+        <div class="wrap">
+          <h2 data-i18n="shots.title">Ekran görüntüleri</h2>
+          <p class="section-lead" data-i18n="shots.lead">Görüntüler demo verilerle (sanal ajanlar) alınmıştır.</p>
+          <div class="gallery">
+            <figure><img src="img/patches.webp" loading="lazy" width="1440" height="900" alt="Yamalar" data-i18n-alt="shots.patches" /><figcaption data-i18n="shots.patches">Filo genelinde eksik yamalar ve dağıtım</figcaption></figure>
+            <figure><img src="img/patch-rollout.webp" loading="lazy" width="1440" height="900" alt="Kademeli yama dağıtımı" data-i18n-alt="shots.rollout" /><figcaption data-i18n="shots.rollout">Kademeli yama dağıtımı ve aşama durumu</figcaption></figure>
+            <figure><img src="img/vulnerabilities.webp" loading="lazy" width="1440" height="900" alt="Güvenlik açıkları" data-i18n-alt="shots.vulns" /><figcaption data-i18n="shots.vulns">Riske göre sıralanmış güvenlik açıkları</figcaption></figure>
+            <figure><img src="img/machine-detail.webp" loading="lazy" width="1440" height="900" alt="Makine detayı" data-i18n-alt="shots.machine" /><figcaption data-i18n="shots.machine">Makine detayı: risk, envanter, yamalar</figcaption></figure>
+            <figure><img src="img/machines.webp" loading="lazy" width="1440" height="900" alt="Makineler" data-i18n-alt="shots.machines" /><figcaption data-i18n="shots.machines">Makine listesi ve filtreler</figcaption></figure>
+            <figure><img src="img/dashboard-dark.webp" loading="lazy" width="1440" height="900" alt="Karanlık tema" data-i18n-alt="shots.dashboardDark" /><figcaption data-i18n="shots.dark">Karanlık tema</figcaption></figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="kurulum" class="section alt">
+        <div class="wrap">
+          <h2 data-i18n="install.title">Kurulum</h2>
+          <ol class="steps">
+            <li>
+              <h3 data-i18n="s1.t">Sunucuyu kurun</h3>
+              <p data-i18n="s1.d">Windows Server'da sihirbazlı MSI ile ya da Linux'ta Docker Compose ile. PostgreSQL 15 veya üstü gerekir.</p>
+              <pre><code>msiexec /i AutomationBER-Server-x64.msi</code></pre>
+              <pre><code>docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d</code></pre>
+            </li>
+            <li>
+              <h3 data-i18n="s2.t">Kayıt anahtarı üretin</h3>
+              <p data-i18n="s2.d">Konsolda "Ajan indir" sayfası, sunucu adresi, kayıt anahtarı ve CA parmak izi gömülü kurulum komutlarını hazırlar.</p>
+            </li>
+            <li>
+              <h3 data-i18n="s3.t">Ajanları dağıtın</h3>
+              <p data-i18n="s3.d">Windows için sessiz MSI (GPO, SCCM, Intune), macOS için .pkg (MDM).</p>
+              <pre><code>msiexec /i AutomationBER-Agent-x64.msi /qn SERVER=https://ber.ornek.local:52311 REGKEY=berreg_… CAHASH=sha256:…</code></pre>
+              <pre><code>sudo installer -pkg AutomationBER-Agent.pkg -target / &amp;&amp; sudo ber-agent configure -server … -key … -ca-hash …</code></pre>
+            </li>
+            <li>
+              <h3 data-i18n="s4.t">Riskleri kapatın</h3>
+              <p data-i18n="s4.d">Eksik yamaları ve açıkları inceleyin, bakım penceresi ve kademeli dağıtımla yamaları gönderin, raporları zamanlayın.</p>
+            </li>
+          </ol>
+          <p class="center">
+            <a class="btn btn-primary" href="https://github.com/BerkayAtag/automation-ber/releases/latest" data-i18n="install.cta">Son sürümü indir</a>
+            <a class="btn btn-ghost" href="https://github.com/BerkayAtag/automation-ber/blob/main/docs/kurulum-sunucu.md" data-i18n="install.docs">Kurulum belgesi</a>
+          </p>
+        </div>
+      </section>
+
+      <section id="gereksinimler" class="section">
+        <div class="wrap">
+          <h2 data-i18n="req.title">Sistem gereksinimleri</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th data-i18n="req.c1">Bileşen</th><th data-i18n="req.c2">Desteklenen</th><th data-i18n="req.c3">Kaynak</th></tr></thead>
+              <tbody>
+                <tr><td data-i18n="req.server">Sunucu</td><td>Windows Server 2019+ (MSI) · Linux x64/arm64 (Docker, tar.gz)</td><td data-i18n="req.serverRes">Önerilen başlangıç: 2 vCPU, 4 GB RAM; PostgreSQL 15+</td></tr>
+                <tr><td data-i18n="req.win">Windows ajanı</td><td>Windows 10/11, Windows Server 2016+ (x64)</td><td data-i18n="req.agentRes">Boşta &lt; %1 CPU, ~15-25 MB RAM</td></tr>
+                <tr><td data-i18n="req.mac">macOS ajanı</td><td>macOS 12+ (Intel ve Apple Silicon)</td><td data-i18n="req.agentRes">Boşta &lt; %1 CPU, ~15-25 MB RAM</td></tr>
+                <tr><td data-i18n="req.console">Konsol</td><td data-i18n="req.browsers">Güncel Chrome, Edge, Firefox, Safari</td><td>—</td></tr>
+                <tr><td data-i18n="req.ports">Ağ</td><td>TCP 8443 (konsol), TCP 52311 (ajan, relay)</td><td data-i18n="req.portsRes">Ajandan sunucuya tek yönlü bağlantı</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="sss" class="section alt">
+        <div class="wrap narrow">
+          <h2 data-i18n="faq.title">Sık sorulan sorular</h2>
+          <details><summary data-i18n="q1">Ajan sunucuya hangi yönde bağlanır?</summary><p data-i18n="a1">Yalnızca ajandan sunucuya (veya relay'e). Ajanlarda gelen bağlantı için port açmanız gerekmez; işler ajanın yoklamasıyla alınır.</p></details>
+          <details><summary data-i18n="q2">İşlerin sahte bir sunucudan gelmediğinden nasıl emin olunur?</summary><p data-i18n="a2">Ajan sunucunun CA parmak izini sabitler ve her iş Ed25519 ile imzalanır. İndirilen dosyalar SHA-256 ile doğrulanır; süresi geçmiş veya başka makineye ait iş reddedilir.</p></details>
+          <details><summary data-i18n="q3">İnternet erişimi olmayan ağlarda çalışır mı?</summary><p data-i18n="a3">Evet. CVE verileri çevrim dışı klasörden yüklenebilir, Windows eksik yama taraması çevrim dışı wsusscn2.cab ile yapılabilir.</p></details>
+          <details><summary data-i18n="q4">Teknisyen rolü ne yapabilir?</summary><p data-i18n="a4">Yalnızca kütüphanedeki hazır paketleri gönderebilir. Serbest komut, yama dağıtımı ve ayarlar yönetici yetkisi ister; kapsam OU'larla sınırlandırılabilir.</p></details>
+          <details><summary data-i18n="q5">Uzaktan yönetim varsayılan açık mı?</summary><p data-i18n="a5">Hayır. Genel anahtar ve makine bazındaki özellikler varsayılan kapalıdır; açıldığında da her işlem denetim kaydına yazılır.</p></details>
+          <details><summary data-i18n="q6">Lisansı nedir?</summary><p data-i18n="a6">Apache License 2.0. Ticari kullanım dahil serbestçe kullanabilir, değiştirebilir ve dağıtabilirsiniz.</p></details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <p><span data-i18n="footer.by">Geliştiren:</span> <strong>Berkay Atağ</strong></p>
+        <p>
+          <a href="https://github.com/BerkayAtag/automation-ber">GitHub</a> ·
+          <a href="https://github.com/BerkayAtag/automation-ber/blob/main/LICENSE">Apache-2.0</a> ·
+          <a href="https://github.com/BerkayAtag/automation-ber/blob/main/SECURITY.md" data-i18n="footer.security">Güvenlik</a>
+        </p>
+      </div>
+    </footer>
+    <script src="landing.js"></script>
+  </body>
+</html>

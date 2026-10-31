@@ -23,6 +23,9 @@ const (
 const (
 	JobDeployPackage = "deploy_package"
 	JobRunCommand    = "run_command"
+	// JobDeployPatch, işletim sistemi güncellemesi kurar (Windows Update Agent / softwareupdate).
+	// Ajan için komut çalıştırmadan farkı yoktur; komutu sunucu üretir ve imzalar.
+	JobDeployPatch = "deploy_patch"
 )
 
 // Komut kabukları.
@@ -105,6 +108,9 @@ type Job struct {
 	Package        *JobPackage `json:"package,omitempty"`
 	// SuccessCodes, başarılı sayılan çıkış kodlarıdır (ör. MSI 3010: yeniden başlatma gerekli).
 	SuccessCodes []int `json:"success_codes"`
+	// Patches, yama dağıtımında kurulacak güncellemelerin kimlikleridir (bilgi amaçlı; ajan
+	// Command'ı çalıştırır).
+	Patches []string `json:"patches,omitempty"`
 	// RescanAfter true ise iş bittikten sonra ajan değişiklik taraması yapar.
 	RescanAfter bool `json:"rescan_after"`
 }
@@ -153,7 +159,7 @@ func (s SignedJob) Verify(pub ed25519.PublicKey, machineID string, now time.Time
 		if j.Package == nil || len(j.Package.SHA256) != 64 {
 			return nil, ErrInvalidJobDef
 		}
-	case JobRunCommand:
+	case JobRunCommand, JobDeployPatch:
 		if j.Command == "" {
 			return nil, ErrInvalidJobDef
 		}

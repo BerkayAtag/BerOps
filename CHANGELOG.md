@@ -5,6 +5,32 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi — Aşama 8: Yama dağıtımı, paketleme ve yayın
+
+- **İşletim sistemi yaması dağıtımı:**
+  - `deploy_patch` aksiyon türü ve `actions.deploy_patch` izni.
+  - Yamalar sayfasında filo geneli eksik güncellemeler ve kademeli, pencereye uygun dağıtım.
+  - Windows'ta Windows Update Agent betiği (3010 başarılı sayılır), macOS'ta `softwareupdate`.
+  - Kurulumdan sonra ajan tam tarama yapar.
+- **Windows MSI'ları (WiX v5, Yayımcı: Berkay Atağ):**
+  - **Sunucu:** Sihirbaz (PostgreSQL, portlar, ad, TLS, ilk yönetici), servis, güvenlik duvarı.
+  - **Ajan:** Sessiz kurulum (`SERVER`, `REGKEY`, `CAHASH`), temiz kaldırma.
+- **macOS `.pkg`:** Universal ikili dosya, launchd daemon'ı, MDM tercihleri, PPPC profili, kaldırma betiği, isteğe bağlı imza ve notarization.
+- **Docker:** Sunucu imajı ve `deploy/docker-compose.yml`; `BER_HOSTNAMES` ortam değişkeni.
+- **CI:** MSI'ları kurup Yayımcı alanını, servisleri, konsol girişini ve temiz kaldırmayı doğrulayan iş; macOS paket kurulum ve kaldırma işi; Docker derlemesi.
+- **Release iş akışı (`v*`):** MSI'lar, pkg, Linux sunucu ve relay arşivleri, çok mimarili GHCR imajı, `SHA256SUMS.txt`, imza durumunu belirten sürüm notu.
+- **`ber-server setup`:** Yapılandırma, migration ve ilk yönetici.
+- Sunucu ve ajan Windows'ta SCM servisi olarak çalışır (`shared/service`).
+- Konsol: Ajan indir sayfası (kayıt anahtarları ve kurulum komutları), Yamalar sayfası.
+- Tanıtım sayfası (`landing/`) ve GitHub Pages iş akışı.
+- Belgeler: sunucu, Windows ajanı ve macOS ajanı kurulumu, güvenlik modeli; `docs/ad.md` → `docs/ad-entegrasyonu.md`.
+
+### Değişti
+
+- Yapılandırılmamış ajan çıkmak yerine yapılandırmayı bekler (anahtarsız kurulum, sonradan GPO/MDM yapılandırması).
+- Sanal ajanlar GUID biçimli güncelleme kimlikleri üretir.
+- Konsolun ürettiği kurulum komutları yeni paket adlarını ve yollarını kullanır.
+
 ### Eklendi — Aşama 7: Relay, bakım pencereleri, kademeli dağıtım, bildirimler
 
 - **BER Relay (`ber-relay`):**

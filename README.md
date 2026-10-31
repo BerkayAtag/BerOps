@@ -4,7 +4,18 @@
 
 Mimari, BigFix'in Server / Relay / Agent / Console modelini örnek alır.
 
-> **Durum:** Geliştirme aşamasında. **Aşama 1 (Temel altyapı)**, **Aşama 2 (Envanter ve tespit)**, **Aşama 3 (CVE motoru ve raporlar)**, **Aşama 4 (Paket kütüphanesi ve dağıtım)**, **Aşama 5 (Active Directory ve yetki kapsamları)**, **Aşama 6 (Uzaktan yönetim)** ve **Aşama 7 (Relay, bakım pencereleri, kademeli dağıtım, bildirimler)** tamamlandı. Yol haritası aşağıda.
+> **Durum:** Spesifikasyondaki sekiz aşamanın tümü tamamlandı. Kurulum paketleri [GitHub Releases](https://github.com/BerkayAtag/automation-ber/releases/latest)'ta, tanıtım sayfası <https://berkayatag.github.io/automation-ber/> adresinde yayımlanır.
+
+## Kurulum
+
+| Ne? | Nasıl? |
+|---|---|
+| **Sunucu** | Windows Server için sihirbazlı MSI (`AutomationBER-Server-<sürüm>-x64.msi`), Linux için Docker Compose veya arşiv → [docs/kurulum-sunucu.md](docs/kurulum-sunucu.md) |
+| **Windows ajanı** | `msiexec /i AutomationBER-Agent-<sürüm>-x64.msi /qn SERVER=… REGKEY=… CAHASH=…` → [docs/kurulum-ajan-windows.md](docs/kurulum-ajan-windows.md) |
+| **macOS ajanı** | `AutomationBER-Agent-<sürüm>.pkg` (Intel + Apple Silicon), MDM tercihleri, PPPC profili → [docs/kurulum-ajan-macos.md](docs/kurulum-ajan-macos.md) |
+| **Şube relay'i** | `ber-relay` arşivleri → [relay/README.md](relay/README.md) |
+
+Kurulum komutlarını konsoldaki **Ajan indir** sayfası sunucu adresi, kayıt anahtarı ve CA parmak izi gömülü olarak üretir.
 
 ## Bileşenler
 
@@ -83,7 +94,7 @@ Ayrıntılar: [docs/dagitim.md](docs/dagitim.md). Ölçüm: 1 MB'lık paket, 10 
   - Kullanıcılar kendi parolasını değiştirebilir.
 - **Denetim kaydı ekranı:** Arama, eylem/sonuç/tarih filtreleri, parametre ayrıntısı ve CSV/Excel dışa aktarma.
 
-Ayrıntılar: [docs/ad.md](docs/ad.md), [docs/roller-ve-yetkiler.md](docs/roller-ve-yetkiler.md).
+Ayrıntılar: [docs/ad-entegrasyonu.md](docs/ad-entegrasyonu.md), [docs/roller-ve-yetkiler.md](docs/roller-ve-yetkiler.md).
 
 ## Aşama 6'da neler var?
 
@@ -104,6 +115,30 @@ Ayrıntılar: [docs/uzaktan-yonetim.md](docs/uzaktan-yonetim.md). Ölçüm (ger�
 - **Zamanlanmış raporlar:** PDF, Excel veya CSV, haftalık ya da günlük olarak e-posta eki halinde gönderilir.
 
 Ayrıntılar: [docs/gelismis-dagitim.md](docs/gelismis-dagitim.md).
+
+## Aşama 8'de neler var?
+
+- **Yama dağıtımı:** Yamalar sayfası filodaki eksik güncellemeleri güncelleme başına gruplar. Seçilen yamalar, eksik oldukları makinelere kademeli ve bakım penceresine uygun şekilde gönderilir.
+  - Windows'ta Windows Update Agent ile kurulur (3010 "yeniden başlatma gerekli" başarılı sayılır).
+  - macOS'ta `softwareupdate` ile kurulur.
+  - Kurulumdan sonra ajan tam tarama yapar.
+- **Windows MSI'ları (Yayımcı: Berkay Atağ):**
+  - **Sunucu:** Sihirbazda PostgreSQL, portlar, sunucu adı, TLS sertifikası ve ilk yönetici adımları vardır. Windows servisi olarak çalışır ve güvenlik duvarı kurallarını ekler.
+  - **Ajan:** Sessiz kurulumda `SERVER`, `REGKEY` ve `CAHASH` alır (GPO, SCCM, Intune) ve iz bırakmadan kaldırılır.
+  - CI her PR'da iki paketi kurar ve Yayımcı alanını, servisleri, konsol girişini ve temiz kaldırmayı doğrular.
+- **macOS paketi:**
+  - Universal ikili dosya ve `launchd` daemon'ı.
+  - MDM tercihleriyle yapılandırma, PPPC örnek profili ve kaldırma betiği.
+  - İsteğe bağlı Developer ID imzası ve notarization.
+- **Docker:** Root olmayan kullanıcıyla çalışan sunucu imajı ve PostgreSQL'li `deploy/docker-compose.yml`.
+- **Release iş akışı:** `v*` etiketi her şeyi derleyip GitHub Releases'a yükler:
+  - Sunucu ve ajan MSI'ları, macOS paketi, Linux sunucu arşivleri, relay arşivleri.
+  - Çok mimarili Docker imajı (GHCR) ve `SHA256SUMS.txt`.
+  - İmza sertifikaları GitHub Secrets'ta yoksa paketler imzasız derlenir ve bu, sürüm notunda belirtilir.
+- **Ajan indir sayfası:** Kayıt anahtarı üretir ve kurulum komutlarını hazırlar.
+- **`ber-server setup`:** İlk kurulum komutu (yapılandırma, migration, ilk yönetici).
+- **Tanıtım sayfası:** `landing/`, GitHub Pages'e otomatik yayımlanır. Türkçe ve İngilizce, karanlık mod, mimari şeması, demo verili ekran görüntüleri.
+- **Belgeler:** [kurulum-sunucu](docs/kurulum-sunucu.md), [kurulum-ajan-windows](docs/kurulum-ajan-windows.md), [kurulum-ajan-macos](docs/kurulum-ajan-macos.md), [guvenlik](docs/guvenlik.md).
 
 ## Ajan kaynak kullanımı
 
@@ -229,15 +264,19 @@ npm --prefix console test -- --run
 | 5 | Active Directory (LDAPS) ve RBAC kapsamları, denetim kaydı ekranı | ✅ |
 | 6 | Uzaktan yönetim: performans, servisler, registry (opt-in) | ✅ |
 | 7 | Relay, bakım pencereleri, kademeli dağıtım, bildirimler | ✅ |
-| 8 | MSI ve pkg kurulum paketleri, release iş akışı, tanıtım sayfası | ⏳ |
+| 8 | Yama dağıtımı; MSI ve pkg kurulum paketleri, Docker imajı, release iş akışı, tanıtım sayfası | ✅ |
 
 ## Dokümantasyon
 
+- [Sunucu kurulumu](docs/kurulum-sunucu.md)
+- [Windows ajanı kurulumu](docs/kurulum-ajan-windows.md)
+- [macOS ajanı kurulumu](docs/kurulum-ajan-macos.md)
 - [Mimari](docs/mimari.md)
+- [Güvenlik modeli](docs/guvenlik.md)
 - [CVE motoru ve raporlar](docs/cve.md)
-- [Paket dağıtımı ve komut çalıştırma](docs/dagitim.md)
+- [Yama, paket dağıtımı ve komut çalıştırma](docs/dagitim.md)
 - [Roller ve yetkiler](docs/roller-ve-yetkiler.md)
-- [Active Directory entegrasyonu](docs/ad.md)
+- [Active Directory entegrasyonu](docs/ad-entegrasyonu.md)
 - [Gelişmiş dağıtım: relay, bakım pencereleri, kademeli dağıtım, bildirimler](docs/gelismis-dagitim.md)
 - [Uzaktan yönetim](docs/uzaktan-yonetim.md)
 - [Varsayımlar ve kararlar](docs/varsayimlar.md)

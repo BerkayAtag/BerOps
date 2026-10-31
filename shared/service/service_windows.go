@@ -14,9 +14,10 @@ func IsService() bool {
 	return err == nil && ok
 }
 
-// Run, run fonksiyonunu servis olarak çalıştırır; SCM durdurma isteği bağlamı iptal eder.
-func Run(run func(ctx context.Context) error) error {
-	return svc.Run(Name, &handler{run: run})
+// Run, run fonksiyonunu name adlı servis olarak çalıştırır; SCM durdurma isteği bağlamı
+// iptal eder.
+func Run(name string, run func(ctx context.Context) error) error {
+	return svc.Run(name, &handler{run: run})
 }
 
 type handler struct {
@@ -45,7 +46,6 @@ func (h *handler) Execute(_ []string, req <-chan svc.ChangeRequest, status chan<
 			case svc.Interrogate:
 				status <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				// Kurcalama koruması (yetkisiz durdurma engeli) Aşama 4'te eklenecek.
 				status <- svc.Status{State: svc.StopPending}
 				cancel()
 				<-done

@@ -8,4 +8,4 @@ import "context"
 func IsService() bool { return false }
 
 // Run, Windows dışında run fonksiyonunu doğrudan çalıştırır.
-func Run(run func(ctx context.Context) error) error { return run(context.Background()) }
+func Run(_ string, run func(ctx context.Context) error) error { return run(context.Background()) }

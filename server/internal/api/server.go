@@ -170,6 +170,9 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("POST /api/v1/notifications/schedules", s.authed(auth.PermSettingsWrite, s.handleCreateSchedule))
 	mux.Handle("DELETE /api/v1/notifications/schedules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteSchedule))
 
+	mux.Handle("GET /api/v1/patches", s.authed(auth.PermMachinesRead, s.handleListPatches))
+	mux.Handle("GET /api/v1/patches/machines", s.authed(auth.PermMachinesRead, s.handlePatchMachines))
+
 	mux.Handle("GET /api/v1/maintenance-windows", s.authed(auth.PermSettingsRead, s.handleListWindows))
 	mux.Handle("POST /api/v1/maintenance-windows", s.authed(auth.PermSettingsWrite, s.handleSaveWindow))
 	mux.Handle("PUT /api/v1/maintenance-windows/{id}", s.authed(auth.PermSettingsWrite, s.handleSaveWindow))

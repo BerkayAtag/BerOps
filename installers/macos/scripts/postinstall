@@ -1,0 +1,41 @@
+#!/bin/sh
+# Automation BER Agent — kurulum sonrası.
+#
+# Yapılandırma şu kaynaklardan biri varsa otomatik yapılır (öncelik sırasıyla):
+#   1. MDM yönetilen tercihleri: /Library/Managed Preferences/io.github.berkayatag.ber.agent.plist
+#      (anahtarlar: Server, RegistrationKey, CAHash)
+#   2. /private/tmp/ber-agent-install.conf (SERVER=..., REGKEY=..., CAHASH=... satırları; okunduktan sonra silinir)
+# Hiçbiri yoksa ajan yapılandırma bekler: sudo ber-agent configure -server ... -key ... -ca-hash ...
+set -u
+LABEL=io.github.berkayatag.ber.agent
+PLIST=/Library/LaunchDaemons/$LABEL.plist
+DATA="/Library/Application Support/BER/Agent"
+BIN=/usr/local/bin/ber-agent
+
+mkdir -p "$DATA/logs"
+chmod 700 "$DATA"
+chown root:wheel "$PLIST" "$BIN" /usr/local/bin/ber-agent-uninstall
+chmod 644 "$PLIST"
+chmod 755 "$BIN" /usr/local/bin/ber-agent-uninstall
+
+SERVER=""; REGKEY=""; CAHASH=""
+MANAGED="/Library/Managed Preferences/$LABEL.plist"
+if [ -f "$MANAGED" ]; then
+	SERVER=$(/usr/bin/defaults read "$MANAGED" Server 2>/dev/null || true)
+	REGKEY=$(/usr/bin/defaults read "$MANAGED" RegistrationKey 2>/dev/null || true)
+	CAHASH=$(/usr/bin/defaults read "$MANAGED" CAHash 2>/dev/null || true)
+fi
+CONF=/private/tmp/ber-agent-install.conf
+if [ -z "$REGKEY" ] && [ -f "$CONF" ]; then
+	# Dosya kaynak olarak çalıştırılmaz; yalnızca bilinen anahtarlar okunur.
+	SERVER=$(sed -n 's/^SERVER=//p' "$CONF" | head -n 1)
+	REGKEY=$(sed -n 's/^REGKEY=//p' "$CONF" | head -n 1)
+	CAHASH=$(sed -n 's/^CAHASH=//p' "$CONF" | head -n 1)
+	rm -f "$CONF"
+fi
+if [ -n "$REGKEY" ] && [ -n "$SERVER" ] && [ ! -f "$DATA/agent.crt" ]; then
+	"$BIN" configure -server "$SERVER" -key "$REGKEY" -ca-hash "$CAHASH" || echo "ber-agent configure başarısız; daemon yapılandırma bekleyecek"
+fi
+
+launchctl bootstrap system "$PLIST" 2>/dev/null || launchctl kickstart -k "system/$LABEL"
+exit 0

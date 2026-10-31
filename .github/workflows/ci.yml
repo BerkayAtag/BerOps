@@ -114,3 +114,86 @@ jobs:
         run: npm run build
       - name: Bağımlılık denetimi
         run: npm audit --audit-level=high --omit=dev
+
+  installers-windows:
+    name: Windows MSI (derleme, kurulum, kaldırma)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: console/package-lock.json
+      - name: Konsol
+        working-directory: console
+        run: npm ci && npm run build
+      - name: İkili dosyalar
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -ldflags "-X github.com/BerkayAtag/automation-ber/shared/version.Version=0.0.0-ci" -o dist/ber-agent.exe ./agent/cmd/ber-agent
+          go build -trimpath -ldflags "-X github.com/BerkayAtag/automation-ber/shared/version.Version=0.0.0-ci" -o dist/ber-server.exe ./server/cmd/ber-server
+      - name: MSI paketleri
+        shell: pwsh
+        run: ./installers/windows/build.ps1 -Version 0.0.0-ci -AgentExe dist/ber-agent.exe -ServerExe dist/ber-server.exe -ConsoleDir console/dist -OutDir dist
+      - name: PostgreSQL (runner imajındaki)
+        shell: pwsh
+        run: |
+          $svc = Get-Service -Name 'postgresql*'
+          Set-Service $svc.Name -StartupType Manual
+          Start-Service $svc.Name
+      - name: Kurulum, Yayımcı alanı ve temiz kaldırma doğrulaması
+        shell: pwsh
+        run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/AutomationBER-Agent-0.0.0-ci-x64.msi) -ServerMsi (Resolve-Path dist/AutomationBER-Server-0.0.0-ci-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
+      - name: Kurulum günlükleri
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msi-logs
+          path: "*.log"
+
+  installers-macos:
+    name: macOS pkg (derleme, kurulum, kaldırma)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Universal ikili dosya
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          LD="-X github.com/BerkayAtag/automation-ber/shared/version.Version=0.0.0-ci"
+          GOARCH=arm64 go build -trimpath -ldflags "$LD" -o dist/ber-agent-arm64 ./agent/cmd/ber-agent
+          GOARCH=amd64 go build -trimpath -ldflags "$LD" -o dist/ber-agent-amd64 ./agent/cmd/ber-agent
+          lipo -create -output dist/ber-agent dist/ber-agent-arm64 dist/ber-agent-amd64
+          lipo -archs dist/ber-agent
+      - name: Paket
+        run: installers/macos/build-pkg.sh 0.0.0-ci dist/ber-agent dist/AutomationBER-Agent-0.0.0-ci.pkg
+      - name: Kurulum ve daemon doğrulaması
+        run: |
+          sudo installer -pkg dist/AutomationBER-Agent-0.0.0-ci.pkg -target /
+          sleep 3
+          sudo launchctl print system/io.github.berkayatag.ber.agent | grep -E "state = running"
+          /usr/local/bin/ber-agent version
+          pkgutil --pkg-info io.github.berkayatag.ber.agent.pkg
+      - name: Temiz kaldırma
+        run: |
+          sudo /usr/local/bin/ber-agent-uninstall
+          ! sudo launchctl print system/io.github.berkayatag.ber.agent 2>/dev/null
+          test ! -e /usr/local/bin/ber-agent
+          test ! -e "/Library/Application Support/BER"
+          ! pkgutil --pkg-info io.github.berkayatag.ber.agent.pkg 2>/dev/null
+
+  docker:
+    name: Sunucu Docker imajı
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: İmaj derlemesi
+        run: docker build -f deploy/Dockerfile -t automation-ber-server:ci .

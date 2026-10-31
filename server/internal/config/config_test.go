@@ -64,3 +64,15 @@ func TestValidate(t *testing.T) {
 		t.Error("anahtar dosyası olmadan sertifika reddedilmeli")
 	}
 }
+
+func TestHostnamesFromEnv(t *testing.T) {
+	t.Setenv("BER_DATABASE_URL", "postgres://x")
+	t.Setenv("BER_HOSTNAMES", " ber.ornek.test , 10.0.0.5,")
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfg.Agent.Hostnames) != 2 || cfg.Agent.Hostnames[0] != "ber.ornek.test" || cfg.Console.Hostnames[1] != "10.0.0.5" {
+		t.Errorf("adlar = %v / %v", cfg.Agent.Hostnames, cfg.Console.Hostnames)
+	}
+}

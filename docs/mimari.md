@@ -100,7 +100,7 @@ Ajan                                         Sunucu (:52311)
 
 ### 3.4 Yetkilendirme (RBAC)
 
-İzinler granülerdir (`machines.read`, `actions.run_command`, `remote.registry.write` …) ve **her API uç noktasında sunucu tarafında** kontrol edilir. Roller izin kümeleridir; teknisyen ve salt okunur kullanıcılar OU kapsamıyla sınırlandırılabilir. Active Directory kullanıcılarının rolü ve kapsamı grup eşlemelerinden gelir. Ayrıntı: [roller-ve-yetkiler.md](roller-ve-yetkiler.md), [ad.md](ad.md).
+İzinler granülerdir (`machines.read`, `actions.run_command`, `remote.registry.write` …) ve **her API uç noktasında sunucu tarafında** kontrol edilir. Roller izin kümeleridir; teknisyen ve salt okunur kullanıcılar OU kapsamıyla sınırlandırılabilir. Active Directory kullanıcılarının rolü ve kapsamı grup eşlemelerinden gelir. Ayrıntı: [roller-ve-yetkiler.md](roller-ve-yetkiler.md), [ad-entegrasyonu.md](ad-entegrasyonu.md).
 
 ### 3.5 Aksiyon imzası (Aşama 4)
 
@@ -301,6 +301,12 @@ Kayıt defteri değişikliklerinin önceki değerleri denetim kaydında tutulur.
 
 Ayrıntılar: [gelismis-dagitim.md](gelismis-dagitim.md).
 
+### Aşama 8 — Yama dağıtımı ve paketleme
+
+`actions.kind` değerine `deploy_patch` eklendi; `actions.patches` (text[]) kurulan güncelleme kimliklerini tutar. Filo geneli yama listesi `missing_patches` tablosundan güncelleme başına gruplanarak üretilir; ek tablo yoktur.
+
+Kurulum paketleri: Windows için WiX v5 MSI'lar (`installers/windows/`, `ber-server setup` ile ilk kurulum), macOS için `pkgbuild`/`productbuild` paketi (`installers/macos/`), Linux için Docker imajı (`deploy/Dockerfile`, `deploy/docker-compose.yml`). Sunucu ve ajan Windows'ta SCM servisi olarak çalışır (`shared/service`).
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
@@ -314,13 +320,13 @@ Ayrıntılar: [gelismis-dagitim.md](gelismis-dagitim.md).
 agent/                 Ajan (cmd/ber-agent, cmd/ber-agentsim, internal/…)
 server/                Sunucu (cmd/ber-server, internal/…, api/openapi.yaml)
 relay/                 Relay (cmd/ber-relay, relay/)
-shared/                Ortak Go paketleri (protocol, version)
+shared/                Ortak Go paketleri (protocol, service, tlspin, version)
 console/               React + TS + Vite konsol
 design/                Ortak tasarım token'ları (tokens.css)
-landing/               Tanıtım sayfası (Aşama 8)
-installers/windows/    WiX MSI kaynakları (Aşama 8)
-installers/macos/      pkg, launchd plist, PPPC profili (Aşama 8)
-deploy/                Docker Compose ve geliştirme ortamı
+landing/               Tanıtım sayfası (GitHub Pages)
+installers/windows/    WiX MSI kaynakları, derleme ve doğrulama betikleri
+installers/macos/      pkg, launchd plist, PPPC profili, kaldırma betiği
+deploy/                Sunucu Docker imajı, Docker Compose ve geliştirme ortamı
 docs/                  Türkçe dokümantasyon
 .github/workflows/     CI/CD
 ```

@@ -200,6 +200,14 @@ func (s *Scanner) ApplyHeartbeat(resp *protocol.HeartbeatResponse) {
 	}
 }
 
+// RequestFullScan, eksik yamalar dahil tam taramayı hemen başlatır (ör. yama kurulumundan sonra).
+func (s *Scanner) RequestFullScan() {
+	s.mu.Lock()
+	s.state.NextFullAt = s.now()
+	s.mu.Unlock()
+	s.nudge()
+}
+
 // RequestDeltaScan, değişiklik taramasını hemen yaptırır (ör. paket kurulduktan sonra
 // konsolun yeni sürümü görmesi için).
 func (s *Scanner) RequestDeltaScan() {

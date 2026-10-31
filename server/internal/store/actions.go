@@ -47,6 +47,7 @@ type NewAction struct {
 	Targets        []NewTarget
 	RespectWindows bool
 	Rollout        *Rollout
+	Patches        []string
 }
 
 // Rollout, kademeli dağıtım planıdır.
@@ -88,6 +89,8 @@ type Action struct {
 	PausedReason   string         `json:"paused_reason"`
 	// ReleasedStages, açılmış aşama sayısıdır (kademeli dağıtımda).
 	ReleasedStages int `json:"released_stages"`
+	// Patches, yama dağıtımında kurulan güncellemelerdir.
+	Patches []string `json:"patches"`
 }
 
 // CreateAction, aksiyonu ve imzalı hedeflerini tek transaction içinde yazar.
@@ -95,11 +98,11 @@ func (s *Store) CreateAction(ctx context.Context, a NewAction) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO actions (id, name, kind, package_id, shell, command, timeout_seconds, bandwidth_kbps, status,
-				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout, patches)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
 			a.ID, a.Name, a.Kind, nullableUUID(a.PackageID), a.Shell, a.Command, a.TimeoutSeconds, a.BandwidthKbps,
 			a.Status, len(a.Targets), nullableUUID(a.CreatedBy), a.CreatedByName, a.CreatedAt, a.ExpiresAt,
-			a.RespectWindows, a.Rollout); err != nil {
+			a.RespectWindows, a.Rollout, nonNilStrings(a.Patches)); err != nil {
 			return err
 		}
 		rows := make([][]any, len(a.Targets))
@@ -119,7 +122,7 @@ const actionSelect = `
 	       coalesce((SELECT jsonb_object_agg(status, n) FROM (SELECT status, count(*) n FROM action_targets t
 	                 WHERE t.action_id = a.id GROUP BY status) c), '{}'),
 	       a.respect_windows, a.rollout, a.paused_reason,
-	       (SELECT count(DISTINCT stage) FROM action_targets t WHERE t.action_id = a.id AND t.released)
+	       (SELECT count(DISTINCT stage) FROM action_targets t WHERE t.action_id = a.id AND t.released), a.patches
 	FROM actions a LEFT JOIN packages p ON p.id = a.package_id`
 
 func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
@@ -127,7 +130,7 @@ func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
 	if err := row.Scan(&a.ID, &a.Name, &a.Kind, &a.PackageID, &a.PackageName, &a.PackageVersion, &a.Shell, &a.Command,
 		&a.TimeoutSeconds, &a.BandwidthKbps, &a.Status, &a.TargetCount, &a.CreatedBy, &a.CreatedByName, &a.CreatedAt,
 		&a.ExpiresAt, &a.ApprovedAt, &a.CompletedAt, &a.Counts, &a.RespectWindows, &a.Rollout, &a.PausedReason,
-		&a.ReleasedStages); err != nil {
+		&a.ReleasedStages, &a.Patches); err != nil {
 		return nil, notFound(err)
 	}
 	return &a, nil

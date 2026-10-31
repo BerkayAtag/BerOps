@@ -14,9 +14,11 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -28,6 +30,7 @@ import (
 	_ "time/tzdata" // raporlarda kullanıcının saat dilimi (Windows sunucularda tz veritabanı yoktur)
 
 	"golang.org/x/term"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"github.com/BerkayAtag/automation-ber/server/internal/api"
 	"github.com/BerkayAtag/automation-ber/server/internal/auth"
@@ -37,6 +40,7 @@ import (
 	"github.com/BerkayAtag/automation-ber/server/internal/secret"
 	"github.com/BerkayAtag/automation-ber/server/internal/store"
 	"github.com/BerkayAtag/automation-ber/server/internal/vuln"
+	"github.com/BerkayAtag/automation-ber/shared/service"
 	"github.com/BerkayAtag/automation-ber/shared/version"
 )
 
@@ -52,6 +56,7 @@ func usage() {
 
 Komutlar:
   serve          Sunucuyu başlatır (varsayılan)
+  setup          İlk kurulum: yapılandırma dosyası, migration'lar, ilk yönetici (kurulum paketleri kullanır)
   migrate        Veritabanı migration'larını uygular
   admin create   Yerel kullanıcı oluşturur (parola BER_ADMIN_PASSWORD'dan veya terminalden okunur)
   regkey create  Ajan kayıt anahtarı oluşturur
@@ -71,6 +76,8 @@ func run(args []string) error {
 	switch cmd {
 	case "serve":
 		return cmdServe(args)
+	case "setup":
+		return cmdSetup(args)
 	case "migrate":
 		return cmdMigrate(args)
 	case "admin":
@@ -105,12 +112,14 @@ func run(args []string) error {
 	}
 }
 
-func newLogger(level string) *slog.Logger {
+func newLogger(level string) *slog.Logger { return newLoggerTo(os.Stdout, level) }
+
+func newLoggerTo(w io.Writer, level string) *slog.Logger {
 	var l slog.Level
 	if err := l.UnmarshalText([]byte(level)); err != nil {
 		l = slog.LevelInfo
 	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: l}))
+	return slog.New(slog.NewJSONHandler(w, &slog.HandlerOptions{Level: l}))
 }
 
 func loadConfig(fs *flag.FlagSet, args []string) (config.Config, error) {
@@ -138,8 +147,27 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
-	log := newLogger(cfg.LogLevel)
+	if service.IsService() {
+		// Windows servisi olarak standart çıktı kaybolur; günlük veri dizinine yazılır.
+		lj := &lumberjack.Logger{Filename: filepath.Join(cfg.DataDir, "logs", "ber-server.log"), MaxSize: 20, MaxBackups: 5}
+		defer lj.Close()
+		log := newLoggerTo(lj, cfg.LogLevel)
+		return service.Run(service.ServerName, func(ctx context.Context) error {
+			err := serve(ctx, cfg, log)
+			if err != nil {
+				log.Error("sunucu durdu", "hata", err)
+			}
+			return err
+		})
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return serve(ctx, cfg, newLogger(cfg.LogLevel))
+}
+
+// serve, sunucuyu bağlam iptal edilene kadar çalıştırır.
+func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
+	ctx, stop := context.WithCancel(ctx)
 	defer stop()
 
 	st, err := store.Open(ctx, cfg.DatabaseURL)
@@ -300,6 +328,132 @@ func readPassword() (string, error) {
 		return "", errors.New("parolalar eşleşmiyor")
 	}
 	return string(p1), nil
+}
+
+// setupConfigTemplate, kurulumda yazılan yapılandırma dosyasıdır. Değerler YAML için
+// tırnaklanarak yerleştirilir.
+const setupConfigTemplate = `# Automation BER sunucu yapılandırması (ber-server setup tarafından oluşturuldu).
+# Tüm seçenekler: docs/kurulum-sunucu.md
+data_dir: %s
+database_url: %s
+log_level: info
+console:
+  listen: %s
+  hostnames: %s
+  tls_cert_file: %s
+  tls_key_file: %s
+  static_dir: %s
+agent:
+  listen: %s
+  hostnames: %s
+`
+
+// cmdSetup, ilk kurulumu yapar: yapılandırma dosyası yoksa yazar, veritabanını hazırlar ve
+// hiç kullanıcı yoksa ilk yöneticiyi (kurtarma hesabı) oluşturur. Tekrar çalıştırılabilir:
+// mevcut yapılandırma ve kullanıcılar korunur (yükseltme).
+func cmdSetup(args []string) error {
+	fs := flag.NewFlagSet("setup", flag.ExitOnError)
+	path := fs.String("config", "ber-server.yaml", "yazılacak yapılandırma dosyası")
+	dataDir := fs.String("data-dir", "data", "veri dizini (CA, paketler, günlükler)")
+	dbURL := fs.String("database-url", "", "PostgreSQL bağlantı adresi (postgres://kullanıcı:parola@sunucu:5432/ber)")
+	consolePort := fs.Int("console-port", 8443, "konsol HTTPS portu")
+	agentPort := fs.Int("agent-port", 52311, "ajan portu")
+	hostnames := fs.String("hostnames", "", "sunucunun DNS adları/IP'leri, virgülle (ajanların bağlanacağı ad ilk sırada)")
+	tlsCert := fs.String("tls-cert", "", "konsol sertifikası (PEM); boşsa iç CA'dan üretilir")
+	tlsKey := fs.String("tls-key", "", "konsol sertifikasının özel anahtarı (PEM)")
+	staticDir := fs.String("static-dir", "", "konsol dosyalarının klasörü")
+	adminUser := fs.String("admin-username", "", "ilk yönetici kullanıcı adı (parola BER_ADMIN_PASSWORD veya -admin-password)")
+	adminPassword := fs.String("admin-password", "", "ilk yönetici parolası (yalnızca kurulum paketleri için; tercihen BER_ADMIN_PASSWORD)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if _, err := os.Stat(*path); errors.Is(err, os.ErrNotExist) {
+		if strings.TrimSpace(*dbURL) == "" {
+			return errors.New("-database-url gerekli")
+		}
+		if (*tlsCert == "") != (*tlsKey == "") {
+			return errors.New("-tls-cert ve -tls-key birlikte verilmeli")
+		}
+		hosts := []string{}
+		for _, h := range strings.Split(*hostnames, ",") {
+			if h = strings.TrimSpace(h); h != "" {
+				hosts = append(hosts, h)
+			}
+		}
+		if len(hosts) == 0 {
+			if h, err := os.Hostname(); err == nil {
+				hosts = append(hosts, h)
+			}
+			hosts = append(hosts, "localhost")
+		}
+		q := func(v string) string { b, _ := json.Marshal(v); return string(b) }
+		hostList, _ := json.Marshal(hosts)
+		content := fmt.Sprintf(setupConfigTemplate, q(*dataDir), q(strings.TrimSpace(*dbURL)),
+			q(fmt.Sprintf(":%d", *consolePort)), hostList, q(*tlsCert), q(*tlsKey), q(*staticDir),
+			q(fmt.Sprintf(":%d", *agentPort)), hostList)
+		if err := os.MkdirAll(filepath.Dir(*path), 0o755); err != nil {
+			return err
+		}
+		// Yapılandırma veritabanı parolasını içerir: yalnızca sahibi okuyabilir.
+		if err := os.WriteFile(*path, []byte(content), 0o600); err != nil {
+			return err
+		}
+		fmt.Println("Yapılandırma yazıldı:", *path)
+	} else if err == nil {
+		fmt.Println("Mevcut yapılandırma korunuyor:", *path)
+	} else {
+		return err
+	}
+
+	cfg, err := config.Load(*path)
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	st, err := openStore(ctx, cfg)
+	if err != nil {
+		return fmt.Errorf("veritabanına bağlanılamadı: %w", err)
+	}
+	defer st.Close()
+	ca, err := pki.LoadOrCreateCA(cfg.PKIDir(), "Automation BER Root CA")
+	if err != nil {
+		return err
+	}
+	fmt.Println("CA parmak izi (ajan kurulumunda gerekir):", ca.Fingerprint())
+
+	if strings.TrimSpace(*adminUser) == "" {
+		return nil
+	}
+	n, err := st.CountUsers(ctx)
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		fmt.Println("Kullanıcılar zaten var; ilk yönetici oluşturulmadı.")
+		return nil
+	}
+	password := *adminPassword
+	if password == "" {
+		password = os.Getenv("BER_ADMIN_PASSWORD")
+	}
+	if err := auth.ValidatePasswordPolicy(password); err != nil {
+		return fmt.Errorf("ilk yönetici parolası: %w", err)
+	}
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		return err
+	}
+	u, err := st.CreateLocalUser(ctx, strings.TrimSpace(*adminUser), "", hash, string(auth.RoleAdmin), true)
+	if err != nil {
+		return err
+	}
+	_ = st.AppendAudit(ctx, store.AuditEntry{
+		ActorType: store.ActorSystem, ActorName: "ber-server setup", Action: "user.create",
+		TargetType: "user", TargetID: u.ID, Result: store.ResultSuccess,
+		Params: map[string]any{"username": u.Username, "role": u.Role, "recovery": true},
+	})
+	fmt.Printf("İlk yönetici oluşturuldu: %s (kurtarma hesabı)\n", u.Username)
+	return nil
 }
 
 func cmdAdminCreate(args []string) error {

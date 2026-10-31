@@ -138,3 +138,20 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 7.13 | Oturum saati | Oturum oluşturma ve son etkinlik zamanı veritabanı saatinden değil uygulama saatinden yazılır; boşta kalma kontrolü de aynı saatle yapılır. | `store.CreateSession` |
 | 7.14 | Yeniden başlatma politikaları | Spesifikasyondaki yeniden başlatma politikaları (erteleme, kullanıcıya bildirim) Aşama 7'de yok. Kurulum komutunun çıkış kodu 3010/1641 "yeniden başlatma gerekli" olarak kaydedilir; zorla yeniden başlatma yapılmaz. | — |
 
+## Aşama 8 — Paketleme, yayın ve yama dağıtımı
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 8.1 | Gömülü veritabanı | Sunucu MSI'ı PostgreSQL içermez; sihirbaz mevcut bir PostgreSQL'e bağlanır. PostgreSQL'i pakete gömmek kurulum boyutunu ve yama sorumluluğunu büyütür. Tek makinelik kurulum için Docker Compose PostgreSQL'i birlikte getirir. | `installers/windows/server` |
+| 8.2 | MSI kod sayfası | Yayımcı adı (`Berkay Atağ`) için MSI veritabanı Türkçe kod sayfası 1254 ile derlenir; Programlar ve Özellikler'de doğru görünür (CI'da kayıt defterinden doğrulanır). | `*.wxs` |
+| 8.3 | Parolalar kurulumda | MSI özellikleri `Hidden` işaretlidir; `ber-server setup` parolayı komut satırından alır (yalnızca kurulum sırasında, SYSTEM olarak). Elle kurulumda `BER_ADMIN_PASSWORD` önerilir. | `ber-server setup` |
+| 8.4 | Kurcalama koruması | Ajan kaldırma yerel yönetici yetkisi ister; ek sunucu onayı (kaldırma parolası/token) yoktur. Çevrimdışı kalan makine konsolda görünür. | `docs/guvenlik.md` |
+| 8.5 | Kaldırmada veri | Ajan kaldırılınca veri klasörü silinir (yükseltmede korunur). Sunucu kaldırılınca iç CA ve paketler bilerek korunur. | MSI özel eylemleri |
+| 8.6 | Anahtarsız ajan | Yapılandırılmamış ajan servisi çıkmaz, 30 saniyede bir yapılandırmayı bekler. Böylece paket önce dağıtılıp yapılandırma sonradan (GPO, MDM, `configure`) verilebilir. | `ber-agent run` |
+| 8.7 | macOS yapılandırması | Kurulum betiği MDM yönetilen tercihlerini (`io.github.berkayatag.ber.agent`) veya `/private/tmp/ber-agent-install.conf` dosyasını okur. Dosya kaynak olarak çalıştırılmaz, yalnızca bilinen anahtarlar okunur. | `installers/macos/scripts/postinstall` |
+| 8.8 | Kod imzalama | Release iş akışı sertifikalar GitHub Secrets'ta varsa imzalar ve notarize eder; yoksa imzasız derler ve sürüm notunda belirtir. | `.github/workflows/release.yml` |
+| 8.9 | Yama dağıtımı | Windows'ta WUA COM API'si PowerShell betiğiyle, macOS'ta `softwareupdate` ile kurulur. Sunucu güncelleme dosyası taşımaz; makine WSUS/Windows Update/Apple'dan indirir. Makine yeniden başlatılmaz (3010 başarılı sayılır); yeniden başlatma politikası sonraki sürüme bırakıldı. | `api/patch_handlers.go` |
+| 8.10 | Yama komutunun üretimi | Komut yalnızca doğrulanmış güncelleme kimliklerinden üretilir (Windows GUID, macOS güvenli karakter kümesi) ve tek tırnakla yerleştirilir; kullanıcı serbest metin veremez. Yama dağıtımı dört göz onayı gerektirmez (serbest komut değildir). | `patchJob` |
+| 8.11 | Simülatör kimlikleri | Sanal ajanlar KB'den türetilen GUID biçimli güncelleme kimlikleri üretir; böylece demo ve testlerde yama dağıtımı uçtan uca denenebilir. | `agent/internal/simdata` |
+| 8.12 | Docker imajı | Sunucu imajı Alpine üzerinde, root olmayan `ber` kullanıcısıyla çalışır; konsol dosyaları imaja gömülüdür. Sunucu adları `BER_HOSTNAMES` ile verilir. | `deploy/Dockerfile` |
+

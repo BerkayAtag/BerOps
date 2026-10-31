@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Automation BER Agent — Windows MSI (WiX Toolset v5).
+
+  Sessiz kurulum:
+    msiexec /i AutomationBER-Agent.msi /qn SERVER=https://ber.ornek.local:52311 REGKEY=berreg_... CAHASH=sha256:...
+
+  REGKEY verilmezse servis kurulur ve yapılandırma bekler (sonradan: ber-agent configure ...).
+  Kaldırmada (yükseltme hariç) %ProgramData%\BER\Agent klasörü de silinir.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Automation BER Agent"
+           Manufacturer="Berkay Atağ"
+           Version="$(Version)"
+           UpgradeCode="06599329-8FF2-460B-88C5-0148F8A80E11"
+           Scope="perMachine"
+           Language="1055"
+           Codepage="1254"
+           InstallerVersion="500">
+    <SummaryInformation Description="Automation BER Agent" Manufacturer="Berkay Atağ" Codepage="1254" />
+
+    <MajorUpgrade DowngradeErrorMessage="Bu ürünün daha yeni bir sürümü zaten kurulu." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="ARPCONTACT" Value="Berkay Atağ" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/BerkayAtag/automation-ber" />
+    <Property Id="ARPURLINFOABOUT" Value="https://berkayatag.github.io/automation-ber/" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <!-- Kurulum parametreleri (komut satırından veya GPO/SCCM/Intune dönüşümüyle). -->
+    <Property Id="SERVER" Secure="yes" />
+    <Property Id="REGKEY" Secure="yes" Hidden="yes" />
+    <Property Id="CAHASH" Secure="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ManufacturerFolder" Name="Automation BER">
+        <Directory Id="INSTALLFOLDER" Name="Agent" />
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="AgentComponents" Directory="INSTALLFOLDER">
+      <Component Id="AgentService" Bitness="always64">
+        <File Id="BerAgentExe" Name="ber-agent.exe" Source="$(AgentExe)" KeyPath="yes" />
+        <ServiceInstall Id="BerAgentService"
+                        Name="BERAgent"
+                        DisplayName="Automation BER Agent"
+                        Description="Automation BER yama ve uygulama yönetimi ajanı"
+                        Type="ownProcess"
+                        Start="auto"
+                        Account="LocalSystem"
+                        ErrorControl="normal"
+                        Arguments="run"
+                        Vital="yes">
+          <util:ServiceConfig FirstFailureActionType="restart"
+                              SecondFailureActionType="restart"
+                              ThirdFailureActionType="restart"
+                              RestartServiceDelayInSeconds="60"
+                              ResetPeriodInDays="1" />
+        </ServiceInstall>
+        <ServiceControl Id="BerAgentServiceControl" Name="BERAgent" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="Automation BER Agent" Level="1">
+      <ComponentGroupRef Id="AgentComponents" />
+    </Feature>
+
+    <!-- Yapılandırma: servis başlamadan önce ber-agent configure çalıştırılır (anahtar günlüğe yazılmaz). -->
+    <SetProperty Id="ConfigureAgent"
+                 Value="&quot;[INSTALLFOLDER]ber-agent.exe&quot; configure -server &quot;[SERVER]&quot; -key &quot;[REGKEY]&quot; -ca-hash &quot;[CAHASH]&quot;"
+                 Before="ConfigureAgent" Sequence="execute"
+                 Condition="REGKEY AND SERVER AND NOT REMOVE" />
+    <CustomAction Id="ConfigureAgent" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Return="check" Impersonate="no" HideTarget="yes" />
+
+    <!-- Temiz kaldırma: kimlik, yapılandırma ve günlükler silinir; yükseltmede korunur. -->
+    <SetProperty Id="CleanupAgentData"
+                 Value="&quot;[System64Folder]cmd.exe&quot; /c rmdir /s /q &quot;[CommonAppDataFolder]BER\Agent&quot;"
+                 Before="CleanupAgentData" Sequence="execute"
+                 Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    <CustomAction Id="CleanupAgentData" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Return="ignore" Impersonate="no" />
+
+    <InstallExecuteSequence>
+      <Custom Action="ConfigureAgent" Before="StartServices" Condition="REGKEY AND SERVER AND NOT REMOVE" />
+      <Custom Action="CleanupAgentData" After="RemoveFiles" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>

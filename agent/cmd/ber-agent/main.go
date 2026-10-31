@@ -36,9 +36,9 @@ import (
 	"github.com/BerkayAtag/automation-ber/agent/internal/remote"
 	"github.com/BerkayAtag/automation-ber/agent/internal/runner"
 	"github.com/BerkayAtag/automation-ber/agent/internal/scanner"
-	"github.com/BerkayAtag/automation-ber/agent/internal/service"
 	"github.com/BerkayAtag/automation-ber/agent/internal/sysres"
 	"github.com/BerkayAtag/automation-ber/shared/protocol"
+	"github.com/BerkayAtag/automation-ber/shared/service"
 	"github.com/BerkayAtag/automation-ber/shared/version"
 )
 
@@ -205,7 +205,9 @@ func cmdRun(args []string) error {
 		return err
 	}
 	cfg, err := config.Load(*dataDir)
-	if err != nil {
+	// Yapılandırılmamış ajan çıkmaz, yapılandırmayı bekler: kurulum paketi anahtarsız
+	// kurulduğunda servis yine başlar ve yapılandırma sonradan yazılabilir.
+	if err != nil && !errors.Is(err, config.ErrNotConfigured) {
 		return err
 	}
 	asService := service.IsService()
@@ -223,11 +225,36 @@ func cmdRun(args []string) error {
 		return err
 	}
 	if asService {
-		return service.Run(body)
+		return service.Run(service.AgentName, body)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	return body(ctx)
+}
+
+// configPollInterval, kayıt anahtarı beklenirken yapılandırmanın yeniden okunma aralığıdır.
+var configPollInterval = 30 * time.Second
+
+// waitForRegistrationKey, kayıt anahtarı içeren bir yapılandırma yazılana kadar bekler.
+// Bağlam iptal edilirse boş yapılandırmayla döner.
+func waitForRegistrationKey(ctx context.Context, dataDir string, log *slog.Logger) (config.Config, error) {
+	log.Warn("ajan kayıtlı değil ve kayıt anahtarı yok; yapılandırma bekleniyor",
+		"komut", "ber-agent configure -server <adres> -key <anahtar> -ca-hash <parmak izi>")
+	for {
+		select {
+		case <-ctx.Done():
+			return config.Config{}, nil
+		case <-time.After(configPollInterval):
+		}
+		cfg, err := config.Load(dataDir)
+		switch {
+		case err == nil && cfg.RegistrationKey != "":
+			log.Info("yapılandırma bulundu, kayıt deneniyor", "sunucu", cfg.ServerURL)
+			return cfg, nil
+		case err != nil && !errors.Is(err, config.ErrNotConfigured):
+			return cfg, err
+		}
+	}
 }
 
 func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog.Logger) error {
@@ -239,7 +266,9 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	st, cert, err := ids.Load()
 	for errors.Is(err, identity.ErrNotEnrolled) {
 		if cfg.RegistrationKey == "" {
-			return errors.New("ajan kayıtlı değil ve kayıt anahtarı yapılandırılmamış")
+			if cfg, err = waitForRegistrationKey(ctx, dataDir, log); err != nil || ctx.Err() != nil {
+				return err
+			}
 		}
 		// Kayıt başarısız olursa (sunucu kapalı, ağ yok) üstel geri çekilmeyle yeniden denenir.
 		for attempt := 1; ; attempt++ {
@@ -280,7 +309,14 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	go sc.Run(ctx)
 
 	jr := jobs.New(filepath.Join(dataDir, "jobs"), c, log, st.AgentID, ids.ActionKey)
-	jr.OnFinished = func(*protocol.Job) { sc.RequestDeltaScan() }
+	jr.OnFinished = func(j *protocol.Job) {
+		// Yama kurulumundan sonra eksik yama listesi de yenilenmeli: tam tarama.
+		if j.Kind == protocol.JobDeployPatch {
+			sc.RequestFullScan()
+			return
+		}
+		sc.RequestDeltaScan()
+	}
 	go jr.Run(ctx)
 
 	rs := remote.New(c, log, st.AgentID, ids.ActionKey)

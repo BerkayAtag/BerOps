@@ -1,14 +1,14 @@
-# Paket Dağıtımı ve Komut Çalıştırma
+# Yama, Paket Dağıtımı ve Komut Çalıştırma
 
-Automation BER, kütüphanedeki paketleri ve serbest komutları seçilen makinelere **aksiyon** olarak gönderir. Her aksiyon imzalanır, istemci başına hız sınırıyla aktarılır ve sonuçları (çıkış kodu, standart çıktı, hata çıktısı) makine başına konsolda görünür.
+Automation BER, eksik işletim sistemi yamalarını, kütüphanedeki paketleri ve serbest komutları seçilen makinelere **aksiyon** olarak gönderir. Her aksiyon imzalanır, istemci başına hız sınırıyla aktarılır ve sonuçları (çıkış kodu, standart çıktı, hata çıktısı) makine başına konsolda görünür.
 
 ## Yetkiler
 
-| Rol | Paket yükleme/silme | Kütüphaneden paket gönderme | Serbest komut | Komut onayı |
-|---|---|---|---|---|
-| Admin | ✅ | ✅ | ✅ | ✅ (kendi oluşturduğu hariç) |
-| Teknisyen | — | ✅ | — | — |
-| Salt Okunur | — | — | — | — |
+| Rol | Paket yükleme/silme | Kütüphaneden paket gönderme | Yama dağıtımı | Serbest komut | Komut onayı |
+|---|---|---|---|---|---|
+| Admin | ✅ | ✅ | ✅ | ✅ | ✅ (kendi oluşturduğu hariç) |
+| Teknisyen | — | ✅ | — | — | — |
+| Salt Okunur | — | — | — | — | — |
 
 Teknisyen yalnızca kütüphanede **var olan** paketleri gönderebilir; komut yazamaz, paket yükleyemez. Tüm roller aksiyon listesini ve sonuçlarını görebilir.
 
@@ -46,6 +46,24 @@ Teknisyen yalnızca kütüphanede **var olan** paketleri gönderebilir; komut ya
 - Yalnızca **aktif** makinelere iş gönderilir; onay bekleyen makineler hedeflenemez.
 - Aksiyon oluşturma **denetim kaydına komut metniyle birlikte** yazılır. Denetim kaydı yazılamazsa aksiyon oluşturulmaz.
 - Başarıyla kurulan paketten sonra ajan hemen değişiklik taraması yapar; konsol yeni sürümü birkaç dakika içinde görür.
+
+## Yama dağıtımı
+
+**Yamalar** sayfası, filodaki eksik işletim sistemi güncellemelerini güncelleme başına gruplar. Liste önem derecesine ve etkilenen makine sayısına göre sıralanır, platform, önem ve metinle süzülebilir. Makine sayısına tıklanınca güncellemenin eksik olduğu makineler görünür.
+
+Bir veya daha fazla güncelleme seçilip **Dağıtımı başlat** denince `deploy_patch` türünde bir aksiyon oluşturulur:
+
+- **Hedefler:** Seçilen güncellemelerden en az biri eksik olan makineler (kullanıcının OU kapsamıyla sınırlı).
+- **Platform:** Windows ve macOS güncellemeleri aynı aksiyonda gönderilemez.
+- **Kademeli dağıtım ve bakım penceresi** seçenekleri varsayılan olarak açıktır (pilot halka, pencereye uy).
+- **Windows:** Sunucu, Windows Update Agent ile çalışan imzalı bir PowerShell betiği üretir. Betik güncellemeleri `UpdateID` ile arar, lisansı kabul eder, indirir ve kurar.
+  - Çıkış kodu `3010` "yeniden başlatma gerekli" anlamına gelir ve başarılı sayılır; makine kendiliğinden yeniden başlatılmaz.
+  - Güncelleme makinede artık eksik değilse iş başarıyla biter.
+  - İndirme WSUS veya Windows Update'ten yapılır; sunucu güncelleme dosyası taşımaz.
+- **macOS:** `softwareupdate --install --agree-to-license '<etiket>' …` çalıştırılır. Apple Silicon'da işletim sistemi sürüm güncellemeleri MDM gerektirebilir.
+- **Doğrulama:** Güncelleme kimlikleri sunucuda doğrulanır (Windows: GUID, macOS: güvenli karakter kümesi). Komut kullanıcı girdisinden değil, bu kimliklerden üretilir.
+- **Varsayılan zaman aşımı:** 2 saat.
+- **Yeniden tarama:** Başarılı kurulumdan sonra ajan tam tarama yapar; eksik yama listesi ve açıklar güncellenir.
 
 ### Dört göz onayı
 

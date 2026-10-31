@@ -6,10 +6,12 @@ import { ActionDetailPage } from "./pages/ActionDetailPage";
 import { AccountPage } from "./pages/AccountPage";
 import { ActionsPage } from "./pages/ActionsPage";
 import { AdSettingsPage } from "./pages/AdSettingsPage";
+import { AgentDownloadPage } from "./pages/AgentDownloadPage";
 import { AgentSettingsPage } from "./pages/AgentSettingsPage";
 import { AuditPage } from "./pages/AuditPage";
 import { MaintenanceWindowsPage } from "./pages/MaintenanceWindowsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { PatchesPage } from "./pages/PatchesPage";
 import { RelaysPage } from "./pages/RelaysPage";
 import { CveSettingsPage } from "./pages/CveSettingsPage";
 import { HomePage } from "./pages/HomePage";
@@ -44,6 +46,7 @@ export function App() {
         <Route path="/" element={<HomePage me={state.me} />} />
         <Route path="/makineler" element={<MachinesPage />} />
         <Route path="/makineler/:id" element={<MachineDetailPage />} />
+        <Route path="/yamalar" element={<PatchesPage />} />
         <Route path="/zafiyetler" element={<VulnerabilitiesPage />} />
         <Route path="/zafiyetler/:id" element={<VulnerabilityDetailPage />} />
         <Route path="/raporlar" element={<ReportsPage />} />
@@ -61,6 +64,7 @@ export function App() {
         <Route path="/ayarlar/ajan" element={<AgentSettingsPage />} />
         <Route path="/ayarlar/cve" element={<CveSettingsPage />} />
         <Route path="/ayarlar/relay" element={<RelaysPage />} />
+        <Route path="/ajan-indir" element={<AgentDownloadPage />} />
         <Route path="/ayarlar/bakim-pencereleri" element={<MaintenanceWindowsPage />} />
         <Route path="/ayarlar/bildirimler" element={<NotificationsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
