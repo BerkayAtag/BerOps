@@ -5,6 +5,35 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi — Aşama 4: Paket kütüphanesi ve dağıtım
+
+- Paket kütüphanesi:
+  - Türler: MSI, EXE, PKG, DMG ve "dosya + komut".
+  - Akış halinde yükleme, sunucuda SHA-256, içerik adresli depolama.
+  - Kurulu uygulama kalıbıyla güncelleme gereken makinelerin tespiti.
+- Aksiyonlar:
+  - Paket dağıtımı ve komut çalıştırma (cmd, PowerShell, sh, zsh).
+  - Hedef başına durum, çıkış kodu, stdout/stderr.
+  - Zaman aşımı, geçerlilik, iptal.
+  - İsteğe bağlı dört göz onayı.
+- Ed25519 aksiyon imza anahtarı:
+  - Hedef başına imzalı iş tanımı.
+  - Ajanda anahtar sabitleme ve imza/makine/süre/SHA-256 doğrulaması.
+  - Tekrar oynatmaya karşı iş günlüğü.
+- İstemci başına hız sınırı (varsayılan 10 Mbps, Range ile kaldığı yerden devam); Windows Update kataloğuna da uygulanır.
+- Ajan:
+  - İş yürütücüsü: betik dosyası, UTF-8 çıktı.
+  - Zaman aşımında süreç ağacının sonlandırılması (Windows Job Object, macOS süreç grubu).
+  - DMG kurulumu.
+  - Kurulumdan sonra değişiklik taraması.
+- Denetim: aksiyon oluşturma fail-closed; komut metni kayda yazılır.
+- Konsol:
+  - Paket Kütüphanesi (yükleme ilerlemesi) ve paket detayı.
+  - Aksiyonlar listesi, yeni aksiyon sihirbazı ve aksiyon detayı (çıktılar, onay/iptal, canlı yenileme).
+  - Aktarım ayarları.
+  - Makine listesinde ve detayında "Paket gönder / Komut çalıştır".
+- Simülatör işleri gerçek ajanla aynı yoldan alır, indirir ve doğrular.
+
 ### Eklendi — Aşama 3: CVE motoru ve raporlar
 
 - CVE kaynakları:

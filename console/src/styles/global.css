@@ -1601,3 +1601,148 @@ a.sev-bar-row:hover .dist-value {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* --- Aşama 4: paketler ve aksiyonlar --- */
+
+.hint {
+  font-size: 0.78rem;
+  color: var(--ber-text-subtle);
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .span-2 {
+    grid-column: auto;
+  }
+}
+
+.upload-bar {
+  flex: 1;
+  min-width: 160px;
+  align-self: center;
+}
+
+.action-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.segbar {
+  display: inline-flex;
+  width: 90px;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--ber-surface-sunken);
+}
+
+.seg-ok {
+  background: var(--ber-success);
+}
+
+.seg-bad {
+  background: var(--ber-danger);
+}
+
+.seg-busy {
+  background: var(--ber-info);
+}
+
+.output-block {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: var(--ber-radius-sm);
+  background: var(--ber-surface-sunken);
+  font-family: var(--ber-font-mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.target-output td {
+  background: var(--ber-surface-2);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--ber-border-strong);
+  border-radius: var(--ber-radius-sm);
+  background: var(--ber-surface);
+  color: var(--ber-text);
+  font-family: var(--ber-font-mono);
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  box-shadow: var(--ber-focus-ring);
+  border-color: var(--ber-primary);
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--ber-border-strong);
+  border-radius: var(--ber-radius);
+  cursor: pointer;
+}
+
+.choice.active {
+  border-color: var(--ber-primary);
+  box-shadow: inset 0 0 0 1px var(--ber-primary);
+}
+
+.choice[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.picker-results {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--ber-border);
+  border-radius: var(--ber-radius-sm);
+}
+
+.picker-results li button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-results li button:hover {
+  background: var(--ber-surface-2);
+}
+
+.field-inline {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}

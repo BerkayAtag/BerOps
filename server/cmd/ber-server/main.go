@@ -155,6 +155,11 @@ func cmdServe(args []string) error {
 	if err != nil {
 		return err
 	}
+	signKey, err := pki.LoadOrCreateSigningKey(cfg.PKIDir())
+	if err != nil {
+		return fmt.Errorf("aksiyon imza anahtarı hazırlanamadı: %w", err)
+	}
+	srv.SetSigningKey(signKey)
 
 	agentCert, err := ca.IssueServerCert(cfg.Agent.Hostnames, 90*24*time.Hour)
 	if err != nil {

@@ -200,6 +200,15 @@ func (s *Scanner) ApplyHeartbeat(resp *protocol.HeartbeatResponse) {
 	}
 }
 
+// RequestDeltaScan, değişiklik taramasını hemen yaptırır (ör. paket kurulduktan sonra
+// konsolun yeni sürümü görmesi için).
+func (s *Scanner) RequestDeltaScan() {
+	s.mu.Lock()
+	s.state.NextDeltaAt = s.now()
+	s.mu.Unlock()
+	s.nudge()
+}
+
 func (s *Scanner) nudge() {
 	select {
 	case s.wake <- struct{}{}:

@@ -104,7 +104,33 @@ Ajan                                         Sunucu (:52311)
 
 ### 3.5 Aksiyon imzası (Aşama 4)
 
-Her iş manifesti sunucunun ayrı bir imzalama anahtarı (Ed25519) ile imzalanır. Manifest; dosya listesini, her dosyanın SHA-256 özetini, komutları, son geçerlilik tarihini ve hedef ajan ID'sini içerir. Ajan imzayı ve dosya özetlerini doğrulamadan hiçbir şey çalıştırmaz.
+Sunucunun CA'dan ayrı bir **aksiyon imza anahtarı** (Ed25519, `data_dir/pki/action-signing.key`) vardır. Her aksiyon oluşturulurken hedef makine başına bir iş tanımı (`protocol.Job`) üretilir ve imzalanır. İş tanımı şunları içerir:
+
+- aksiyon kimliği ve hedef makine kimliği
+- geçerlilik sonu ve zaman aşımı
+- kabuk ve komut
+- başarı kodları
+- paket dağıtımında dosyanın adı, boyutu ve SHA-256 özeti
+
+İmzalı tanım veritabanına yazılır ve ajana olduğu gibi verilir. Bu yüzden veritabanına erişen bir saldırgan, anahtar olmadan ajanlara çalıştırılabilir iş ekleyemez.
+
+Ajan, imza anahtarının açık kısmını kayıtta (veya Aşama 4'ten önce kaydolduysa ilk heartbeat'te) **sabitler**. Bir işi çalıştırmadan önce şunları denetler:
+
+1. İmza sabitlenen anahtarla doğrulanmalı. Anahtar sonradan değişirse yeni işler reddedilir.
+2. İş tanımındaki makine kimliği ajanın kendi kimliği olmalı.
+3. İşin geçerlilik süresi dolmamış olmalı.
+4. Paket varsa, indirilen dosyanın boyutu ve SHA-256 özeti tanımdakiyle aynı olmalı.
+
+Çalıştırılan işler ajan günlüğüne (`jobs/journal.json`) yazılır. Aynı iş tekrar gönderilirse yeniden çalıştırılmaz.
+
+```
+ konsol ──POST /api/v1/actions──▶ sunucu: izin (paket/komut) → denetim kaydı (yazılamazsa red) → hedef başına imza
+ ajan ◀──heartbeat {pending_jobs}── sunucu
+ ajan ──GET /agent/v1/jobs──▶ imzalı işler ──▶ doğrula → indir (hız sınırlı, Range) → SHA-256 → çalıştır
+ ajan ──POST /agent/v1/jobs/{id}/status──▶ downloading / running / succeeded / failed (+ çıkış kodu, çıktı)
+```
+
+Ayrıntılar: [dagitim.md](dagitim.md).
 
 ## 4. İçerik modeli: BER Fix
 
@@ -223,11 +249,19 @@ Ayrıntılar, risk formülü ve çevrimdışı mod: [cve.md](cve.md).
 | `machine_risk` | Makine risk özeti | `vuln_count`, `critical_count`, `kev_count`, `max_risk` |
 | `compliance_snapshots` | Günlük uyumluluk özeti | `day`, `fully_patched`, `kev_machines`, `avg_risk` |
 
+### Aşama 4
+
+| Tablo | Amaç | Önemli alanlar |
+|---|---|---|
+| `packages` | Paket kütüphanesi (dosya `data_dir/packages/<sha256>`) | `name`, `version`, `platform`, `installer`, `install_command`, `shell`, `success_codes`, `detect_name`, `file_sha256`, `deleted_at` |
+| `actions` | Paket dağıtımı ve komut aksiyonları | `kind`, `package_id`, `command`, `timeout_seconds`, `bandwidth_kbps`, `status` (`pending_approval` / `active` / `completed` …), `expires_at`, `approved_by` |
+| `action_targets` | Hedef başına imzalı iş ve sonuç | `payload`, `signature`, `status`, `exit_code`, `stdout`, `stderr`, `error` |
+| `transfer_settings` | Aktarım ayarları (tek satır) | `per_client_kbps` (varsayılan 10 000), `max_upload_mb`, `command_approval`, `default_expiry_hours` |
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |
 |---|---|
-| 4 – Dağıtım | `packages`, `package_files`, `ber_fixes`, `actions`, `action_targets` (hedef başına durum), `action_results` (stdout/stderr/çıkış kodu), `transfer_limits` |
 | 5 – AD / RBAC | `ad_settings` (şifreli bağlantı parolası), `ad_group_role_mappings`, `roles`, `role_permissions`, `role_scopes`, `ad_computers`, `api_keys` |
 | 6 – Uzaktan yönetim | `remote_feature_settings` (makine/grup bazında opt-in), `registry_backups`, `perf_samples` |
 | 7 – Gelişmiş dağıtım | `relays`, `maintenance_windows`, `rollout_rings`, `restart_policies`, `notification_channels`, `notification_rules` |

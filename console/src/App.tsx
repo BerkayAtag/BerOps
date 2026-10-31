@@ -2,13 +2,19 @@ import { useTranslation } from "react-i18next";
 import { Navigate, Route, Routes } from "react-router";
 import { useAuth } from "./auth/AuthProvider";
 import { AppShell } from "./components/AppShell";
+import { ActionDetailPage } from "./pages/ActionDetailPage";
+import { ActionsPage } from "./pages/ActionsPage";
 import { AgentSettingsPage } from "./pages/AgentSettingsPage";
 import { CveSettingsPage } from "./pages/CveSettingsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MachineDetailPage } from "./pages/MachineDetailPage";
 import { MachinesPage } from "./pages/MachinesPage";
+import { NewActionPage } from "./pages/NewActionPage";
+import { PackageDetailPage } from "./pages/PackageDetailPage";
+import { PackagesPage } from "./pages/PackagesPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { TransferSettingsPage } from "./pages/TransferSettingsPage";
 import { VulnerabilitiesPage } from "./pages/VulnerabilitiesPage";
 import { VulnerabilityDetailPage } from "./pages/VulnerabilityDetailPage";
 
@@ -33,6 +39,12 @@ export function App() {
         <Route path="/zafiyetler" element={<VulnerabilitiesPage />} />
         <Route path="/zafiyetler/:id" element={<VulnerabilityDetailPage />} />
         <Route path="/raporlar" element={<ReportsPage />} />
+        <Route path="/paketler" element={<PackagesPage />} />
+        <Route path="/paketler/:id" element={<PackageDetailPage />} />
+        <Route path="/aksiyonlar" element={<ActionsPage />} />
+        <Route path="/aksiyonlar/yeni" element={<NewActionPage />} />
+        <Route path="/aksiyonlar/:id" element={<ActionDetailPage />} />
+        <Route path="/ayarlar/aktarim" element={<TransferSettingsPage />} />
         <Route path="/ayarlar/ajan" element={<AgentSettingsPage />} />
         <Route path="/ayarlar/cve" element={<CveSettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

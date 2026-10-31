@@ -98,6 +98,7 @@ func (s *Server) handleEnroll(w http.ResponseWriter, r *http.Request) {
 		CertificatePEM:   string(cert.PEM),
 		CACertificatePEM: string(s.ca.CertPEM),
 		HeartbeatSeconds: s.cfg.Agent.HeartbeatSeconds,
+		ActionKey:        s.actionPublicKey(),
 	})
 }
 
@@ -171,6 +172,14 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.inventoryInstructions(r, m.ID, req.InventoryHashes, &resp); err != nil {
 		s.log.Warn("envanter durumu okunamadı", "ajan", m.ID, "hata", err)
+	}
+	resp.ActionKey = s.actionPublicKey()
+	if m.Status == protocol.StatusActive {
+		if n, err := s.store.PendingJobCount(r.Context(), m.ID, s.now()); err == nil {
+			resp.PendingJobs = n
+		} else {
+			s.log.Warn("bekleyen işler okunamadı", "ajan", m.ID, "hata", err)
+		}
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

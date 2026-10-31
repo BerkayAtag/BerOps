@@ -3,7 +3,9 @@
 package identity
 
 import (
+	"bytes"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/tls"
@@ -20,10 +22,11 @@ import (
 )
 
 const (
-	keyFile   = "agent.key"
-	certFile  = "agent.crt"
-	caFile    = "ca.crt"
-	stateFile = "state.json"
+	actionKeyFile = "action.pub"
+	keyFile       = "agent.key"
+	certFile      = "agent.crt"
+	caFile        = "ca.crt"
+	stateFile     = "state.json"
 )
 
 // ErrNotEnrolled, ajan henüz kaydolmamışsa döner.
@@ -95,6 +98,11 @@ func (s Store) SaveEnrollment(resp *protocol.EnrollResponse, at time.Time) error
 	if err := writeAtomic(s.path(caFile), []byte(resp.CACertificatePEM), 0o644); err != nil {
 		return err
 	}
+	if len(resp.ActionKey) == ed25519.PublicKeySize {
+		if err := s.PinActionKey(resp.ActionKey); err != nil {
+			return err
+		}
+	}
 	b, err := json.MarshalIndent(State{AgentID: resp.AgentID, Status: resp.Status, EnrolledAt: at}, "", "  ")
 	if err != nil {
 		return err
@@ -128,4 +136,31 @@ func writeAtomic(path string, data []byte, perm os.FileMode) error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// ErrActionKeyMismatch, sunucunun bildirdiği aksiyon anahtarı sabitlenenle uyuşmadığında döner.
+var ErrActionKeyMismatch = errors.New("sunucunun aksiyon imza anahtarı sabitlenen anahtardan farklı")
+
+// ActionKey, sabitlenmiş aksiyon imza anahtarını döner; yoksa nil.
+func (s Store) ActionKey() ed25519.PublicKey {
+	b, err := os.ReadFile(s.path(actionKeyFile))
+	if err != nil || len(b) != ed25519.PublicKeySize {
+		return nil
+	}
+	return ed25519.PublicKey(b)
+}
+
+// PinActionKey, aksiyon anahtarını ilk görüldüğünde sabitler (TOFU). Anahtar sonradan
+// değişirse kabul edilmez; anahtar yenilemek için ajan yeniden kaydedilmelidir.
+func (s Store) PinActionKey(key []byte) error {
+	if len(key) != ed25519.PublicKeySize {
+		return errors.New("aksiyon anahtarı geçersiz")
+	}
+	if cur := s.ActionKey(); cur != nil {
+		if !bytes.Equal(cur, key) {
+			return ErrActionKeyMismatch
+		}
+		return nil
+	}
+	return writeAtomic(s.path(actionKeyFile), key, 0o600)
 }

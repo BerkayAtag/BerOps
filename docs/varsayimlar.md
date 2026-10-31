@@ -67,3 +67,21 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 3.13 | Rapor boyutu | Dışa aktarmada en fazla 200 000 satır, PDF'te en fazla 5000 satır. Raporlar belleğe yazılıp sonra gönderilir; hata olursa yarım dosya yerine JSON hata döner. | `store`, `report`, `api/report_handlers.go` |
 | 3.14 | Uyumluluk eğilimi | Günün özeti bakım döngüsünde (10 dk) güncellenir; geçmiş günler değişmez. Eğilim grafiği son 30 günü gösterir; yeni kurulumda birkaç gün sonra anlamlı hale gelir. | `compliance_snapshots`, `api/server.go` |
 | 3.15 | Zamanlanmış rapor ve e-posta | Raporların zamanlanıp e-postayla gönderilmesi bildirim altyapısıyla birlikte Aşama 7'de eklenecek. | — |
+
+## Aşama 4 — Paket kütüphanesi ve dağıtım
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 4.1 | İmza anahtarı | Ajan işleri CA anahtarından ayrı bir Ed25519 anahtarıyla imzalanır; anahtar `data_dir/pki/action-signing.key` (0600). Ajan açık anahtarı ilk gördüğünde sabitler (TOFU, kanal zaten CA pin'iyle doğrulanmış mTLS). Anahtar yenileme ajanların yeniden kaydını gerektirir; otomatik anahtar devri ileride eklenebilir. | `server/internal/pki/signing.go`, `agent/internal/identity` |
+| 4.2 | İmza zamanı | İşler aksiyon oluşturulurken hedef başına imzalanıp veritabanına yazılır; veritabanına yazma erişimi olan biri imzasız iş ekleyemez. | `api/action_handlers.go` |
+| 4.3 | Teknisyen | Yalnızca kütüphanedeki paketleri gönderebilir; paket yükleyemez, serbest komut çalıştıramaz, aksiyon onaylayamaz. | `auth/rbac.go` |
+| 4.4 | Dört göz | Komut onayı varsayılan **kapalı** (küçük ekiplerde tek admin olabilir); açıldığında oluşturan kişi kendi aksiyonunu onaylayamaz. Paket dağıtımı onay gerektirmez (paket zaten admin tarafından kütüphaneye eklenmiştir). | `transfer_settings`, `api` |
+| 4.5 | Fail-closed denetim | Aksiyon oluşturma, denetim kaydı yazılamazsa reddedilir (503). Diğer işlemlerde denetim hatası loglanır. | `api/action_handlers.go` |
+| 4.6 | Yeniden çalıştırma | Ajan iş çalışırken yeniden başlarsa iş başarısız sayılır, otomatik tekrar edilmez. İndirme aşamasında durursa iş sunucuda "indiriliyor" kalır ve sonraki açılışta sürdürülür. | `agent/internal/jobs` |
+| 4.7 | Hız sınırı | İstemci başına (bağlantı başına) sunucu tarafında uygulanır; varsayılan 10 Mbps. Ajan işleri sırayla çalıştırdığından bir makine aynı anda tek indirme yapar. Toplam (sunucu geneli) sınır ve relay önbelleği Aşama 7'de. | `api/transfer.go` |
+| 4.8 | Dosya boyutu | Varsayılan en fazla 4 GB (ayarlanabilir). Yükleme diske akış halinde yazılır, bellekte tutulmaz; uzun yüklemeler için o isteğin zaman aşımı 6 saate çıkarılır. | `api/action_handlers.go` |
+| 4.9 | Betik çalıştırma | Komutlar iş dizinine betik olarak yazılıp çalıştırılır. Windows'ta `cmd` için `chcp 65001`, PowerShell için UTF-8 BOM ve çıktı kodlaması ayarlanır. Çıktı 64 KB ile sınırlanır. | `agent/internal/jobs` |
+| 4.10 | macOS süreç grubu | Zaman aşımında süreç grubuna SIGKILL gönderilir ve 200 ms sonra tekrarlanır; macOS'ta çatallanma anındaki süreçlerin gruptan kaçabildiği gözlendi. | `agent/internal/jobs/exec_unix.go` |
+| 4.11 | Güncelleme tespiti | Paket "kurulu uygulama adı kalıbı" ile envantere bağlanır; makinedeki en yeni kurulu sürüm paketten eskiyse "güncelleme gerekli" sayılır. Satıcı kataloğundan otomatik "en son sürüm" bilgisi yoktur; en güncel sürüm kütüphanedeki pakettir. | `api/action_handlers.go` |
+| 4.12 | Paket silme | Silme yumuşaktır (geçmiş aksiyonlar paket adını göstermeye devam eder). Dosya, başka paket veya açık aksiyon kullanmıyorsa diskten silinir. | `store/packages.go` |
+| 4.13 | Kendini güncelleme | Ajanın kendini güncellemesi MSI/pkg paketleri hazır olduğunda (Aşama 8) paket dağıtımıyla yapılacak. | — |

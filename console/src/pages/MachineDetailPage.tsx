@@ -103,15 +103,27 @@ export function MachineDetailPage() {
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={!canScan || scan_requested_at !== null}
-          title={canScan ? undefined : t("common.noPermission")}
-          onClick={() => void rescan()}
-        >
-          {t("machines.rescan")}
-        </button>
+        <div className="report-actions">
+          {m.status === "active" && can("actions.deploy_package") && (
+            <Link className="btn btn-ghost" to={`/aksiyonlar/yeni?kind=deploy_package&machines=${m.id}`}>
+              {t("machine.deploy")}
+            </Link>
+          )}
+          {m.status === "active" && can("actions.run_command") && (
+            <Link className="btn btn-ghost" to={`/aksiyonlar/yeni?kind=run_command&machines=${m.id}`}>
+              {t("machine.runCommand")}
+            </Link>
+          )}
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={!canScan || scan_requested_at !== null}
+            title={canScan ? undefined : t("common.noPermission")}
+            onClick={() => void rescan()}
+          >
+            {t("machines.rescan")}
+          </button>
+        </div>
       </header>
 
       {notice && (

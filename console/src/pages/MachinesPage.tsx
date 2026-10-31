@@ -238,13 +238,29 @@ export function MachinesPage() {
               </button>
               <button
                 type="button"
-                className="btn btn-primary btn-sm"
+                className="btn btn-ghost btn-sm"
                 disabled={!canScan}
                 title={canScan ? undefined : t("common.noPermission")}
                 onClick={() => void rescan()}
               >
                 {t("machines.rescanSelected")}
               </button>
+              {can("actions.run_command") && (
+                <Link
+                  className="btn btn-ghost btn-sm"
+                  to={`/aksiyonlar/yeni?kind=run_command&machines=${selectedIds.join(",")}`}
+                >
+                  {t("machines.runCommandSelected")}
+                </Link>
+              )}
+              {can("actions.deploy_package") && (
+                <Link
+                  className="btn btn-primary btn-sm"
+                  to={`/aksiyonlar/yeni?kind=deploy_package&machines=${selectedIds.join(",")}`}
+                >
+                  {t("machines.deploySelected")}
+                </Link>
+              )}
             </>
           )}
         </div>

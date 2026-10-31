@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -162,5 +163,20 @@ func TestSignAgentCSR_RejectsUnsupportedKey(t *testing.T) {
 	csrPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: der})
 	if _, err := ca.SignAgentCSR(csrPEM, "id", time.Hour); err == nil {
 		t.Fatal("RSA anahtarlı CSR reddedilmeliydi")
+	}
+}
+
+func TestSigningKeyPersists(t *testing.T) {
+	dir := t.TempDir()
+	k1, err := LoadOrCreateSigningKey(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k2, err := LoadOrCreateSigningKey(dir)
+	if err != nil || !k1.Equal(k2) {
+		t.Fatalf("anahtar yeniden yüklenince aynı olmalı: %v", err)
+	}
+	if st, _ := os.Stat(filepath.Join(dir, signingKeyFile)); st.Mode().Perm() != 0o600 && runtime.GOOS != "windows" {
+		t.Errorf("anahtar izinleri %v", st.Mode().Perm())
 	}
 }

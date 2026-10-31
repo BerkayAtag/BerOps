@@ -368,3 +368,112 @@ export interface ProductRule {
   product: string;
   builtin: boolean;
 }
+
+// --- Aşama 4: paketler ve aksiyonlar ---
+
+export type Installer = "msi" | "exe" | "pkg" | "dmg" | "file";
+export type Shell = "cmd" | "powershell" | "sh" | "zsh";
+
+export interface Package {
+  id: string;
+  name: string;
+  version: string;
+  publisher: string;
+  platform: "windows" | "darwin";
+  description: string;
+  installer: Installer;
+  install_command: string;
+  shell: Shell;
+  success_codes: number[];
+  detect_name: string;
+  file_name: string;
+  file_size: number;
+  file_sha256: string;
+  created_at: string;
+}
+
+export interface PackageDetail extends Package {
+  outdated: { machine_id: string; hostname: string; name: string; version: string }[];
+  up_to_date: number;
+}
+
+export type ActionStatus = "pending_approval" | "active" | "completed" | "cancelled" | "rejected";
+export type TargetStatus =
+  "pending" | "downloading" | "running" | "succeeded" | "failed" | "cancelled" | "expired";
+
+export interface Action {
+  id: string;
+  name: string;
+  kind: "deploy_package" | "run_command";
+  package_id: string | null;
+  package_name: string;
+  package_version: string;
+  shell: Shell | "";
+  command: string;
+  timeout_seconds: number;
+  bandwidth_kbps: number;
+  status: ActionStatus;
+  target_count: number;
+  created_by: string | null;
+  created_by_name: string;
+  created_at: string;
+  expires_at: string;
+  approved_at: string | null;
+  completed_at: string | null;
+  counts: Partial<Record<TargetStatus, number>>;
+}
+
+export interface ActionTarget {
+  machine_id: string;
+  hostname: string;
+  os_platform: "windows" | "darwin";
+  status: TargetStatus;
+  exit_code: number | null;
+  stdout: string;
+  stderr: string;
+  error: string;
+  started_at: string | null;
+  finished_at: string | null;
+  updated_at: string;
+}
+
+export interface TransferSettings {
+  per_client_kbps: number;
+  max_upload_mb: number;
+  command_approval: boolean;
+  default_expiry_hours: number;
+}
+
+/** Çok parçalı dosya yükler; yükleme ilerlemesi için XMLHttpRequest kullanılır. */
+export function apiUpload<T>(
+  path: string,
+  form: FormData,
+  onProgress?: (fraction: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", path);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Accept", "application/json");
+    if (csrfToken) xhr.setRequestHeader("X-CSRF-Token", csrfToken);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+    };
+    xhr.onerror = () => reject(new ApiError(0, "network", "network"));
+    xhr.onload = () => {
+      let data: unknown = null;
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        // gövde JSON değil
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data as T);
+        return;
+      }
+      const err = (data ?? {}) as { code?: string; message?: string };
+      reject(new ApiError(xhr.status, err.code ?? "unknown", err.message ?? xhr.statusText));
+    };
+    xhr.send(form);
+  });
+}
