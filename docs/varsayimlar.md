@@ -168,6 +168,19 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 9.6 | Kayıt defteri geri alma | Değişiklik öncesi değer ajan tarafından döndürülür ve denetim kaydına yazılır; konsol oturumdaki değişiklikleri listeler ve tek tıkla geri alır (yeniden yazma veya silme). Anahtarın tamamının yedeği alınmaz; değer düzeyinde geri alma yapılır. | `RemotePanel` |
 | 9.7 | Yeni bildirimler | Başarısız dağıtım (`action.failed`); son 30 günde yayımlanmış ve filoda ilk kez son 24 saatte görülen CVSS 9+ açık (`vulnerability.critical_new`); 24 saattir görülmeyen ama son 7 günde görülmüş makine (`machine.offline`, her kesinti bir kez). | `RunNotifications` |
 | 9.8 | Güncel olmayan uygulamalar | Gösterge panelinde, açığı bulunan uygulama sürümleri gösterilir (CVE eşleşmesi olan "ad sürüm"). Yalnızca daha yeni sürümün varlığına bakılmaz. | `GetDashboardOps` |
-| 9.9 | Kalan işler | Statik/dinamik gruplar ve etiketler, ajanın kendini güncellemesi, kurcalama koruması (kaldırma kodu), toplam/relay/saat bazlı hız profilleri ve otomatik yeniden deneme sonraki sürümlere bırakıldı. | — |
+| 9.9 | Kalan işler | Gruplar, etiketler, hız profilleri ve yeniden deneme Aşama 10'da eklendi. Ajanın kendini güncellemesi ve kurcalama koruması (kaldırma kodu) sonraki sürümlere bırakıldı. | — |
 | 9.10 | Bağımlılık ana sürümleri | TypeScript 7 (typescript-eslint desteği yok) ve TanStack Table 9 (API yeniden yazımı; 7 konsol dosyası) Dependabot'ta bekletilir. Geçişler ayrı, testli işler olarak yapılır; küçük ve yama sürümleri gelmeye devam eder. | `.github/dependabot.yml` |
 
+## Aşama 10 — Gruplar, yeniden deneme, hız profilleri
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 10.1 | Dinamik grup kuralı | Kurallar serbest sorgu değil, beyaz listedeki alan/işlem çiftleridir (en çok 10 koşul, "ve" ya da "veya"). İç içe koşul grubu yoktur. Üyelik her sorguda yeniden hesaplanır; önbellek tutulmaz. | `store.GroupRule` |
+| 10.2 | Grup görünürlüğü | Grup tanımları tüm kullanıcılara görünür; üyeler ve sayılar kullanıcının OU kapsamıyla süzülür. Kapsam dışındaki makine statik gruba eklenemez. | `ListGroups`, `machinesInScope` |
+| 10.3 | Grup hedefleme | Aksiyon oluşturulurken grup üyeleri o anda çözülür ve hedef listesine yazılır. Sonradan gruba giren makineler mevcut aksiyona eklenmez (denetim kaydıyla tutarlılık için). | `handleCreateAction` |
+| 10.4 | Sürüm karşılaştırma | Sürüm dizesindeki sayı grupları sırayla karşılaştırılır; harfler yok sayılır (`120.0.6099.71` > `120.0.6099.9`). | `berops_version_key` |
+| 10.5 | Etiketler | Makine başına en çok 20 etiket, harf/rakamla başlar, en çok 40 karakter. Ayrı bir etiket kataloğu yoktur; hiçbir makinede kalmayan etiket listeden kendiliğinden kalkar. | `machine_tags` |
+| 10.6 | Yeniden deneme | Yalnızca `failed` sonuçlar (zaman aşımı dahil) yeniden denenir; iptal edilen ve süresi dolan hedefler denenmez. En çok 5 deneme, 1-1440 dakika arayla. Bir sonraki deneme geçerlilik süresini aşıyorsa planlanmaz. Kademeli dağıtımda başarı oranı son sonuca göre hesaplanır. | `UpdateTargetStatus` |
+| 10.7 | Deneme imzası | Her deneme `attempt` alanıyla yeniden imzalanır; ajan aynı iş kimliğini tekrar oynatma koruması nedeniyle çalıştırmaz, bu yüzden günlük anahtarı `kimlik#deneme` olur. Eski ajanlar alanı yok sayar; yeniden deneme 1.2 ve üstü ajanlarla çalışır. | `jobs.journalKey` |
+| 10.8 | Hız profilleri | Profiller sunucunun yerel saatine göre değerlendirilir; eşleşen ilk profil istemci başına sınırın yerine geçer. Profil, aksiyonun kendi sınırından yüksekse aksiyonun sınırı geçerlidir. En çok 10 profil. | `TransferSettings.ClientKbps` |
+| 10.9 | Toplam sınır | Sunucuda tüm indirmeler (paket ve Windows Update kataloğu) ortak bir jeton kovasını paylaşır. Relay'de `-max-kbps` bayrağı aynı işi şube için yapar; relay sınırı konsoldan değil, relay komut satırından ayarlanır. | `sharedLimiter` |

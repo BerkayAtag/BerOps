@@ -36,6 +36,7 @@ func run() error {
 	listen := flag.String("listen", ":52311", "ajanların bağlanacağı adres")
 	cacheDir := flag.String("cache", "cache", "paket önbelleği klasörü")
 	cacheGB := flag.Int("cache-gb", 50, "önbellek üst sınırı (GB)")
+	maxKbps := flag.Int("max-kbps", 0, "ajanlara toplam gönderim sınırı, kbps (0 = sınırsız; şube hattını korur)")
 	showVersion := flag.Bool("version", false, "sürümü yazdır")
 	flag.Parse()
 	if *showVersion {
@@ -55,7 +56,7 @@ func run() error {
 		return fmt.Errorf("relay sertifikası yüklenemedi: %w", err)
 	}
 	r, err := relay.New(relay.Config{ServerURL: *server, CA: ca, Cert: cert, CacheDir: *cacheDir,
-		CacheBytes: int64(*cacheGB) << 30, Log: log})
+		CacheBytes: int64(*cacheGB) << 30, MaxKbps: *maxKbps, Log: log})
 	if err != nil {
 		return err
 	}

@@ -176,18 +176,64 @@ type TransferSettings struct {
 	MaxUploadMB        int  `json:"max_upload_mb"`
 	CommandApproval    bool `json:"command_approval"`
 	DefaultExpiryHours int  `json:"default_expiry_hours"`
+	// TotalKbps, tüm indirmelerin paylaştığı toplam sunucu çıkış sınırıdır (0 = sınırsız).
+	TotalKbps int `json:"total_kbps"`
+	// Profiles, saat bazlı istemci sınırlarıdır; eşleşen ilk profil PerClientKbps yerine geçer.
+	Profiles []RateProfile `json:"profiles"`
+}
+
+// RateProfile, belirli gün ve saatlerde geçerli istemci başına hız sınırıdır (sunucu saatiyle).
+// EndMinute < StartMinute ise aralık gece yarısını aşar (ör. 22:00-06:00).
+type RateProfile struct {
+	Name        string  `json:"name"`
+	Weekdays    []int16 `json:"weekdays"` // 0 = Pazar
+	StartMinute int     `json:"start_minute"`
+	EndMinute   int     `json:"end_minute"`
+	Kbps        int     `json:"kbps"`
+}
+
+// Matches, zamanın profile girip girmediğini döner. Gece yarısını aşan aralıkta sabah kısmı
+// bir önceki günün profilidir.
+func (p RateProfile) Matches(t time.Time) bool {
+	minute := t.Hour()*60 + t.Minute()
+	day := int16(t.Weekday())
+	has := func(d int16) bool {
+		for _, w := range p.Weekdays {
+			if w == d {
+				return true
+			}
+		}
+		return false
+	}
+	if p.StartMinute <= p.EndMinute {
+		return has(day) && minute >= p.StartMinute && minute < p.EndMinute
+	}
+	prev := (day + 6) % 7
+	return (has(day) && minute >= p.StartMinute) || (has(prev) && minute < p.EndMinute)
+}
+
+// ClientKbps, verilen zamanda geçerli istemci başına sınırdır.
+func (t TransferSettings) ClientKbps(now time.Time) int {
+	for _, p := range t.Profiles {
+		if p.Matches(now) {
+			return p.Kbps
+		}
+	}
+	return t.PerClientKbps
 }
 
 // DefaultTransferSettings, kurulumdaki varsayılanlardır: istemci başına 10 Mbps.
 func DefaultTransferSettings() TransferSettings {
-	return TransferSettings{PerClientKbps: 10_000, MaxUploadMB: 4096, CommandApproval: false, DefaultExpiryHours: 72}
+	return TransferSettings{PerClientKbps: 10_000, MaxUploadMB: 4096, CommandApproval: false, DefaultExpiryHours: 72,
+		Profiles: []RateProfile{}}
 }
 
 // GetTransferSettings, ayarları döner; kayıt yoksa varsayılanları döner.
 func (s *Store) GetTransferSettings(ctx context.Context) (TransferSettings, error) {
 	t := DefaultTransferSettings()
-	err := s.pool.QueryRow(ctx, `SELECT per_client_kbps, max_upload_mb, command_approval, default_expiry_hours
-		FROM transfer_settings WHERE id = 1`).Scan(&t.PerClientKbps, &t.MaxUploadMB, &t.CommandApproval, &t.DefaultExpiryHours)
+	err := s.pool.QueryRow(ctx, `SELECT per_client_kbps, max_upload_mb, command_approval, default_expiry_hours, total_kbps, profiles
+		FROM transfer_settings WHERE id = 1`).Scan(&t.PerClientKbps, &t.MaxUploadMB, &t.CommandApproval, &t.DefaultExpiryHours,
+		&t.TotalKbps, &t.Profiles)
 	if err := notFound(err); err != nil && err != ErrNotFound {
 		return t, err
 	}
@@ -197,11 +243,21 @@ func (s *Store) GetTransferSettings(ctx context.Context) (TransferSettings, erro
 // SaveTransferSettings, ayarları kaydeder.
 func (s *Store) SaveTransferSettings(ctx context.Context, t TransferSettings, userID string) error {
 	_, err := s.pool.Exec(ctx, `
-		INSERT INTO transfer_settings (id, per_client_kbps, max_upload_mb, command_approval, default_expiry_hours, updated_by)
-		VALUES (1, $1, $2, $3, $4, $5)
+		INSERT INTO transfer_settings (id, per_client_kbps, max_upload_mb, command_approval, default_expiry_hours, updated_by,
+			total_kbps, profiles)
+		VALUES (1, $1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (id) DO UPDATE SET per_client_kbps = EXCLUDED.per_client_kbps, max_upload_mb = EXCLUDED.max_upload_mb,
 			command_approval = EXCLUDED.command_approval, default_expiry_hours = EXCLUDED.default_expiry_hours,
+			total_kbps = EXCLUDED.total_kbps, profiles = EXCLUDED.profiles,
 			updated_at = now(), updated_by = EXCLUDED.updated_by`,
-		t.PerClientKbps, t.MaxUploadMB, t.CommandApproval, t.DefaultExpiryHours, nullableUUID(userID))
+		t.PerClientKbps, t.MaxUploadMB, t.CommandApproval, t.DefaultExpiryHours, nullableUUID(userID), t.TotalKbps,
+		nonNilProfiles(t.Profiles))
 	return err
+}
+
+func nonNilProfiles(p []RateProfile) []RateProfile {
+	if p == nil {
+		return []RateProfile{}
+	}
+	return p
 }

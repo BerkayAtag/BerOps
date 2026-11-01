@@ -412,6 +412,8 @@ export interface Action {
   command: string;
   timeout_seconds: number;
   bandwidth_kbps: number;
+  retry_count: number;
+  retry_delay_minutes: number;
   status: ActionStatus;
   target_count: number;
   created_by: string | null;
@@ -449,6 +451,16 @@ export interface ActionTarget {
   stage: number;
   released: boolean;
   reboot_required: boolean;
+  attempts: number;
+  next_attempt_at: string | null;
+}
+
+export interface RateProfile {
+  name: string;
+  weekdays: number[];
+  start_minute: number;
+  end_minute: number;
+  kbps: number;
 }
 
 export interface TransferSettings {
@@ -456,6 +468,8 @@ export interface TransferSettings {
   max_upload_mb: number;
   command_approval: boolean;
   default_expiry_hours: number;
+  total_kbps: number;
+  profiles: RateProfile[];
 }
 
 /** Çok parçalı dosya yükler; yükleme ilerlemesi için XMLHttpRequest kullanılır. */
@@ -613,4 +627,43 @@ export interface RegistryKey {
   subkeys: string[];
   values: RegistryValue[];
   truncated?: boolean;
+}
+
+export type GroupField =
+  | "platform"
+  | "os_name"
+  | "os_build"
+  | "hostname"
+  | "ad_ou"
+  | "tag"
+  | "app"
+  | "missing_patch"
+  | "agent_version"
+  | "risk";
+
+export interface GroupCondition {
+  field: GroupField;
+  op: string;
+  value: string;
+  name?: string;
+}
+
+export interface GroupRule {
+  match: "all" | "any";
+  conditions: GroupCondition[];
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  description: string;
+  kind: "static" | "dynamic";
+  rule: GroupRule | null;
+  created_at: string;
+  members: number;
+}
+
+export interface GroupsResponse {
+  items: Group[];
+  tags: { tag: string; machines: number }[];
 }

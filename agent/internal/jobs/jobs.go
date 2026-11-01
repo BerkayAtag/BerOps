@@ -54,6 +54,8 @@ type Result struct {
 // journalEntry, işlenen işin kaydıdır. Aynı iş (yeniden gönderim veya tekrar oynatma) ikinci
 // kez çalıştırılmaz; bildirilemeyen son durum sonraki turda yeniden bildirilir.
 type journalEntry struct {
+	// JobID, sonucun bildirildiği aksiyon kimliğidir (anahtar, yeniden denemede deneme numarası içerir).
+	JobID    string                     `json:"job_id,omitempty"`
 	Status   string                     `json:"status"`
 	Report   *protocol.JobStatusRequest `json:"report,omitempty"`
 	Reported bool                       `json:"reported"`
@@ -148,9 +150,19 @@ func (r *Runner) save() {
 	}
 }
 
-func (r *Runner) setJournal(id, status string, report *protocol.JobStatusRequest, reported bool) {
+// journalKey, işin günlük anahtarıdır: ilk denemede aksiyon kimliği, yeniden denemelerde
+// kimlik#deneme. Böylece yeni deneme eski sonuç yüzünden atlanmaz, aynı deneme ise tekrar
+// çalıştırılmaz.
+func journalKey(job *protocol.Job) string {
+	if job.Attempt > 0 {
+		return fmt.Sprintf("%s#%d", job.ID, job.Attempt)
+	}
+	return job.ID
+}
+
+func (r *Runner) setJournal(job *protocol.Job, status string, report *protocol.JobStatusRequest, reported bool) {
 	r.mu.Lock()
-	r.journal[id] = &journalEntry{Status: status, Report: report, Reported: reported, At: r.now()}
+	r.journal[journalKey(job)] = &journalEntry{JobID: job.ID, Status: status, Report: report, Reported: reported, At: r.now()}
 	r.mu.Unlock()
 	r.save()
 }
@@ -196,7 +208,7 @@ func (r *Runner) Process(ctx context.Context) {
 			continue
 		}
 		r.mu.Lock()
-		prev := r.journal[job.ID]
+		prev := r.journal[journalKey(job)]
 		r.mu.Unlock()
 		if prev != nil && protocol.FinalTargetStatus(prev.Status) {
 			// Daha önce sonuçlanmış iş tekrar gelirse yeniden çalıştırılmaz; sonuç tekrar bildirilir.
@@ -211,20 +223,24 @@ func (r *Runner) Process(ctx context.Context) {
 
 func (r *Runner) flushReports(ctx context.Context) {
 	r.mu.Lock()
-	var ids []string
-	for id, e := range r.journal {
+	var keys []string
+	for key, e := range r.journal {
 		if !e.Reported && e.Report != nil && protocol.FinalTargetStatus(e.Status) {
-			ids = append(ids, id)
+			keys = append(keys, key)
 		}
 	}
 	r.mu.Unlock()
-	for _, id := range ids {
+	for _, key := range keys {
 		r.mu.Lock()
-		rep := *r.journal[id].Report
+		e := r.journal[key]
+		rep, id := *e.Report, e.JobID
 		r.mu.Unlock()
+		if id == "" {
+			id = key // eski sürümün günlük kaydı
+		}
 		if r.report(ctx, id, rep) == nil {
 			r.mu.Lock()
-			r.journal[id].Reported = true
+			r.journal[key].Reported = true
 			r.mu.Unlock()
 			r.save()
 		}
@@ -246,9 +262,9 @@ func (r *Runner) report(ctx context.Context, id string, req protocol.JobStatusRe
 
 func (r *Runner) finish(ctx context.Context, job *protocol.Job, rep protocol.JobStatusRequest) {
 	rep.Stdout, rep.Stderr = clip(rep.Stdout), clip(rep.Stderr)
-	r.setJournal(job.ID, rep.Status, &rep, false)
+	r.setJournal(job, rep.Status, &rep, false)
 	if r.report(ctx, job.ID, rep) == nil {
-		r.setJournal(job.ID, rep.Status, &rep, true)
+		r.setJournal(job, rep.Status, &rep, true)
 	}
 	r.Log.Info("iş tamamlandı", "iş", job.ID, "tür", job.Kind, "durum", rep.Status)
 	if rep.Status == protocol.TargetSucceeded && job.RescanAfter && r.OnFinished != nil {
@@ -279,14 +295,14 @@ func (r *Runner) run(ctx context.Context, job *protocol.Job) {
 
 	spec := Spec{Shell: job.Shell, Command: job.Command, Timeout: time.Duration(job.TimeoutSeconds) * time.Second, WorkDir: work}
 	if job.Kind == protocol.JobDeployPackage {
-		r.setJournal(job.ID, protocol.TargetDownloading, nil, false)
+		r.setJournal(job, protocol.TargetDownloading, nil, false)
 		_ = r.report(ctx, job.ID, protocol.JobStatusRequest{Status: protocol.TargetDownloading})
 		file, err := r.fetch(ctx, job)
 		if err != nil {
 			if ctx.Err() != nil {
 				// Ajan durduruluyor: iş sunucuda "indiriliyor" kalır ve sonraki açılışta sürdürülür.
 				r.mu.Lock()
-				delete(r.journal, job.ID)
+				delete(r.journal, journalKey(job))
 				r.mu.Unlock()
 				r.save()
 				return
@@ -298,7 +314,7 @@ func (r *Runner) run(ctx context.Context, job *protocol.Job) {
 		spec.Command = strings.ReplaceAll(spec.Command, protocol.FilePlaceholder, file)
 	}
 
-	r.setJournal(job.ID, protocol.TargetRunning, nil, false)
+	r.setJournal(job, protocol.TargetRunning, nil, false)
 	_ = r.report(ctx, job.ID, protocol.JobStatusRequest{Status: protocol.TargetRunning})
 	res := r.Exec(ctx, spec)
 	rep := protocol.JobStatusRequest{Status: protocol.TargetFailed, Stdout: res.Stdout, Stderr: res.Stderr}

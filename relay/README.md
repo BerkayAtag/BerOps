@@ -44,6 +44,7 @@
 | `-listen` | `:52311` | Ajanların bağlanacağı adres |
 | `-cache` | `cache` | Paket önbelleği klasörü |
 | `-cache-gb` | `50` | Önbellek üst sınırı (GB) |
+| `-max-kbps` | `0` | Relay'in ajanlara toplam gönderim sınırı (kbps); 0 = sınırsız. Şube hattını korumak için kullanılır. |
 
 Relay durumsuzdur; önbellek silinse bile dosyalar ilk istekte yeniden indirilir.
 

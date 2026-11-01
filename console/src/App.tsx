@@ -15,6 +15,7 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { PatchesPage } from "./pages/PatchesPage";
 import { RelaysPage } from "./pages/RelaysPage";
 import { CveSettingsPage } from "./pages/CveSettingsPage";
+import { GroupsPage } from "./pages/GroupsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { MachineDetailPage } from "./pages/MachineDetailPage";
@@ -47,6 +48,7 @@ export function App() {
         <Route path="/" element={<HomePage me={state.me} />} />
         <Route path="/makineler" element={<MachinesPage />} />
         <Route path="/makineler/:id" element={<MachineDetailPage />} />
+        <Route path="/gruplar" element={<GroupsPage />} />
         <Route path="/yamalar" element={<PatchesPage />} />
         <Route path="/zafiyetler" element={<VulnerabilitiesPage />} />
         <Route path="/zafiyetler/:id" element={<VulnerabilityDetailPage />} />

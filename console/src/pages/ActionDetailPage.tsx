@@ -206,6 +206,12 @@ export function ActionDetailPage() {
               {a.created_by_name} · {formatDateTime(a.created_at, lng)}
             </dd>
           </div>
+          {a.retry_count > 0 && (
+            <div className="field-row">
+              <dt>{t("actions.retryPolicy")}</dt>
+              <dd>{t("actions.retryValue", { count: a.retry_count, minutes: a.retry_delay_minutes })}</dd>
+            </div>
+          )}
           <div className="field-row">
             <dt>{t("actions.expires")}</dt>
             <dd>{formatDateTime(a.expires_at, lng)}</dd>
@@ -249,6 +255,14 @@ export function ActionDetailPage() {
                         <TargetStatusPill status={tg.status} />
                         {tg.reboot_required && (
                           <span className="pill pill-warning">{t("actions.rebootTag")}</span>
+                        )}
+                        {tg.attempts > 0 && (
+                          <span className="muted small block">
+                            {t("actions.attempt", { n: tg.attempts })}
+                            {tg.next_attempt_at &&
+                              tg.status === "pending" &&
+                              ` · ${t("actions.nextAttempt", { time: formatRelative(tg.next_attempt_at, lng) })}`}
+                          </span>
                         )}
                         {stages.length > 0 && (
                           <span className="muted small block">

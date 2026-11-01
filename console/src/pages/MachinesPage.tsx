@@ -7,7 +7,14 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import { api, errorKey, type MachineListItem, type Page } from "../api/client";
+import {
+  api,
+  errorKey,
+  type Group,
+  type GroupsResponse,
+  type MachineListItem,
+  type Page,
+} from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { OnlinePill, PlatformIcon, RiskBadge, StatusPill } from "../components/Badges";
@@ -28,6 +35,8 @@ export function MachinesPage() {
   const platform = p.get("platform");
   const status = p.get("status");
   const online = p.get("online");
+  const groupId = p.get("group_id");
+  const tag = p.get("tag");
   const sort = p.get("sort", "hostname");
   const desc = p.get("desc") === "true";
   const pageSize = PAGE_SIZES.includes(Number(p.get("size"))) ? Number(p.get("size")) : 50;
@@ -47,6 +56,8 @@ export function MachinesPage() {
     platform,
     status,
     online,
+    group_id: groupId,
+    tag,
     sort,
     desc: String(desc),
     page: String(pageIndex + 1),
@@ -54,6 +65,8 @@ export function MachinesPage() {
   });
   const [list, reload] = useApi<Page<MachineListItem>>(`/api/v1/machines?${query}`);
   const [selection, setSelection] = useState<RowSelectionState>({});
+  const [groups] = useApi<GroupsResponse>("/api/v1/groups");
+  const staticGroups = groups.status === "ok" ? groups.data.items.filter((g) => g.kind === "static") : [];
   const [notice, setNotice] = useState<{ kind: "info" | "danger"; text: string } | null>(null);
   const canScan = can("machines.manage");
 
@@ -163,6 +176,18 @@ export function MachinesPage() {
     }
   }
 
+  // Seçili makineleri statik gruba ekler.
+  async function addToGroup(group: Group) {
+    setNotice(null);
+    try {
+      await api(`/api/v1/groups/${group.id}/members`, { method: "PUT", body: { add: selectedIds } });
+      setNotice({ kind: "info", text: t("groups.added", { count: selectedIds.length, name: group.name }) });
+      setSelection({});
+    } catch (err) {
+      setNotice({ kind: "danger", text: t(errorKey(err), { defaultValue: t("errors.unknown") }) });
+    }
+  }
+
   const data = list.status === "ok" ? list.data : null;
 
   return (
@@ -229,6 +254,40 @@ export function MachinesPage() {
             <option value="true">{t("status.online")}</option>
             <option value="false">{t("status.offline")}</option>
           </select>
+          {groups.status === "ok" && groups.data.items.length > 0 && (
+            <select
+              className="select"
+              aria-label={t("groups.filter")}
+              value={groupId}
+              onChange={(e) => p.update({ group_id: e.target.value, page: null })}
+            >
+              <option value="">
+                {t("groups.filter")}: {t("common.all")}
+              </option>
+              {groups.data.items.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {groups.status === "ok" && groups.data.tags.length > 0 && (
+            <select
+              className="select"
+              aria-label={t("groups.tagFilter")}
+              value={tag}
+              onChange={(e) => p.update({ tag: e.target.value, page: null })}
+            >
+              <option value="">
+                {t("groups.tagFilter")}: {t("common.all")}
+              </option>
+              {groups.data.tags.map((x) => (
+                <option key={x.tag} value={x.tag}>
+                  {x.tag} ({x.machines})
+                </option>
+              ))}
+            </select>
+          )}
           <div className="toolbar-spacer" />
           {selectedIds.length > 0 && (
             <>
@@ -236,6 +295,24 @@ export function MachinesPage() {
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSelection({})}>
                 {t("common.clearSelection")}
               </button>
+              {canScan && staticGroups.length > 0 && (
+                <select
+                  className="select select-sm"
+                  aria-label={t("groups.addTo")}
+                  value=""
+                  onChange={(e) => {
+                    const g = staticGroups.find((x) => x.id === e.target.value);
+                    if (g) void addToGroup(g);
+                  }}
+                >
+                  <option value="">{t("groups.addTo")}</option>
+                  {staticGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"

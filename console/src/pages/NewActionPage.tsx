@@ -5,6 +5,7 @@ import {
   api,
   errorKey,
   type Action,
+  type GroupsResponse,
   type MachineListItem,
   type Package,
   type Page,
@@ -84,6 +85,13 @@ export function NewActionPage() {
   const [targets, setTargets] = useState<Target[]>([]);
   const [respectWindows, setRespectWindows] = useState(false);
   const [startAt, setStartAt] = useState("");
+  const [groupIds, setGroupIds] = useState<string[]>(() =>
+    (params.get("groups") ?? "").split(",").filter(Boolean),
+  );
+  const [allMachines, setAllMachines] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [retryDelay, setRetryDelay] = useState(30);
+  const [groups] = useApi<GroupsResponse>("/api/v1/groups");
   const [rolloutPreset, setRolloutPreset] = useState<RolloutPreset>("none");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,8 +131,11 @@ export function NewActionPage() {
         kind,
         name: name.trim(),
         machine_ids: targets.map((m) => m.id),
+        group_ids: groupIds,
+        all_machines: allMachines,
         timeout_seconds: timeout,
       };
+      if (retryCount > 0) Object.assign(body, { retry_count: retryCount, retry_delay_minutes: retryDelay });
       if (bandwidth > 0) body.bandwidth_kbps = bandwidth;
       if (expires > 0) body.expires_hours = expires;
       if (kind === "deploy_package") body.package_id = packageId;
@@ -244,6 +255,40 @@ export function NewActionPage() {
           </div>
           <div className="card-body stack">
             <MachinePicker selected={targets} onAdd={(m) => setTargets((ts) => [...ts, m])} />
+            {groups.status === "ok" && groups.data.items.length > 0 && (
+              <fieldset className="day-picker">
+                <legend>{t("actions.wizard.groups")}</legend>
+                {groups.data.items.map((g) => (
+                  <label key={g.id} className="check">
+                    <input
+                      type="checkbox"
+                      className="checkbox"
+                      checked={groupIds.includes(g.id)}
+                      onChange={() =>
+                        setGroupIds((ids) =>
+                          ids.includes(g.id) ? ids.filter((x) => x !== g.id) : [...ids, g.id],
+                        )
+                      }
+                    />
+                    <span>
+                      {g.name} <span className="muted small">({g.members})</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            <label className="check">
+              <input
+                type="checkbox"
+                className="checkbox"
+                checked={allMachines}
+                onChange={(e) => setAllMachines(e.target.checked)}
+              />
+              <span>
+                {t("actions.wizard.allMachines")}
+                <small className="muted block">{t("actions.wizard.allMachinesHint")}</small>
+              </span>
+            </label>
             {mismatch && (
               <div className="alert alert-danger">
                 {t("actions.wizard.platformMismatch", { platform: t(`machines.platform.${pkg!.platform}`) })}
@@ -322,6 +367,31 @@ export function NewActionPage() {
               />
             </label>
             <label>
+              {t("actions.wizard.retry")}
+              <span className="report-actions">
+                <input
+                  className="input input-sm"
+                  type="number"
+                  min={0}
+                  max={5}
+                  aria-label={t("actions.wizard.retryCount")}
+                  value={retryCount}
+                  onChange={(e) => setRetryCount(Number(e.target.value))}
+                />
+                <input
+                  className="input input-sm"
+                  type="number"
+                  min={1}
+                  max={1440}
+                  aria-label={t("actions.wizard.retryDelay")}
+                  disabled={retryCount === 0}
+                  value={retryDelay}
+                  onChange={(e) => setRetryDelay(Number(e.target.value))}
+                />
+              </span>
+              <span className="hint">{t("actions.wizard.retryHint")}</span>
+            </label>
+            <label>
               {t("actions.wizard.startAt")}
               <input
                 className="input input-sm"
@@ -370,7 +440,7 @@ export function NewActionPage() {
             disabled={
               busy ||
               !allowed ||
-              targets.length === 0 ||
+              (targets.length === 0 && groupIds.length === 0 && !allMachines) ||
               Boolean(mismatch) ||
               (kind === "deploy_package" ? !packageId : !command.trim())
             }

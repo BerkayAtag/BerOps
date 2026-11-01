@@ -29,6 +29,7 @@ import { formatBytes, formatDate, formatDateTime, formatNumber, formatRelative }
 import { ActionStatusPill } from "../components/ActionBadges";
 import { RemotePanel } from "../components/RemotePanel";
 import { RestartForm } from "../components/RestartForm";
+import { TagEditor } from "../components/TagEditor";
 import { EpssValue } from "./VulnerabilitiesPage";
 
 type Tab = "vulns" | "missing" | "installed" | "apps" | "jobs" | "remote";
@@ -125,6 +126,7 @@ export function MachineDetailPage() {
               <StatusPill status={m.status} />
               {inv?.reboot_pending && <span className="pill pill-info">{t("machines.rebootPending")}</span>}
             </span>
+            <TagEditor machineId={m.id} editable={canScan && m.status === "active"} />
           </div>
         </div>
         <div className="report-actions">

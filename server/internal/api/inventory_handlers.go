@@ -167,7 +167,7 @@ func (s *Server) handleWSUSCab(w http.ResponseWriter, r *http.Request) {
 	noWriteDeadline(w)
 	fileDownloadHeaders(w, "application/vnd.ms-cab-compressed")
 	w.Header().Set("ETag", `"`+strconv.FormatInt(info.ModTime().Unix(), 16)+"-"+strconv.FormatInt(info.Size(), 16)+`"`)
-	http.ServeContent(newThrottledWriter(r.Context(), w, s.clientRate(r, 0)), r, "wsusscn2.cab", info.ModTime(), f)
+	http.ServeContent(s.throttled(r, w, s.clientRate(r, 0)), r, "wsusscn2.cab", info.ModTime(), f)
 }
 
 // --- Konsol ---
@@ -218,6 +218,14 @@ func (s *Server) handleListMachines(w http.ResponseWriter, r *http.Request, sess
 	case "false":
 		v := false
 		f.Online = &v
+	}
+	f.Tag = q.Get("tag")
+	if gid := q.Get("group_id"); gid != "" {
+		g, ok := s.groupFromID(w, r, gid)
+		if !ok {
+			return
+		}
+		f.Group = g
 	}
 	items, total, err := s.store.ListMachinesFiltered(r.Context(), f)
 	if err != nil {

@@ -32,6 +32,32 @@ Aksiyon, hedeflerin yüzdelerine bölünmüş 2–5 aşamada dağıtılabilir. H
 - Yetkili kullanıcı **"Sonraki aşamayı başlat"** düğmesiyle beklemedeki veya duraklatılmış aşamayı elle açabilir. Bu işlem denetim kaydına yazılır.
 - Kademeli dağıtım ve bakım penceresi birlikte kullanılabilir: açılan aşamanın işleri de pencere içinde verilir.
 
+## Gruplar ve etiketler
+
+**Gruplar** ekranında iki tür grup tanımlanır:
+
+- **Statik:** Üyeler elle seçilir. Makineler listesinde seçim yapıp **Gruba ekle** ile eklenir.
+- **Dinamik:** Üyeler bir kurala göre her sorguda yeniden hesaplanır. Kural en çok 10 koşuldan oluşur; **Tüm koşullar** (ve) veya **Herhangi bir koşul** (veya) ile birleştirilir. Kaydetmeden önce **Önizle** ile eşleşen makineler görülür.
+
+| Alan | İşlemler | Örnek |
+|---|---|---|
+| Platform | eşittir | `windows`, `darwin` |
+| İşletim sistemi | içerir, eşittir | `Windows 11` |
+| Yama seviyesi (build) | sürümü küçüktür, sürümü büyük/eşittir, ile başlar | `10.0.22631.4460` |
+| Makine adı | içerir, ile başlar, eşittir | `WS-` |
+| AD OU | altında | `OU=Şubeler,DC=ornek,DC=local` |
+| Etiket | var | `pilot` |
+| Uygulama | kurulu, kurulu değil, sürümü küçüktür, sürümü büyük/eşittir | `Chrome` sürümü küçüktür `120` |
+| Eksik yama | var | `KB5046617` |
+| Ajan sürümü | sürümü küçüktür, sürümü büyük/eşittir | `1.2.0` |
+| Risk skoru | en az | `80` |
+
+- Sürümler sayı dizisi olarak karşılaştırılır (`10.0.9` < `10.0.10`).
+- Koşullar sunucudaki beyaz listeyle doğrulanır ve parametreli SQL'e çevrilir; serbest sorgu yazılamaz.
+- Grup tanımları herkese görünür; üye sayısı ve üyeler kullanıcının OU kapsamına göre süzülür.
+- **Etiketler** makine detayından eklenir (makine başına en çok 20; harf, rakam, boşluk, `.`, `_`, `-`; en çok 40 karakter). Makineler listesi etiket ve gruba göre süzülebilir.
+- Grup ekranındaki **Aksiyon gönder**, sihirbazı o grup seçili olarak açar.
+
 ## Relay
 
 Şubelerdeki ajanlar sunucuya relay üzerinden bağlanır, paketler relay'de önbelleğe alınır. Kurulum ve çalışma biçimi: [relay/README.md](../relay/README.md).

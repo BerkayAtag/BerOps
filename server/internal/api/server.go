@@ -46,6 +46,8 @@ type Server struct {
 
 	remote  remoteBroker
 	windows windowCache
+	// totalLimit, tüm indirmelerin paylaştığı toplam çıkış sınırıdır (transfer ayarlarından).
+	totalLimit sharedLimiter
 
 	loginLimiter  *auth.AttemptLimiter
 	enrollLimiter *auth.AttemptLimiter
@@ -169,6 +171,15 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("POST /api/v1/notifications/channels/{id}/test", s.authed(auth.PermSettingsWrite, s.handleTestChannel))
 	mux.Handle("POST /api/v1/notifications/schedules", s.authed(auth.PermSettingsWrite, s.handleCreateSchedule))
 	mux.Handle("DELETE /api/v1/notifications/schedules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteSchedule))
+
+	mux.Handle("GET /api/v1/groups", s.authed(auth.PermMachinesRead, s.handleListGroups))
+	mux.Handle("POST /api/v1/groups", s.authed(auth.PermMachinesManage, s.handleSaveGroup))
+	mux.Handle("POST /api/v1/groups/preview", s.authed(auth.PermMachinesRead, s.handlePreviewGroup))
+	mux.Handle("PUT /api/v1/groups/{id}", s.authed(auth.PermMachinesManage, s.handleSaveGroup))
+	mux.Handle("DELETE /api/v1/groups/{id}", s.authed(auth.PermMachinesManage, s.handleDeleteGroup))
+	mux.Handle("PUT /api/v1/groups/{id}/members", s.authed(auth.PermMachinesManage, s.handleGroupMembers))
+	mux.Handle("GET /api/v1/machines/{id}/tags", s.authed(auth.PermMachinesRead, s.handleMachineTags))
+	mux.Handle("PUT /api/v1/machines/{id}/tags", s.authed(auth.PermMachinesManage, s.handleSetMachineTags))
 
 	mux.Handle("GET /api/v1/api-keys", s.authed(auth.PermUsersManage, s.handleListAPIKeys))
 	mux.Handle("POST /api/v1/api-keys", s.authed(auth.PermUsersManage, s.handleCreateAPIKey))

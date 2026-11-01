@@ -218,7 +218,7 @@ func TestTimeoutKillsProcessGroup(t *testing.T) {
 func TestInterruptedJobReportedAsFailed(t *testing.T) {
 	e := newEnv(t)
 	e.r.load()
-	e.r.setJournal("yarim", protocol.TargetRunning, nil, false)
+	e.r.setJournal(&protocol.Job{ID: "yarim"}, protocol.TargetRunning, nil, false)
 	r2 := New(e.r.Dir, e.client, e.r.Log, "m1", e.r.Key)
 	r2.Process(context.Background())
 	if r := e.client.final("yarim"); r.Status != protocol.TargetFailed || !strings.Contains(r.Error, "yeniden başladı") {
@@ -275,5 +275,25 @@ func TestTailFile(t *testing.T) {
 	}
 	if _, err := tailFile(filepath.Join(t.TempDir(), "yok.log"), 10); err == nil {
 		t.Error("olmayan dosya hata vermeli")
+	}
+}
+
+func TestRetryAttemptRunsAgain(t *testing.T) {
+	e := newEnv(t)
+	e.add(protocol.Job{ID: "tekrar", Kind: protocol.JobRunCommand, Shell: protocol.ShellSh, Command: "exit 1"}, e.priv)
+	e.r.Process(context.Background())
+	if r := e.client.final("tekrar"); r.Status != protocol.TargetFailed || e.runs != 1 {
+		t.Fatalf("ilk deneme başarısız olmalı: %+v (%d)", r, e.runs)
+	}
+	// Sunucu aynı aksiyonu 1. yeniden deneme olarak yeniden imzalar: iş yeniden çalışır.
+	e.client.jobs = nil
+	e.add(protocol.Job{ID: "tekrar", Attempt: 1, Kind: protocol.JobRunCommand, Shell: protocol.ShellSh, Command: "exit 0"}, e.priv)
+	e.r.Process(context.Background())
+	e.r.Process(context.Background())
+	if e.runs != 2 {
+		t.Fatalf("yeniden deneme bir kez çalışmalı, toplam %d çalıştırma", e.runs)
+	}
+	if r := e.client.final("tekrar"); r.Status != protocol.TargetSucceeded {
+		t.Errorf("yeniden deneme sonucu aynı aksiyona bildirilmeli: %+v", r)
 	}
 }

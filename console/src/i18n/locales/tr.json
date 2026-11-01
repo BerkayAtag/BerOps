@@ -100,7 +100,8 @@
     "settingsRelays": "Relay sunucuları",
     "settingsNotify": "Bildirimler",
     "agentDownload": "Ajan indir",
-    "settingsApiKeys": "API anahtarları"
+    "settingsApiKeys": "API anahtarları",
+    "groups": "Gruplar"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -631,7 +632,14 @@
       "respectWindows": "Bakım penceresine uy",
       "respectWindowsHint": "İş, makineye yalnızca ona uyan bakım penceresi açıkken verilir. Pencere tanımlı olmayan makinelerde hemen çalışır.",
       "startAt": "Başlangıç zamanı",
-      "startAtHint": "Boş bırakılırsa hemen başlar. Geçerlilik süresi bu zamandan itibaren sayılır."
+      "startAtHint": "Boş bırakılırsa hemen başlar. Geçerlilik süresi bu zamandan itibaren sayılır.",
+      "groups": "Gruplar",
+      "allMachines": "Tüm filo",
+      "allMachinesHint": "Yetki kapsamınızdaki tüm aktif makineler hedeflenir.",
+      "retry": "Yeniden deneme (sayı / dakika)",
+      "retryCount": "Yeniden deneme sayısı",
+      "retryDelay": "Denemeler arası dakika",
+      "retryHint": "Başarısız hedef en çok bu kadar kez, verilen aralıkla yeniden denenir (0 = kapalı)."
     },
     "releaseNext": "Sonraki aşamayı başlat",
     "releaseConfirm": "Kademeli dağıtımın sonraki aşaması hemen açılsın mı?",
@@ -650,7 +658,11 @@
     "patches": "Güncellemeler",
     "scheduledFor": "Zamanlanmış: işler {{time}} itibarıyla makinelere verilecek.",
     "rebootPending": "{{count}} makine yeniden başlatma bekliyor.",
-    "rebootTag": "Yeniden başlatma bekliyor"
+    "rebootTag": "Yeniden başlatma bekliyor",
+    "attempt": "{{n}}. yeniden deneme",
+    "nextAttempt": "sonraki deneme {{time}}",
+    "retryPolicy": "Yeniden deneme",
+    "retryValue": "en çok {{count}} kez, {{minutes}} dk arayla"
   },
   "transfer": {
     "title": "Aktarım ayarları",
@@ -660,7 +672,18 @@
     "maxUpload": "En büyük paket boyutu (MB)",
     "approval": "Komut aksiyonları dört göz onayı gerektirsin",
     "approvalHint": "Açıksa bir yöneticinin oluşturduğu komut, başka bir yönetici onaylayana kadar çalıştırılmaz.",
-    "expiry": "Varsayılan aksiyon geçerliliği (saat)"
+    "expiry": "Varsayılan aksiyon geçerliliği (saat)",
+    "total": "Toplam sunucu çıkış sınırı (kbps)",
+    "totalHint": "Tüm indirmelerin paylaştığı üst sınır. 0 = sınırsız.",
+    "profiles": "Saat bazlı hız profilleri",
+    "profilesHint": "Eşleşen ilk profil, o saatte istemci başına sınırın yerine geçer (sunucu saatiyle). Bitiş başlangıçtan küçükse aralık gece yarısını aşar.",
+    "profileName": "Profil adı",
+    "from": "Başlangıç",
+    "to": "Bitiş",
+    "profileKbps": "İstemci başına kbps",
+    "removeProfile": "Profili kaldır",
+    "addProfile": "Profil ekle",
+    "workHours": "Mesai saatleri"
   },
   "users": {
     "title": "Kullanıcılar",
@@ -1118,5 +1141,75 @@
     "revoke": "İptal et",
     "revoked": "İptal edildi",
     "confirmRevoke": "{{name}} anahtarı iptal edilsin mi? Bu anahtarı kullanan sistemler erişimini kaybeder."
+  },
+  "groups": {
+    "title": "Gruplar",
+    "subtitle": "Makineleri statik listeler veya kurallarla (OU, etiket, uygulama sürümü, eksik yama…) gruplayın; aksiyonları gruplara gönderin.",
+    "new": "Yeni grup",
+    "name": "Ad",
+    "description": "Açıklama",
+    "kind": "Tür",
+    "kindStatic": "Statik",
+    "kindDynamic": "Dinamik (kural)",
+    "members": "Makine",
+    "empty": "Henüz grup yok.",
+    "confirmDelete": "{{name}} grubu silinsin mi? Makineler etkilenmez.",
+    "deploy": "Aksiyon gönder",
+    "staticHint": "Statik gruba makineler, Makineler listesinde seçilip “Gruba ekle” ile eklenir.",
+    "match": "Eşleşme",
+    "matchAll": "Tüm koşullar",
+    "matchAny": "Herhangi bir koşul",
+    "field": "Alan",
+    "op": "İşlem",
+    "value": "Değer",
+    "appName": "Uygulama adı (ör. Chrome)",
+    "addCondition": "Koşul ekle",
+    "removeCondition": "Koşulu kaldır",
+    "preview": "Önizle",
+    "previewCount": "{{count}} makine eşleşiyor",
+    "and": "ve",
+    "or": "veya",
+    "filter": "Grup",
+    "tagFilter": "Etiket",
+    "addTo": "Gruba ekle…",
+    "added": "{{count}} makine {{name}} grubuna eklendi.",
+    "tags": "Etiketler",
+    "newTag": "Etiket ekle",
+    "removeTag": "{{tag}} etiketini kaldır",
+    "fields": {
+      "platform": "Platform",
+      "os_name": "İşletim sistemi",
+      "os_build": "Yama seviyesi (build)",
+      "hostname": "Makine adı",
+      "ad_ou": "AD OU",
+      "tag": "Etiket",
+      "app": "Uygulama",
+      "missing_patch": "Eksik yama",
+      "agent_version": "Ajan sürümü",
+      "risk": "Risk skoru"
+    },
+    "ops": {
+      "eq": "eşittir",
+      "contains": "içerir",
+      "prefix": "ile başlar",
+      "version_lt": "sürümü küçüktür",
+      "version_gte": "sürümü büyük/eşittir",
+      "under": "altında",
+      "has": "var",
+      "installed": "kurulu",
+      "missing": "kurulu değil",
+      "gte": "en az"
+    },
+    "placeholders": {
+      "os_name": "Windows 11",
+      "os_build": "10.0.22631.4460",
+      "hostname": "WS-",
+      "ad_ou": "OU=Şubeler,DC=ornek,DC=local",
+      "tag": "sunucu",
+      "app": "120",
+      "missing_patch": "KB5046617",
+      "agent_version": "1.1.0",
+      "risk": "80"
+    }
   }
 }
