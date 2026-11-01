@@ -33,7 +33,7 @@ jobs:
       BER_TEST_DATABASE_URL: postgres://ber:ber@localhost:5432/postgres?sslmode=disable
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Biçim kontrolü (gofmt)
@@ -61,7 +61,7 @@ jobs:
           - { goos: darwin, goarch: arm64 }
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Derle
@@ -82,7 +82,7 @@ jobs:
         os: [windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Ajan ve ortak paket testleri (gerçek envanter toplama dahil)
@@ -120,7 +120,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - uses: actions/setup-node@v7
@@ -161,7 +161,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Universal ikili dosya

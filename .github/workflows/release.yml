@@ -50,7 +50,7 @@ jobs:
       VERSION: ${{ needs.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - uses: actions/download-artifact@v4
@@ -97,7 +97,7 @@ jobs:
       signed: ${{ steps.sign.outputs.signed }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - uses: actions/download-artifact@v4
@@ -157,7 +157,7 @@ jobs:
       notarized: ${{ steps.keychain.outputs.notarized }}
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Universal ikili dosya
