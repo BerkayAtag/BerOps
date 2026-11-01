@@ -83,6 +83,7 @@ export function NewActionPage() {
   const [expires, setExpires] = useState(0);
   const [targets, setTargets] = useState<Target[]>([]);
   const [respectWindows, setRespectWindows] = useState(false);
+  const [startAt, setStartAt] = useState("");
   const [rolloutPreset, setRolloutPreset] = useState<RolloutPreset>("none");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +130,8 @@ export function NewActionPage() {
       if (kind === "deploy_package") body.package_id = packageId;
       else Object.assign(body, { shell: effectiveShell, command });
       if (respectWindows) body.respect_windows = true;
+      // datetime-local yerel saattir; sunucuya ISO (UTC) olarak gönderilir.
+      if (startAt) body.not_before = new Date(startAt).toISOString();
       if (rolloutPreset !== "none") body.rollout = ROLLOUT_PRESETS[rolloutPreset];
       const a = await api<Action>("/api/v1/actions", { method: "POST", body });
       navigate(`/aksiyonlar/${a.id}`);
@@ -317,6 +320,16 @@ export function NewActionPage() {
                 value={expires || ""}
                 onChange={(e) => setExpires(Number(e.target.value))}
               />
+            </label>
+            <label>
+              {t("actions.wizard.startAt")}
+              <input
+                className="input input-sm"
+                type="datetime-local"
+                value={startAt}
+                onChange={(e) => setStartAt(e.target.value)}
+              />
+              <span className="hint">{t("actions.wizard.startAtHint")}</span>
             </label>
             <label>
               {t("actions.wizard.rollout")}

@@ -8,6 +8,7 @@ import { ActionsPage } from "./pages/ActionsPage";
 import { AdSettingsPage } from "./pages/AdSettingsPage";
 import { AgentDownloadPage } from "./pages/AgentDownloadPage";
 import { AgentSettingsPage } from "./pages/AgentSettingsPage";
+import { ApiKeysPage } from "./pages/ApiKeysPage";
 import { AuditPage } from "./pages/AuditPage";
 import { MaintenanceWindowsPage } from "./pages/MaintenanceWindowsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
@@ -65,6 +66,7 @@ export function App() {
         <Route path="/ayarlar/cve" element={<CveSettingsPage />} />
         <Route path="/ayarlar/relay" element={<RelaysPage />} />
         <Route path="/ajan-indir" element={<AgentDownloadPage />} />
+        <Route path="/ayarlar/api-anahtarlari" element={<ApiKeysPage />} />
         <Route path="/ayarlar/bakim-pencereleri" element={<MaintenanceWindowsPage />} />
         <Route path="/ayarlar/bildirimler" element={<NotificationsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

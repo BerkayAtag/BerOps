@@ -1,8 +1,17 @@
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
-import type { FleetSummary, MachineListItem, Me, Page, RiskSummary, ServerInfo } from "../api/client";
+import type { Action, FleetSummary, MachineListItem, Me, Page, RiskSummary, ServerInfo } from "../api/client";
 import { useApi } from "../api/useApi";
-import { CvssBadge, KevBadge, OnlinePill, PlatformIcon, RiskBadge, StatusPill } from "../components/Badges";
+import { ActionProgress, ActionStatusPill } from "../components/ActionBadges";
+import {
+  CvssBadge,
+  KevBadge,
+  OnlinePill,
+  PlatformIcon,
+  RiskBadge,
+  SeverityBadge,
+  StatusPill,
+} from "../components/Badges";
 import { CopyField } from "../components/CopyField";
 import { TrendChart } from "../components/TrendChart";
 import { formatNumber, formatPercent, formatRelative } from "../format";
@@ -145,6 +154,117 @@ function RiskSection() {
   );
 }
 
+interface DashboardOps {
+  top_patches: {
+    update_id: string;
+    kb: string;
+    title: string;
+    severity: string;
+    platform: string;
+    machines: number;
+  }[];
+  vulnerable_apps: { app: string; machines: number; cves: number; max_risk: number }[];
+  recent_actions: Action[];
+}
+
+// OpsSection: en çok makinede eksik yamalar, açığı olan uygulama sürümleri ve son işler.
+function OpsSection() {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const lng = i18n.language;
+  const [ops] = useApi<DashboardOps>("/api/v1/dashboard/ops");
+  if (ops.status !== "ok") return null;
+  const o = ops.data;
+  return (
+    <>
+      <div className="detail-grid">
+        <section className="card">
+          <div className="card-header card-header-row">
+            <h2>{t("home.topPatches")}</h2>
+            <Link to="/yamalar" className="small">
+              {t("home.viewAll")} →
+            </Link>
+          </div>
+          {o.top_patches.length === 0 ? (
+            <p className="card-body muted small">{t("patches.empty")}</p>
+          ) : (
+            <ul className="list-rows">
+              {o.top_patches.map((p) => (
+                <li key={p.update_id} className="clickable" onClick={() => navigate("/yamalar")}>
+                  <PlatformIcon platform={p.platform} />
+                  <span className="grow two-line">
+                    <span className="strong">{p.kb || p.title}</span>
+                    {p.kb && (
+                      <span className="muted small" title={p.title}>
+                        {p.title}
+                      </span>
+                    )}
+                  </span>
+                  <SeverityBadge severity={p.severity} />
+                  <span className="tag" title={t("patches.machines")}>
+                    {formatNumber(p.machines, lng)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="card">
+          <div className="card-header card-header-row">
+            <h2>{t("home.vulnerableApps")}</h2>
+            <Link to="/raporlar" className="small">
+              {t("home.viewAll")} →
+            </Link>
+          </div>
+          {o.vulnerable_apps.length === 0 ? (
+            <p className="card-body muted small">{t("home.noVulns")}</p>
+          ) : (
+            <ul className="list-rows">
+              {o.vulnerable_apps.map((a) => (
+                <li key={a.app}>
+                  <RiskBadge score={a.max_risk} />
+                  <span className="grow strong">{a.app}</span>
+                  <span className="tag">CVE {formatNumber(a.cves, lng)}</span>
+                  <span className="tag" title={t("patches.machines")}>
+                    {formatNumber(a.machines, lng)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+      <section className="card">
+        <div className="card-header card-header-row">
+          <h2>{t("home.recentActions")}</h2>
+          <Link to="/aksiyonlar" className="small">
+            {t("home.viewAll")} →
+          </Link>
+        </div>
+        {o.recent_actions.length === 0 ? (
+          <p className="card-body muted small">{t("actions.empty")}</p>
+        ) : (
+          <ul className="list-rows">
+            {o.recent_actions.map((a) => (
+              <li key={a.id} className="clickable" onClick={() => navigate(`/aksiyonlar/${a.id}`)}>
+                <span className="tag">{t(`actions.kind.${a.kind}`)}</span>
+                <span className="grow two-line">
+                  <span className="strong">{a.name}</span>
+                  <span className="muted small">
+                    {a.created_by_name} · {formatRelative(a.created_at, lng)}
+                  </span>
+                </span>
+                <ActionStatusPill status={a.status} />
+                <ActionProgress action={a} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}
+
 export function HomePage({ me }: { me: Me }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -214,6 +334,7 @@ export function HomePage({ me }: { me: Me }) {
       </section>
 
       <RiskSection />
+      <OpsSection />
 
       <div className="detail-grid">
         <section className="card">

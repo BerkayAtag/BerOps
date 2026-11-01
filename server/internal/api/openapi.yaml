@@ -42,6 +42,10 @@ components:
     agentCert:
       type: mutualTLS
       description: "Ajan sertifikası. Relay üzerinden gelen isteklerde relay, ajanın sertifikasını X-Ber-Agent-Cert başlığında iletir; sunucu bu başlığa yalnızca relay sertifikalı bağlantılarda güvenir."
+    apiKey:
+      type: http
+      scheme: bearer
+      description: "Dış sistemler için API anahtarı (berops_…). Anahtarın rolü ve OU kapsamı uygulanır; CSRF başlığı gerekmez. Kullanıcı ve anahtar yönetimi API anahtarıyla yapılamaz."
     relayCert:
       type: mutualTLS
       description: "Relay sertifikası (CN relay:<id>), berops-server relay create ile üretilir."
@@ -621,7 +625,7 @@ paths:
       x-ber-permission: machines.read
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [pending_approval, active, completed, cancelled, rejected] } }
-        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, deploy_patch, run_command] } }
+        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, deploy_patch, run_command, restart, collect_logs] } }
         - { name: machine_id, in: query, schema: { type: string, format: uuid } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
@@ -633,7 +637,10 @@ paths:
       description: |
         İzin türe göre denetlenir: deploy_package → actions.deploy_package (teknisyen dahil),
         deploy_patch → actions.deploy_patch (patches: Windows UpdateID veya macOS etiketleri; tek platform),
-        run_command → actions.run_command. Her hedef için iş tanımı sunucunun Ed25519 anahtarıyla imzalanır.
+        restart → actions.deploy_patch (restart_delay_minutes 0-1440, restart_message; tek platform),
+        collect_logs → machines.manage (ajan günlüğünün son kısmı hedefin stdout'unda döner),
+        run_command → actions.run_command. not_before verilirse işler o zamana kadar ajana verilmez
+        (geçerlilik süresi başlangıçtan itibaren sayılır). Her hedef için iş tanımı sunucunun Ed25519 anahtarıyla imzalanır.
         Denetim kaydı yazılamazsa aksiyon oluşturulmaz (503).
       security: [{ session: [] }]
       parameters: [{ $ref: "#/components/parameters/CSRF" }]
@@ -706,6 +713,40 @@ paths:
       responses:
         "200": { description: Güncel aksiyon (released_stages arttı) }
         "409": { description: Açılacak aşama yok }
+  /api/v1/dashboard/ops:
+    get:
+      tags: [Raporlar]
+      summary: "Gösterge paneli işletim özeti: en çok eksik 10 yama, açığı olan uygulama sürümleri, son işler"
+      security: [{ session: [] }, { apiKey: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200": { description: "top_patches, vulnerable_apps, recent_actions" }
+  /api/v1/api-keys:
+    get:
+      tags: [Ayarlar]
+      summary: API anahtarları (anahtarın kendisi dönmez)
+      security: [{ session: [] }]
+      x-ber-permission: users.manage
+      responses:
+        "200": { description: "items: [{id, name, key_prefix, role, scope_ous, created_at, expires_at, last_used_at, revoked_at}]" }
+    post:
+      tags: [Ayarlar]
+      summary: "API anahtarı oluştur: name, role, scope_ous, expires_in_days (0 = süresiz); secret yalnızca bu yanıtta döner"
+      security: [{ session: [] }]
+      x-ber-permission: users.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "201": { description: "key, secret" }
+        "400": { description: Geçersiz değer }
+  /api/v1/api-keys/{id}:
+    delete:
+      tags: [Ayarlar]
+      summary: API anahtarını iptal et
+      security: [{ session: [] }]
+      x-ber-permission: users.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: İptal edildi }
   /api/v1/patches:
     get:
       tags: [Makineler]

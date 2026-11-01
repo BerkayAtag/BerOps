@@ -314,6 +314,25 @@ func (s *Server) RunNotifications(ctx context.Context) {
 			text := fmt.Sprintf("Oluşturan: %s\nBaşarılı: %d · Başarısız: %d · Süresi dolan: %d · İptal: %d",
 				a.CreatedBy, a.Counts["succeeded"], a.Counts["failed"], a.Counts["expired"], a.Counts["cancelled"])
 			s.dispatch(ctx, Notification{Event: store.EventActionCompleted, Title: title, Text: text, Payload: a}, a.ID)
+			if failed > 0 {
+				s.dispatch(ctx, Notification{Event: store.EventActionFailed,
+					Title: fmt.Sprintf("Başarısız dağıtım: %s (%d hedef)", a.Name, failed), Text: text, Payload: a}, a.ID)
+			}
+		}
+	}
+	if list, err := s.store.NewCriticalCVEsInFleet(ctx, s.now()); err == nil {
+		for _, c := range list {
+			text := fmt.Sprintf("%s (CVSS %.1f): %s\nEtkilenen makine: %d", c.CVE, c.CVSS, c.Title, c.Affected)
+			s.dispatch(ctx, Notification{Event: store.EventCriticalCVE, Title: "Filoda yeni kritik açık: " + c.CVE,
+				Text: text, Payload: c}, c.CVE)
+		}
+	}
+	if list, err := s.store.OfflineMachines(ctx, s.now()); err == nil {
+		for _, m := range list {
+			text := fmt.Sprintf("%s son olarak %s tarihinde görüldü.", m.Hostname, m.LastSeen.UTC().Format("2006-01-02 15:04 UTC"))
+			// Makine yeniden görülüp tekrar düşerse yeni son görülme zamanıyla yeniden bildirilir.
+			s.dispatch(ctx, Notification{Event: store.EventMachineOffline, Title: "Makine 24 saattir çevrimdışı: " + m.Hostname,
+				Text: text, Payload: m}, m.ID+"@"+m.LastSeen.UTC().Format(time.RFC3339))
 		}
 	}
 	if kevs, err := s.store.RecentKEVInFleet(ctx, s.now()); err == nil {

@@ -100,11 +100,23 @@ type authedHandler func(w http.ResponseWriter, r *http.Request, sess *store.Sess
 // perm boş değilse kullanıcının rolünün bu izne sahip olduğunu sunucu tarafında zorunlu kılar.
 func (s *Server) authed(perm auth.Permission, h authedHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		sess, ok := s.loadSession(w, r)
+		var sess *store.Session
+		var ok bool
+		if bearer, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer "); found {
+			sess, ok = s.loadAPIKey(w, r, strings.TrimSpace(bearer))
+		} else {
+			sess, ok = s.loadSession(w, r)
+		}
 		if !ok {
 			return
 		}
-		if !isSafeMethod(r.Method) {
+		// API anahtarları kullanıcı ve anahtar yönetemez (yetki yükseltmeye kapalı).
+		if sess.APIKeyID != "" && perm == auth.PermUsersManage {
+			writeError(w, http.StatusForbidden, codeForbidden, "Bu işlem API anahtarıyla yapılamaz")
+			return
+		}
+		// Bearer başlığını tarayıcı kendiliğinden göndermez; CSRF denetimi yalnızca çerez oturumu için.
+		if sess.APIKeyID == "" && !isSafeMethod(r.Method) {
 			got := r.Header.Get(CSRFHeader)
 			if got == "" || subtle.ConstantTimeCompare([]byte(got), []byte(sess.CSRFToken)) != 1 {
 				writeError(w, http.StatusForbidden, codeCSRF, "CSRF doğrulaması başarısız")
@@ -122,6 +134,28 @@ func (s *Server) authed(perm auth.Permission, h authedHandler) http.Handler {
 		}
 		h(w, r.WithContext(context.WithValue(r.Context(), sessionKey{}, sess)), sess)
 	})
+}
+
+// loadAPIKey, Authorization: Bearer başlığındaki API anahtarını doğrular ve anahtarın rolü ve
+// kapsamıyla bir oturum üretir.
+func (s *Server) loadAPIKey(w http.ResponseWriter, r *http.Request, key string) (*store.Session, bool) {
+	if !strings.HasPrefix(key, auth.APIKeyPrefix) {
+		writeError(w, http.StatusUnauthorized, codeUnauthenticated, "API anahtarı geçersiz")
+		return nil, false
+	}
+	k, err := s.store.ActiveAPIKey(r.Context(), auth.HashToken(key), s.now())
+	if errors.Is(err, store.ErrNotFound) {
+		writeError(w, http.StatusUnauthorized, codeUnauthenticated, "API anahtarı geçersiz, iptal edilmiş veya süresi dolmuş")
+		return nil, false
+	}
+	if err != nil {
+		s.log.Error("API anahtarı okunamadı", "hata", err)
+		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+		return nil, false
+	}
+	return &store.Session{APIKeyID: k.ID, User: store.User{
+		Username: "api:" + k.Name, DisplayName: k.Name, Source: "api", Role: k.Role, ScopeOUs: k.ScopeOUs,
+	}}, true
 }
 
 func (s *Server) loadSession(w http.ResponseWriter, r *http.Request) (*store.Session, bool) {

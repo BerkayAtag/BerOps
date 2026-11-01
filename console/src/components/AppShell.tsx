@@ -24,6 +24,7 @@ const NAV_ITEMS: { key: string; to?: string; end?: boolean; perm?: string }[] = 
   { key: "settingsRelays", to: "/ayarlar/relay" },
   { key: "settingsNotify", to: "/ayarlar/bildirimler", perm: "settings.write" },
   { key: "settingsUsers", to: "/ayarlar/kullanicilar", perm: "users.manage" },
+  { key: "settingsApiKeys", to: "/ayarlar/api-anahtarlari", perm: "users.manage" },
   { key: "settingsAd", to: "/ayarlar/ad", perm: "ad.configure" },
   { key: "settingsRemote", to: "/ayarlar/uzaktan", perm: "remote.settings" },
   { key: "account", to: "/hesap" },

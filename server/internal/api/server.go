@@ -170,6 +170,10 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("POST /api/v1/notifications/schedules", s.authed(auth.PermSettingsWrite, s.handleCreateSchedule))
 	mux.Handle("DELETE /api/v1/notifications/schedules/{id}", s.authed(auth.PermSettingsWrite, s.handleDeleteSchedule))
 
+	mux.Handle("GET /api/v1/api-keys", s.authed(auth.PermUsersManage, s.handleListAPIKeys))
+	mux.Handle("POST /api/v1/api-keys", s.authed(auth.PermUsersManage, s.handleCreateAPIKey))
+	mux.Handle("DELETE /api/v1/api-keys/{id}", s.authed(auth.PermUsersManage, s.handleRevokeAPIKey))
+
 	mux.Handle("GET /api/v1/patches", s.authed(auth.PermMachinesRead, s.handleListPatches))
 	mux.Handle("GET /api/v1/patches/machines", s.authed(auth.PermMachinesRead, s.handlePatchMachines))
 
@@ -185,6 +189,7 @@ func (s *Server) ConsoleHandler() http.Handler {
 	mux.Handle("PUT /api/v1/settings/agent", s.authed(auth.PermSettingsWrite, s.handlePutAgentSettings))
 
 	mux.Handle("GET /api/v1/dashboard/risk", s.authed(auth.PermReportsRead, s.handleRiskSummary))
+	mux.Handle("GET /api/v1/dashboard/ops", s.authed(auth.PermMachinesRead, s.handleDashboardOps))
 	mux.Handle("GET /api/v1/vulnerabilities", s.authed(auth.PermReportsRead, s.handleListVulns))
 	mux.Handle("GET /api/v1/vulnerabilities/{id}", s.authed(auth.PermReportsRead, s.handleGetVuln))
 	mux.Handle("GET /api/v1/reports/{type}", s.authed(auth.PermReportsExport, s.handleReport))

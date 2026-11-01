@@ -6,6 +6,7 @@ import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { ActionProgress, ActionStatusPill, TargetStatusPill } from "../components/ActionBadges";
 import { PlatformIcon } from "../components/Badges";
+import { RestartForm } from "../components/RestartForm";
 import { formatDateTime, formatRelative } from "../format";
 
 export function ActionDetailPage() {
@@ -16,6 +17,7 @@ export function ActionDetailPage() {
   const [detail, reload] = useApi<{ action: Action; targets: ActionTarget[] }>(`/api/v1/actions/${id}`);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
+  const [showRestart, setShowRestart] = useState(false);
 
   // Süren aksiyon birkaç saniyede bir yenilenir.
   const live = detail.status === "ok" && ["active", "pending_approval"].includes(detail.data.action.status);
@@ -53,6 +55,7 @@ export function ActionDetailPage() {
     }
   }
   const stages = a.rollout?.stages ?? [];
+  const rebootIds = targets.filter((x) => x.reboot_required).map((x) => x.machine_id);
   const canRelease =
     a.status === "active" && stages.length > 0 && a.released_stages < stages.length && can(kindPerm);
 
@@ -138,6 +141,24 @@ export function ActionDetailPage() {
         </section>
       )}
       {a.respect_windows && <p className="muted small">{t("actions.respectsWindows")}</p>}
+      {a.not_before &&
+        a.status === "active" &&
+        new Date(a.not_before).getTime() > Date.parse(a.created_at) && (
+          <div className="alert alert-info" role="status">
+            {t("actions.scheduledFor", { time: formatDateTime(a.not_before, lng) })}
+          </div>
+        )}
+      {rebootIds.length > 0 && (
+        <div className="alert alert-warning report-actions" role="status">
+          <span className="grow">{t("actions.rebootPending", { count: rebootIds.length })}</span>
+          {can("actions.deploy_patch") && !showRestart && (
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowRestart(true)}>
+              {t("restart.button")}
+            </button>
+          )}
+        </div>
+      )}
+      {showRestart && <RestartForm machineIds={rebootIds} onCancel={() => setShowRestart(false)} />}
 
       <section className="card">
         <div className="card-header">
@@ -226,6 +247,9 @@ export function ActionDetailPage() {
                       </td>
                       <td>
                         <TargetStatusPill status={tg.status} />
+                        {tg.reboot_required && (
+                          <span className="pill pill-warning">{t("actions.rebootTag")}</span>
+                        )}
                         {stages.length > 0 && (
                           <span className="muted small block">
                             {t(tg.released ? "actions.stageShort" : "actions.stageWaiting", {

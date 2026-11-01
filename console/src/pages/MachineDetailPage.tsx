@@ -1,15 +1,17 @@
 import { createColumnHelper, type PaginationState, type SortingState } from "@tanstack/react-table";
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import {
   api,
   errorKey,
+  type Action,
   type InstalledApp,
   type InstalledPatch,
   type MachineDetail,
   type MachineVuln,
   type MissingPatch,
+  type Page,
 } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
@@ -24,10 +26,12 @@ import {
 } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
 import { formatBytes, formatDate, formatDateTime, formatNumber, formatRelative } from "../format";
+import { ActionStatusPill } from "../components/ActionBadges";
 import { RemotePanel } from "../components/RemotePanel";
+import { RestartForm } from "../components/RestartForm";
 import { EpssValue } from "./VulnerabilitiesPage";
 
-type Tab = "vulns" | "missing" | "installed" | "apps" | "remote";
+type Tab = "vulns" | "missing" | "installed" | "apps" | "jobs" | "remote";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -44,6 +48,7 @@ export function MachineDetailPage() {
   const { id = "" } = useParams();
   const { t, i18n } = useTranslation();
   const { can } = useAuth();
+  const navigate = useNavigate();
   const lng = i18n.language;
   const [detail, reload] = useApi<MachineDetail>(`/api/v1/machines/${id}`);
   const hasInv = detail.status === "ok" && detail.data.inventory !== null;
@@ -57,6 +62,21 @@ export function MachineDetailPage() {
   const [vulns] = useApi<{ items: MachineVuln[] }>(hasInv ? `/api/v1/machines/${id}/vulnerabilities` : null);
   const [tab, setTab] = useState<Tab>("vulns");
   const [notice, setNotice] = useState<string | null>(null);
+
+  const [showRestart, setShowRestart] = useState(false);
+
+  // Ajan günlükleri bir "collect_logs" aksiyonuyla istenir; sonuç aksiyon detayında görünür.
+  async function requestLogs() {
+    try {
+      const a = await api<Action>("/api/v1/actions", {
+        method: "POST",
+        body: { kind: "collect_logs", machine_ids: [id] },
+      });
+      navigate(`/aksiyonlar/${a.id}`);
+    } catch (err) {
+      setNotice(t(errorKey(err), { defaultValue: t("errors.unknown") }));
+    }
+  }
 
   async function rescan() {
     try {
@@ -118,6 +138,16 @@ export function MachineDetailPage() {
               {t("machine.runCommand")}
             </Link>
           )}
+          {m.status === "active" && can("actions.deploy_patch") && (
+            <button type="button" className="btn btn-ghost" onClick={() => setShowRestart((v) => !v)}>
+              {t("restart.button")}
+            </button>
+          )}
+          {m.status === "active" && canScan && (
+            <button type="button" className="btn btn-ghost" onClick={() => void requestLogs()}>
+              {t("machine.requestLogs")}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-primary"
@@ -135,6 +165,7 @@ export function MachineDetailPage() {
           {notice}
         </div>
       )}
+      {showRestart && <RestartForm machineIds={[m.id]} onCancel={() => setShowRestart(false)} />}
       {scan_requested_at && (
         <div className="alert alert-info" role="status">
           {t("machine.scanPending", { time: formatRelative(scan_requested_at, lng) })}
@@ -275,6 +306,15 @@ export function MachineDetailPage() {
                 {t(`machine.tabs.${k}`, { count: n })}
               </button>
             ))}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "jobs"}
+              className={`tab${tab === "jobs" ? " active" : ""}`}
+              onClick={() => setTab("jobs")}
+            >
+              {t("machine.tabs.jobs")}
+            </button>
             {canRemote && (
               <button
                 type="button"
@@ -294,6 +334,7 @@ export function MachineDetailPage() {
               <InstalledTable rows={installed.status === "ok" ? installed.data.items : []} />
             )}
             {tab === "apps" && <AppsTable rows={apps.status === "ok" ? apps.data.items : []} />}
+            {tab === "jobs" && <JobsTable machineId={m.id} />}
             {tab === "remote" && (
               <div className="card-body">
                 <RemotePanel machineId={m.id} />
@@ -593,5 +634,30 @@ function AppsTable({ rows }: { rows: InstalledApp[] }) {
         onPaginationChange={setPagination}
       />
     </>
+  );
+}
+
+// JobsTable, makineyi hedefleyen aksiyonların geçmişidir (yeniden eskiye).
+function JobsTable({ machineId }: { machineId: string }) {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const [list] = useApi<Page<Action>>(`/api/v1/actions?machine_id=${machineId}&page_size=50`);
+  if (list.status !== "ok") return <p className="card-body muted">{t("common.loading")}</p>;
+  if (list.data.items.length === 0) return <p className="card-body muted">{t("actions.empty")}</p>;
+  return (
+    <ul className="list-rows">
+      {list.data.items.map((a) => (
+        <li key={a.id} className="clickable" onClick={() => navigate(`/aksiyonlar/${a.id}`)}>
+          <span className="tag">{t(`actions.kind.${a.kind}`)}</span>
+          <span className="grow two-line">
+            <span className="strong">{a.name}</span>
+            <span className="muted small">
+              {a.created_by_name} · {formatRelative(a.created_at, i18n.language)}
+            </span>
+          </span>
+          <ActionStatusPill status={a.status} />
+        </li>
+      ))}
+    </ul>
   );
 }

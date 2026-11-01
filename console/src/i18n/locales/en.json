@@ -99,7 +99,8 @@
     "settingsWindows": "Maintenance windows",
     "settingsRelays": "Relays",
     "settingsNotify": "Notifications",
-    "agentDownload": "Download agent"
+    "agentDownload": "Download agent",
+    "settingsApiKeys": "API keys"
   },
   "home": {
     "title": "Dashboard",
@@ -145,7 +146,10 @@
     "trendHelp": "Daily share of machines with no missing patches",
     "topCves": "Riskiest vulnerabilities",
     "topMachines": "Riskiest machines",
-    "noVulns": "No vulnerability data yet."
+    "noVulns": "No vulnerability data yet.",
+    "topPatches": "Most missing patches",
+    "vulnerableApps": "Vulnerable application versions",
+    "recentActions": "Recent jobs"
   },
   "status": {
     "active": "Active",
@@ -243,7 +247,8 @@
       "missing": "Missing patches ({{count}})",
       "installed": "Installed patches ({{count}})",
       "apps": "Applications ({{count}})",
-      "vulns": "Vulnerabilities ({{count}})"
+      "vulns": "Vulnerabilities ({{count}})",
+      "jobs": "Job history"
     },
     "missing": {
       "title": "Title",
@@ -286,7 +291,8 @@
     "vulnsNone": "No known vulnerabilities on this machine.",
     "deploy": "Deploy package",
     "runCommand": "Run command",
-    "actionsTab": "Actions"
+    "actionsTab": "Actions",
+    "requestLogs": "Request agent logs"
   },
   "severity": {
     "Critical": "Critical",
@@ -543,7 +549,9 @@
     "kind": {
       "deploy_package": "Package deployment",
       "run_command": "Run command",
-      "deploy_patch": "Patch deployment"
+      "deploy_patch": "Patch deployment",
+      "restart": "Restart",
+      "collect_logs": "Agent logs"
     },
     "status": {
       "pending_approval": "Awaiting approval",
@@ -621,7 +629,9 @@
       "rollout": "Staged rollout",
       "rolloutHint": "If the success rate falls below the threshold, the next stage is held.",
       "respectWindows": "Respect maintenance windows",
-      "respectWindowsHint": "The job is given to a machine only while a matching maintenance window is open. Machines without a window run it immediately."
+      "respectWindowsHint": "The job is given to a machine only while a matching maintenance window is open. Machines without a window run it immediately.",
+      "startAt": "Start time",
+      "startAtHint": "Starts immediately if empty. Validity is counted from this time."
     },
     "releaseNext": "Start next stage",
     "releaseConfirm": "Open the next rollout stage now?",
@@ -637,7 +647,10 @@
       "pilot": "Pilot: 10%, the rest after 24 hours",
       "rings": "Rings: 5% → 25% (1 day) → 70% (3 days)"
     },
-    "patches": "Updates"
+    "patches": "Updates",
+    "scheduledFor": "Scheduled: jobs will be given to machines from {{time}}.",
+    "rebootPending": "{{count}} machines are waiting for a restart.",
+    "rebootTag": "Restart pending"
   },
   "transfer": {
     "title": "Transfer settings",
@@ -862,7 +875,14 @@
       "truncated": "The list is limited to the first 2000 entries.",
       "written": "Value written.",
       "deleted": "Value deleted.",
-      "readOnly": "Registry write is disabled on this machine."
+      "readOnly": "Registry write is disabled on this machine.",
+      "history": "Changes in this session (with previous values)",
+      "opSet": "Written",
+      "opDelete": "Deleted",
+      "wasMissing": "did not exist",
+      "undo": "Undo",
+      "undone": "Change undone",
+      "confirmUndo": "Restore {{path}}\\{{name}} to its previous state?"
     }
   },
   "remoteSettings": {
@@ -987,7 +1007,10 @@
     "event": {
       "action_completed": "Action completed",
       "vulnerability_kev_new": "New actively exploited vulnerability in the fleet (KEV)",
-      "cve_sync_failed": "CVE feed sync failed"
+      "cve_sync_failed": "CVE feed sync failed",
+      "action_failed": "Failed deployment",
+      "vulnerability_critical_new": "New critical vulnerability in the fleet (CVSS 9+)",
+      "machine_offline": "Machine offline for 24 hours"
     },
     "report": {
       "compliance": "Patch compliance",
@@ -1063,5 +1086,37 @@
     "mixedPlatforms": "Windows and macOS updates cannot be deployed in the same action; select one platform.",
     "macNote": "On macOS, updates that need a restart are installed but the machine is not restarted automatically. On Apple silicon, OS version updates may require MDM.",
     "actionName": "Patch: {{list}}"
+  },
+  "restart": {
+    "button": "Restart",
+    "title": "Restart {{count}} machines",
+    "delay": "Delay (minutes)",
+    "delayHint": "The user sees a countdown for this long (0 = now).",
+    "message": "Message shown to the user",
+    "messagePlaceholder": "Your computer will restart for maintenance planned by IT.",
+    "note": "On Windows a countdown warning appears in the user's session; on macOS a notice is broadcast to sessions. The message cannot contain quotes or special characters.",
+    "submit": "Schedule restart"
+  },
+  "apiKeys": {
+    "title": "API keys",
+    "subtitle": "REST API access for external systems (CMDB, SIEM, scripts). A key works with the permissions of the selected role and OU scope.",
+    "name": "Name",
+    "namePlaceholder": "e.g. CMDB sync",
+    "role": "Role",
+    "days": "Validity (days)",
+    "daysHint": "0 = no expiry",
+    "scope": "OU scope (optional, one OU per line)",
+    "note": "Send the key in the Authorization: Bearer header. Keys cannot manage users or keys; every operation is audited as api:<name>.",
+    "create": "Create key",
+    "secretOnce": "The {{name}} key is shown only now. Copy it and keep it somewhere safe.",
+    "secret": "API key",
+    "example": "Example request",
+    "lastUsed": "Last used",
+    "expires": "Expires",
+    "noExpiry": "No expiry",
+    "empty": "No API keys yet.",
+    "revoke": "Revoke",
+    "revoked": "Revoked",
+    "confirmRevoke": "Revoke the {{name}} key? Systems using it will lose access."
   }
 }

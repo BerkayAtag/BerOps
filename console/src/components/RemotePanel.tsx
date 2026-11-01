@@ -5,6 +5,7 @@ import {
   errorKey,
   type PerfSnapshot,
   type RegistryKey,
+  type RegistryValue,
   type RemoteFlags,
   type RemoteStatus,
   type ServiceInfo,
@@ -321,6 +322,16 @@ function Services({ call, canControl }: { call: CallFn; canControl: boolean }) {
 
 const REG_TYPES = ["REG_SZ", "REG_EXPAND_SZ", "REG_MULTI_SZ", "REG_DWORD", "REG_QWORD", "REG_BINARY"];
 
+// RegistryChange, bu oturumda yapılan ve geri alınabilen bir değişikliktir. previous null ise
+// değer yeni oluşturulmuştur; geri almak onu siler.
+interface RegistryChange {
+  id: number;
+  path: string;
+  name: string;
+  op: "set" | "delete";
+  previous: RegistryValue | null;
+}
+
 function Registry({ call, canWrite }: { call: CallFn; canWrite: boolean }) {
   const { t } = useTranslation();
   const [path, setPath] = useState("HKLM\\SOFTWARE");
@@ -328,6 +339,13 @@ function Registry({ call, canWrite }: { call: CallFn; canWrite: boolean }) {
   const [key, setKey] = useState<RegistryKey | null>(null);
   const [form, setForm] = useState({ name: "", type: "REG_SZ", data: "" });
   const [notice, setNotice] = useState<{ kind: "info" | "danger"; text: string } | null>(null);
+  const [changes, setChanges] = useState<RegistryChange[]>([]);
+
+  function remember(path: string, name: string, op: RegistryChange["op"], previous?: RegistryValue | null) {
+    setChanges((c) =>
+      [{ id: Date.now() + c.length, path, name, op, previous: previous ?? null }, ...c].slice(0, 20),
+    );
+  }
 
   const open = useCallback(
     async (p: string) => {
@@ -352,7 +370,8 @@ function Registry({ call, canWrite }: { call: CallFn; canWrite: boolean }) {
     if (!window.confirm(t("remote.reg.confirmSet", { path, name: form.name || t("remote.reg.default") })))
       return;
     try {
-      await call("registry.set", { path, value: form });
+      const res = await call<{ previous?: RegistryValue | null }>("registry.set", { path, value: form });
+      remember(path, form.name, "set", res?.previous);
       setNotice({ kind: "info", text: t("remote.reg.written") });
       await open(path);
     } catch (err) {
@@ -363,9 +382,25 @@ function Registry({ call, canWrite }: { call: CallFn; canWrite: boolean }) {
   async function remove(name: string) {
     if (!window.confirm(t("remote.reg.confirmDelete", { name: name || t("remote.reg.default") }))) return;
     try {
-      await call("registry.delete", { path, name });
+      const res = await call<{ previous?: RegistryValue | null }>("registry.delete", { path, name });
+      remember(path, name, "delete", res?.previous);
       setNotice({ kind: "info", text: t("remote.reg.deleted") });
       await open(path);
+    } catch (err) {
+      setNotice({ kind: "danger", text: errText(t, err) });
+    }
+  }
+
+  // Geri alma: önceki değer varsa yeniden yazılır, yoksa (yeni oluşturulmuşsa) silinir.
+  async function undo(c: RegistryChange) {
+    const name = c.name || t("remote.reg.default");
+    if (!window.confirm(t("remote.reg.confirmUndo", { path: c.path, name }))) return;
+    try {
+      if (c.previous) await call("registry.set", { path: c.path, value: c.previous });
+      else await call("registry.delete", { path: c.path, name: c.name });
+      setChanges((list) => list.filter((x) => x.id !== c.id));
+      setNotice({ kind: "info", text: t("remote.reg.undone") });
+      await open(c.path);
     } catch (err) {
       setNotice({ kind: "danger", text: errText(t, err) });
     }
@@ -406,6 +441,31 @@ function Registry({ call, canWrite }: { call: CallFn; canWrite: boolean }) {
           </div>
         )}
         {key?.truncated && <p className="muted small">{t("remote.reg.truncated")}</p>}
+        {changes.length > 0 && (
+          <div className="stack">
+            <p className="small strong">{t("remote.reg.history")}</p>
+            <ul className="list-rows">
+              {changes.map((c) => (
+                <li key={c.id}>
+                  <span className="tag">
+                    {t(c.op === "set" ? "remote.reg.opSet" : "remote.reg.opDelete")}
+                  </span>
+                  <span className="mono small grow cell-wrap">
+                    {c.path}\{c.name || t("remote.reg.default")}
+                  </span>
+                  <span className="muted small">
+                    {c.previous ? `${c.previous.type}: ${c.previous.data}` : t("remote.reg.wasMissing")}
+                  </span>
+                  {canWrite && (
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => void undo(c)}>
+                      {t("remote.reg.undo")}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
       {key && (
         <div className="detail-grid reg-grid">

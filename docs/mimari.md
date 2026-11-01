@@ -307,6 +307,14 @@ Ayrıntılar: [gelismis-dagitim.md](gelismis-dagitim.md).
 
 Kurulum paketleri: Windows için WiX v5 MSI'lar (`installers/windows/`, `berops-server setup` ile ilk kurulum), macOS için `pkgbuild`/`productbuild` paketi (`installers/macos/`), Linux için Docker imajı (`deploy/Dockerfile`, `deploy/docker-compose.yml`). Sunucu ve ajan Windows'ta SCM servisi olarak çalışır (`shared/service`).
 
+### Aşama 9 — Tamamlamalar
+
+Migration `000009`:
+
+- `actions.kind` değerine `restart` ve `collect_logs` eklendi.
+- `actions.not_before` (zamanlanmış başlatma) ve `action_targets.reboot_required` (3010/1641) eklendi.
+- `api_keys` tablosu eklendi (dış sistemler; yalnızca özet, rol ve OU kapsamı).
+
 ### Sonraki aşamalar (plan)
 
 | Aşama | Tablolar |

@@ -3,6 +3,7 @@
 package jobs
 
 import (
+	"bytes"
 	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
@@ -76,6 +77,8 @@ type Runner struct {
 	Exec func(ctx context.Context, s Spec) Result
 	// OnFinished, başarıyla biten ve yeniden tarama isteyen işten sonra çağrılır.
 	OnFinished func(j *protocol.Job)
+	// LogFile, ajanın günlük dosyasıdır; collect_logs işi bu dosyanın son kısmını döndürür.
+	LogFile string
 
 	now     func() time.Time
 	mu      sync.Mutex
@@ -262,6 +265,18 @@ func (r *Runner) run(ctx context.Context, job *protocol.Job) {
 	}
 	defer os.RemoveAll(work)
 
+	if job.Kind == protocol.JobCollectLogs {
+		// Komut çalıştırılmaz: ajanın kendi günlüğünün son kısmı sonuç olarak gönderilir.
+		out, err := tailFile(r.LogFile, protocol.MaxOutputBytes-1024)
+		if err != nil {
+			r.finish(ctx, job, protocol.JobStatusRequest{Status: protocol.TargetFailed, Error: "günlük okunamadı: " + err.Error()})
+			return
+		}
+		zero := 0
+		r.finish(ctx, job, protocol.JobStatusRequest{Status: protocol.TargetSucceeded, ExitCode: &zero, Stdout: out})
+		return
+	}
+
 	spec := Spec{Shell: job.Shell, Command: job.Command, Timeout: time.Duration(job.TimeoutSeconds) * time.Second, WorkDir: work}
 	if job.Kind == protocol.JobDeployPackage {
 		r.setJournal(job.ID, protocol.TargetDownloading, nil, false)
@@ -356,6 +371,34 @@ func verifyFile(path string, size int64, sha string) (bool, error) {
 }
 
 // clip, çıktıyı geçerli UTF-8'e çevirir ve üst sınırı uygular.
+// tailFile, dosyanın son max baytını satır başından başlayarak döner.
+func tailFile(path string, max int) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return "", err
+	}
+	start := info.Size() - int64(max)
+	if start < 0 {
+		start = 0
+	}
+	buf := make([]byte, info.Size()-start)
+	if _, err := f.ReadAt(buf, start); err != nil && !errors.Is(err, io.EOF) {
+		return "", err
+	}
+	if start > 0 {
+		// Yarım kalan ilk satır atlanır.
+		if i := bytes.IndexByte(buf, '\n'); i >= 0 {
+			buf = buf[i+1:]
+		}
+	}
+	return string(buf), nil
+}
+
 func clip(s string) string {
 	s = strings.ToValidUTF8(s, "�")
 	if len(s) > protocol.MaxOutputBytes {

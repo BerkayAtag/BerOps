@@ -419,3 +419,55 @@ func TestNotifications(t *testing.T) {
 	resp, _ = admin.do("DELETE", "/api/v1/notifications/channels/"+chID, nil, true)
 	expectStatus(t, resp, 204, "kanal silme")
 }
+
+func TestNotificationTriggers(t *testing.T) {
+	e := newEnv(t)
+	e.createUser("admin", "admin")
+	admin := e.browser()
+	expectStatus(t, admin.login("admin", testPassword), 200, "giriş")
+	var mu sync.Mutex
+	events := map[string]int{}
+	ws := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		events[fmt.Sprint(body["event"])]++
+		mu.Unlock()
+		w.WriteHeader(204)
+	}))
+	t.Cleanup(ws.Close)
+	resp, _ := admin.do("POST", "/api/v1/notifications/channels", map[string]any{"name": "olaylar", "kind": "webhook",
+		"config": map[string]any{"url": ws.URL}, "enabled": true,
+		"events": []string{store.EventActionFailed, store.EventMachineOffline, store.EventCriticalCVE}}, true)
+	expectStatus(t, resp, 200, "kanal")
+
+	secret := e.adminCreateKey(map[string]any{"name": "tetik"})
+	_, ag := e.enroll(secret, "PC-001")
+	client := e.agentClient(ag.tlsCert(t))
+	e.heartbeat(client, nil)
+	resp, _ = admin.do("PUT", "/api/v1/settings/transfer", map[string]any{"per_client_kbps": 10000, "max_upload_mb": 100,
+		"command_approval": false, "default_expiry_hours": 24}, true)
+	expectStatus(t, resp, 200, "aktarım")
+	resp, act := admin.do("POST", "/api/v1/actions", map[string]any{"kind": "run_command", "shell": "cmd", "command": "ver",
+		"machine_ids": []string{ag.id}}, true)
+	expectStatus(t, resp, 201, "aksiyon")
+	rr, _ := e.postAgent(client, fmt.Sprintf(protocol.PathJobStatusFmt, act["id"]), protocol.JobStatusRequest{Status: "failed"})
+	expectStatus(t, rr, 204, "başarısız sonuç")
+
+	e.srv.RunNotifications(context.Background())
+	mu.Lock()
+	if events[store.EventActionFailed] != 1 || events[store.EventMachineOffline] != 0 {
+		t.Fatalf("başarısız dağıtım bir kez, çevrimdışı hiç bildirilmemeli: %v", events)
+	}
+	mu.Unlock()
+
+	// 30 saat sonra makine çevrimdışı sayılır; aynı kesinti ikinci kez bildirilmez.
+	e.clock = e.clock.Add(30 * time.Hour)
+	e.srv.RunNotifications(context.Background())
+	e.srv.RunNotifications(context.Background())
+	mu.Lock()
+	defer mu.Unlock()
+	if events[store.EventMachineOffline] != 1 || events[store.EventActionFailed] != 1 {
+		t.Fatalf("çevrimdışı makine bir kez bildirilmeli: %v", events)
+	}
+}
