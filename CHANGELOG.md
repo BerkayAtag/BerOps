@@ -5,6 +5,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.2.0] — 2026-11-01
+
 ### Eklendi
 
 - **Gruplar:** Statik gruplar ve kurallı dinamik gruplar (platform, işletim sistemi, yama seviyesi, makine adı, AD OU, etiket, uygulama ve sürümü, eksik yama, ajan sürümü, risk). Kaydetmeden önizleme.
@@ -219,7 +221,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - Konsol: giriş ekranı, gösterge paneli iskeleti, Türkçe/İngilizce, açık/karanlık tema; ortak tasarım token'ları (`design/tokens.css`).
 - GitHub Actions: Go lint/test/govulncheck, Windows ve macOS ajan testleri, çapraz derleme, konsol lint/test/derleme, CodeQL, bağımlılık incelemesi, Dependabot.
 
-[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.1.0...HEAD
+[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/BerkayAtag/BerOps/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/BerkayAtag/BerOps/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/BerkayAtag/BerOps/releases/tag/v1.0.0
