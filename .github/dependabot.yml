@@ -13,6 +13,10 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # TanStack Table 9 tam bir API değişikliği (features, atoms); geçiş ayrı bir iş olarak
+      # yapılacak. 8.x yamaları gelmeye devam eder.
+      - dependency-name: "@tanstack/react-table"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-bagimliliklari:
         dependency-type: development
