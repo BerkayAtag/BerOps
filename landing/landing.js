@@ -11,7 +11,7 @@
     "nav.screens": "Screens",
     "nav.architecture": "Architecture",
     "nav.install": "Install",
-    "hero.eyebrow": "Version 1.0 · Windows and macOS",
+    "hero.eyebrow": "Version 1.1 · Windows and macOS",
     "hero.t1": "Patches, vulnerabilities, apps.",
     "hero.t2": "One console.",
     "hero.lead": "Agents collect missing patches and CVEs; you prioritise by risk and close them with signed, staged deployments.",
