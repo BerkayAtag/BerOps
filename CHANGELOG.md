@@ -5,6 +5,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.1.0] — 2026-11-01
+
 ### Eklendi
 
 - **Gösterge paneli:** En çok eksik olan 10 yama, açığı olan uygulama sürümleri ve son işler.
@@ -20,6 +22,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 ### Değişti
 
 - Konsol bağımlılıkları: jsdom 30, vitest 5. TypeScript 7 güncellemesi, typescript-eslint desteğine kadar bekletiliyor.
+- CI eylemleri: dependency-review 5, setup-node 7, setup-go 7.
 
 ## [1.0.1] — 2026-11-01
 
@@ -208,6 +211,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - Konsol: giriş ekranı, gösterge paneli iskeleti, Türkçe/İngilizce, açık/karanlık tema; ortak tasarım token'ları (`design/tokens.css`).
 - GitHub Actions: Go lint/test/govulncheck, Windows ve macOS ajan testleri, çapraz derleme, konsol lint/test/derleme, CodeQL, bağımlılık incelemesi, Dependabot.
 
-[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.0.1...HEAD
+[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/BerkayAtag/BerOps/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/BerkayAtag/BerOps/releases/tag/v1.0.0
