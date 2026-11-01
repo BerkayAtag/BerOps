@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -20,6 +21,39 @@ type throttledWriter struct {
 	start       time.Time
 	sent        int64
 	sleep       func(context.Context, time.Duration) bool
+	// global doluysa tüm indirmelerin paylaştığı toplam sınır da uygulanır.
+	global *sharedLimiter
+}
+
+// sharedLimiter, tüm indirmelerin paylaştığı toplam hız sınırıdır (sunucu çıkış sınırı).
+// Her parça, sıradaki boş zamandan başlayarak kendi süresini ayırır; böylece toplam hız
+// sınırı aşmaz ve indirmeler sırayla adil pay alır.
+type sharedLimiter struct {
+	mu          sync.Mutex
+	bytesPerSec float64
+	next        time.Time
+}
+
+func (l *sharedLimiter) setKbps(kbps int) {
+	l.mu.Lock()
+	l.bytesPerSec = float64(kbps) * 1000 / 8
+	l.mu.Unlock()
+}
+
+// reserve, n baytın gönderilebilmesi için beklenecek süreyi döner (sınır yoksa 0).
+func (l *sharedLimiter) reserve(n int) time.Duration {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.bytesPerSec <= 0 {
+		return 0
+	}
+	now := time.Now()
+	if l.next.Before(now) {
+		l.next = now
+	}
+	wait := l.next.Sub(now)
+	l.next = l.next.Add(time.Duration(float64(n) / l.bytesPerSec * float64(time.Second)))
+	return wait
 }
 
 const throttleChunk = 16 << 10
@@ -44,6 +78,11 @@ func (t *throttledWriter) Write(p []byte) (int, error) {
 	written := 0
 	for len(p) > 0 {
 		n := min(len(p), throttleChunk)
+		if t.global != nil {
+			if wait := t.global.reserve(n); wait > 0 && !t.sleep(t.ctx, wait) {
+				return written, t.ctx.Err()
+			}
+		}
 		m, err := t.body.Write(p[:n])
 		written += m
 		t.sent += int64(m)

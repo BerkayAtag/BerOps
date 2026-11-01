@@ -49,7 +49,10 @@ type Config struct {
 	Cert       tls.Certificate // relay sertifikası (sunucu + istemci kullanımı)
 	CacheDir   string
 	CacheBytes int64 // önbellek üst sınırı; aşılırsa en eski kullanılan dosyalar silinir
-	Log        *slog.Logger
+	// MaxKbps, relay'in ajanlara toplam gönderim sınırıdır (0 = sınırsız). İstemci başına
+	// sınırı sunucu belirler; bu sınır şube hattını korur.
+	MaxKbps int
+	Log     *slog.Logger
 }
 
 // Relay, HTTP işleyicisidir.
@@ -61,6 +64,7 @@ type Relay struct {
 
 	mu       sync.Mutex
 	inflight map[string]*fetch
+	total    sharedLimiter
 	// Hits ve Misses, önbellek istatistikleridir (test ve log için).
 	Hits, Misses int64
 }
@@ -89,6 +93,7 @@ func New(cfg Config) (*Relay, error) {
 		IdleConnTimeout:     90 * time.Second,
 	}
 	r := &Relay{cfg: cfg, upstream: u, client: &http.Client{Transport: tr}, inflight: map[string]*fetch{}}
+	r.total.bytesPerSec = float64(cfg.MaxKbps) * 1000 / 8
 	r.proxy = &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(u)
@@ -200,8 +205,13 @@ func (r *Relay) servePackage(w http.ResponseWriter, req *http.Request) {
 	h.Set("ETag", `"`+sha+`"`)
 	h.Set("X-Ber-Relay", "hit")
 	var out http.ResponseWriter = w
-	if kbps > 0 {
-		out = newThrottled(req.Context(), w, kbps)
+	if kbps > 0 || r.cfg.MaxKbps > 0 {
+		if kbps <= 0 {
+			kbps = r.cfg.MaxKbps
+		}
+		t := newThrottled(req.Context(), w, kbps)
+		t.global = &r.total
+		out = t
 	}
 	http.ServeContent(out, req, sha, info.ModTime(), f)
 }
@@ -322,20 +332,53 @@ func atime(info os.FileInfo) time.Time { return info.ModTime() }
 // throttled, yanıtı en fazla verilen hızda yazar.
 type throttled struct {
 	http.ResponseWriter
-	ctx   context.Context
-	rate  float64
-	start time.Time
-	sent  int64
+	ctx    context.Context
+	rate   float64
+	start  time.Time
+	sent   int64
+	global *sharedLimiter
 }
 
 func newThrottled(ctx context.Context, w http.ResponseWriter, kbps int) *throttled {
 	return &throttled{ResponseWriter: w, ctx: ctx, rate: float64(kbps) * 1000 / 8, start: time.Now()}
 }
 
+// sharedLimiter, relay'deki tüm indirmelerin paylaştığı toplam hız sınırıdır.
+type sharedLimiter struct {
+	mu          sync.Mutex
+	bytesPerSec float64
+	next        time.Time
+}
+
+// reserve, n baytın gönderilebilmesi için beklenecek süreyi döner (sınır yoksa 0).
+func (l *sharedLimiter) reserve(n int) time.Duration {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.bytesPerSec <= 0 {
+		return 0
+	}
+	now := time.Now()
+	if l.next.Before(now) {
+		l.next = now
+	}
+	wait := l.next.Sub(now)
+	l.next = l.next.Add(time.Duration(float64(n) / l.bytesPerSec * float64(time.Second)))
+	return wait
+}
+
 func (t *throttled) Write(p []byte) (int, error) {
 	written := 0
 	for len(p) > 0 {
 		n := min(len(p), 16<<10)
+		if t.global != nil {
+			if wait := t.global.reserve(n); wait > 0 {
+				select {
+				case <-t.ctx.Done():
+					return written, t.ctx.Err()
+				case <-time.After(wait):
+				}
+			}
+		}
 		m, err := t.ResponseWriter.Write(p[:n])
 		written += m
 		t.sent += int64(m)

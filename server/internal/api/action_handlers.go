@@ -397,14 +397,47 @@ func (s *Server) handleGetTransferSettings(w http.ResponseWriter, r *http.Reques
 	writeJSON(w, http.StatusOK, t)
 }
 
+func validateProfiles(list []store.RateProfile) error {
+	if len(list) > 10 {
+		return errors.New("en fazla 10 hız profili tanımlanabilir")
+	}
+	for i, p := range list {
+		if strings.TrimSpace(p.Name) == "" || utf8.RuneCountInString(p.Name) > 60 {
+			return fmt.Errorf("profil %d: ad 1-60 karakter olmalı", i+1)
+		}
+		if len(p.Weekdays) == 0 {
+			return fmt.Errorf("profil %d: en az bir gün seçilmeli", i+1)
+		}
+		for _, d := range p.Weekdays {
+			if d < 0 || d > 6 {
+				return fmt.Errorf("profil %d: gün 0-6 olmalı", i+1)
+			}
+		}
+		if p.StartMinute < 0 || p.StartMinute > 1439 || p.EndMinute < 0 || p.EndMinute > 1439 || p.StartMinute == p.EndMinute {
+			return fmt.Errorf("profil %d: saat aralığı geçersiz", i+1)
+		}
+		if p.Kbps < 64 || p.Kbps > 10_000_000 {
+			return fmt.Errorf("profil %d: hız 64 kbps - 10 Gbps olmalı", i+1)
+		}
+	}
+	return nil
+}
+
 func (s *Server) handlePutTransferSettings(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	var t store.TransferSettings
 	if !decodeJSON(w, r, &t, 4<<10) {
 		return
 	}
+	if err := validateProfiles(t.Profiles); err != nil {
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, err.Error())
+		return
+	}
 	switch {
 	case t.PerClientKbps < 64 || t.PerClientKbps > 10_000_000:
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "İstemci başına hız 64 kbps - 10 Gbps arasında olmalı")
+		return
+	case t.TotalKbps != 0 && (t.TotalKbps < 64 || t.TotalKbps > 100_000_000):
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Toplam sınır 0 (sınırsız) veya 64 kbps - 100 Gbps olmalı")
 		return
 	case t.MaxUploadMB < 1 || t.MaxUploadMB > 102_400:
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Yükleme sınırı 1 MB - 100 GB arasında olmalı")
@@ -449,6 +482,12 @@ type createActionRequest struct {
 	RespectWindows bool       `json:"respect_windows"`
 	// Rollout doluysa hedefler aşamalara bölünür (pilot halka → geri kalanlar).
 	Rollout *store.Rollout `json:"rollout"`
+	// GroupIDs ve AllMachines, makine listesine eklenen hedeflerdir (kullanıcı kapsamı uygulanır).
+	GroupIDs    []string `json:"group_ids"`
+	AllMachines bool     `json:"all_machines"`
+	// RetryCount ve RetryDelayMinutes, başarısız hedeflerin otomatik yeniden denenmesidir.
+	RetryCount        int `json:"retry_count"`
+	RetryDelayMinutes int `json:"retry_delay_minutes"`
 }
 
 // requirePermDenied, kapsam reddini denetim kaydına yazar.
@@ -516,7 +555,38 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	if req.ExpiresHours == 0 {
 		req.ExpiresHours = set.DefaultExpiryHours
 	}
+	// Grup ve tüm filo hedefleri makine kimliklerine çözülür.
+	if len(req.GroupIDs) > 50 {
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, "En fazla 50 grup seçilebilir")
+		return
+	}
+	for _, gid := range req.GroupIDs {
+		g, ok := s.groupFromID(w, r, gid)
+		if !ok {
+			return
+		}
+		ids, err := s.store.GroupMachineIDs(r.Context(), g, sess.User.Scope())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+			return
+		}
+		req.MachineIDs = append(req.MachineIDs, ids...)
+	}
+	if req.AllMachines {
+		ids, err := s.store.ActiveMachineIDs(r.Context(), sess.User.Scope())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+			return
+		}
+		req.MachineIDs = append(req.MachineIDs, ids...)
+	}
+	if req.RetryDelayMinutes == 0 {
+		req.RetryDelayMinutes = 30
+	}
 	switch {
+	case req.RetryCount < 0 || req.RetryCount > 5 || req.RetryDelayMinutes < 1 || req.RetryDelayMinutes > 1440:
+		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Yeniden deneme 0-5 kez, aralık 1-1440 dakika olmalı")
+		return
 	case req.TimeoutSeconds < 30 || req.TimeoutSeconds > 86400:
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Zaman aşımı 30 sn - 24 saat arasında olmalı")
 		return
@@ -724,6 +794,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		TimeoutSeconds: job.TimeoutSeconds, BandwidthKbps: req.BandwidthKbps, Status: status, CreatedBy: sess.User.ID,
 		CreatedByName: sess.User.Username, CreatedAt: now, ExpiresAt: job.ExpiresAt, Targets: targets,
 		RespectWindows: req.RespectWindows, Rollout: req.Rollout, Patches: job.Patches, NotBefore: req.NotBefore,
+		RetryCount: req.RetryCount, RetryDelayMinutes: req.RetryDelayMinutes,
 	})
 	if err != nil {
 		s.log.Error("aksiyon kaydedilemedi", "hata", err)
@@ -909,7 +980,11 @@ func (s *Server) handleAgentJobStatus(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Geçersiz durum")
 		return
 	}
-	err := s.store.UpdateTargetStatus(r.Context(), id, m.ID, req, s.now())
+	retry, err := s.store.UpdateTargetStatus(r.Context(), id, m.ID, req, s.now())
+	if err == nil && retry != nil {
+		// Aynı iş, ajan günlüğü yeniden çalıştırmayı engellemesin diye deneme numarasıyla yeniden imzalanır.
+		err = s.resignForRetry(r, id, m.ID, retry)
+	}
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		writeError(w, http.StatusNotFound, codeNotFound, "İş bulunamadı")
@@ -926,13 +1001,41 @@ func (s *Server) handleAgentJobStatus(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// clientRate, istemci başına uygulanacak hızdır: aksiyonun hızı ile genel sınırın küçüğü.
+func (s *Server) resignForRetry(r *http.Request, actionID, machineID string, retry *store.Retry) error {
+	var job protocol.Job
+	if err := json.Unmarshal(retry.Payload, &job); err != nil {
+		return err
+	}
+	job.Attempt = retry.Attempt
+	sj, err := protocol.SignJob(s.signKey, job)
+	if err != nil {
+		return err
+	}
+	if err := s.store.SetTargetJob(r.Context(), actionID, machineID, sj.Payload, sj.Signature); err != nil {
+		return err
+	}
+	s.log.Info("iş yeniden denenecek", "ajan", machineID, "aksiyon", actionID, "deneme", retry.Attempt)
+	return nil
+}
+
+// clientRate, istemci başına uygulanacak hızdır: aksiyonun hızı ile o saatte geçerli genel
+// sınırın (saat bazlı profil veya varsayılan) küçüğü. Toplam sınır da burada güncellenir.
 func (s *Server) clientRate(r *http.Request, actionKbps int) int {
 	kbps := actionKbps
-	if set, err := s.store.GetTransferSettings(r.Context()); err == nil && (kbps <= 0 || set.PerClientKbps < kbps) {
-		kbps = set.PerClientKbps
+	if set, err := s.store.GetTransferSettings(r.Context()); err == nil {
+		if limit := set.ClientKbps(s.now().Local()); kbps <= 0 || limit < kbps {
+			kbps = limit
+		}
+		s.totalLimit.setKbps(set.TotalKbps)
 	}
 	return max(kbps, 64)
+}
+
+// throttled, yanıtı istemci başına sınır ve toplam sunucu sınırıyla yazar.
+func (s *Server) throttled(r *http.Request, w http.ResponseWriter, kbps int) *throttledWriter {
+	t := newThrottledWriter(r.Context(), w, kbps)
+	t.global = &s.totalLimit
+	return t
 }
 
 func (s *Server) handlePackageDownload(w http.ResponseWriter, r *http.Request) {
@@ -974,5 +1077,5 @@ func (s *Server) handlePackageDownload(w http.ResponseWriter, r *http.Request) {
 	fileDownloadHeaders(w, "application/octet-stream")
 	w.Header().Set("ETag", `"`+g.SHA256+`"`)
 	w.Header().Set("X-Ber-Rate-Kbps", strconv.Itoa(s.clientRate(r, g.BandwidthKbps)))
-	http.ServeContent(newThrottledWriter(r.Context(), w, s.clientRate(r, g.BandwidthKbps)), r, g.FileName, info.ModTime(), f)
+	http.ServeContent(s.throttled(r, w, s.clientRate(r, g.BandwidthKbps)), r, g.FileName, info.ModTime(), f)
 }

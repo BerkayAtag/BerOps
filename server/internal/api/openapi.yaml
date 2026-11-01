@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BerOps API
-  version: 0.6.0
+  version: 1.2.0
   description: |
     BerOps konsol ve ajan API'si.
 
@@ -25,6 +25,7 @@ tags:
   - name: Sunucu
   - name: Kayıt anahtarları
   - name: Makineler
+  - name: Gruplar
   - name: Zafiyetler
   - name: Raporlar
   - name: Paketler
@@ -112,6 +113,32 @@ components:
         expires_at: { type: [string, "null"], format: date-time }
         revoked_at: { type: [string, "null"], format: date-time }
         created_at: { type: string, format: date-time }
+    GroupCondition:
+      type: object
+      required: [field, op]
+      properties:
+        field: { type: string, enum: [platform, os_name, os_build, hostname, ad_ou, tag, app, missing_patch, agent_version, risk] }
+        op:
+          type: string
+          enum: [eq, contains, prefix, version_lt, version_gte, under, has, installed, missing, gte]
+          description: "Alan başına izinli işlemler: platform eq; os_name contains/eq; os_build version_lt/version_gte/prefix; hostname contains/prefix/eq; ad_ou under; tag has; app installed/missing/version_lt/version_gte; missing_patch has; agent_version version_lt/version_gte; risk gte"
+        value: { type: string, maxLength: 200 }
+        name: { type: string, maxLength: 200, description: Yalnızca app alanında uygulama adı (içerir) }
+    GroupRule:
+      type: object
+      required: [match, conditions]
+      properties:
+        match: { type: string, enum: [all, any] }
+        conditions: { type: array, minItems: 1, maxItems: 10, items: { $ref: "#/components/schemas/GroupCondition" } }
+    GroupRequest:
+      type: object
+      required: [name, kind]
+      properties:
+        name: { type: string, maxLength: 100 }
+        description: { type: string, maxLength: 500 }
+        kind: { type: string, enum: [static, dynamic] }
+        rule: { $ref: "#/components/schemas/GroupRule", description: Yalnızca dinamik grupta zorunlu }
+        machine_ids: { type: array, items: { type: string, format: uuid }, description: Yeni statik grubun ilk üyeleri }
     Machine:
       type: object
       properties:
@@ -318,6 +345,8 @@ paths:
         - { name: platform, in: query, schema: { type: string, enum: [windows, darwin] } }
         - { name: status, in: query, schema: { type: string, enum: [active, pending, rejected, revoked] } }
         - { name: online, in: query, schema: { type: boolean } }
+        - { name: group_id, in: query, schema: { type: string, format: uuid }, description: Yalnızca bu grubun makineleri }
+        - { name: tag, in: query, schema: { type: string }, description: Yalnızca bu etiketi taşıyan makineler }
         - name: sort
           in: query
           schema:
@@ -391,6 +420,117 @@ paths:
       responses:
         "200": { description: "machine, online, scan_requested_at, inventory ve risk (yoksa null)" }
         "404": { description: Bulunamadı }
+  /api/v1/machines/{id}/tags:
+    get:
+      tags: [Gruplar]
+      summary: Makinenin etiketleri
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/ID" }]
+      responses:
+        "200": { description: "tags (alfabetik)" }
+    put:
+      tags: [Gruplar]
+      summary: Makinenin etiketlerini değiştir (tamamı yeniden yazılır)
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tags]
+              properties:
+                tags:
+                  type: array
+                  maxItems: 20
+                  items: { type: string, pattern: "^[\\p{L}\\p{N}][\\p{L}\\p{N} ._-]{0,39}$" }
+      responses:
+        "200": { description: Kaydedildi }
+        "400": { description: Geçersiz etiket }
+  /api/v1/groups:
+    get:
+      tags: [Gruplar]
+      summary: Gruplar (üye sayısı yetki kapsamına göre) ve kullanılan tüm etiketler
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      responses:
+        "200": { description: "items: Group[], tags: string[]" }
+    post:
+      tags: [Gruplar]
+      summary: Statik veya dinamik grup oluştur
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GroupRequest" }
+      responses:
+        "200": { description: Oluşturulan grup }
+        "400": { description: Geçersiz ad veya kural }
+        "409": { description: Aynı adda grup var }
+  /api/v1/groups/preview:
+    post:
+      tags: [Gruplar]
+      summary: Dinamik kuralı kaydetmeden dene (toplam ve ilk 20 makine)
+      security: [{ session: [] }]
+      x-ber-permission: machines.read
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GroupRule" }
+      responses:
+        "200": { description: "total, items" }
+        "400": { description: Geçersiz kural }
+  /api/v1/groups/{id}:
+    put:
+      tags: [Gruplar]
+      summary: Grubu değiştir (dinamiğe geçen grubun statik üyeleri silinir)
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GroupRequest" }
+      responses:
+        "200": { description: Kaydedildi }
+        "404": { description: Bulunamadı }
+        "409": { description: Aynı adda grup var }
+    delete:
+      tags: [Gruplar]
+      summary: Grubu sil (makineler etkilenmez)
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      responses:
+        "204": { description: Silindi }
+  /api/v1/groups/{id}/members:
+    put:
+      tags: [Gruplar]
+      summary: Statik gruba makine ekle veya çıkar (yalnızca yetki kapsamındaki makineler)
+      security: [{ session: [] }]
+      x-ber-permission: machines.manage
+      parameters: [{ $ref: "#/components/parameters/ID" }, { $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add: { type: array, items: { type: string, format: uuid } }
+                remove: { type: array, items: { type: string, format: uuid } }
+      responses:
+        "204": { description: Kaydedildi }
+        "400": { description: Grup dinamik veya makine kapsam dışında }
   /api/v1/machines/{id}/missing-patches:
     get:
       tags: [Makineler]
@@ -650,14 +790,19 @@ paths:
           application/json:
             schema:
               type: object
-              required: [kind, machine_ids]
+              description: "Hedef: machine_ids, group_ids ve all_machines birleşimidir; en az biri verilmelidir."
+              required: [kind]
               properties:
                 kind: { type: string, enum: [deploy_package, run_command] }
                 name: { type: string, maxLength: 200 }
                 package_id: { type: string, format: uuid }
                 shell: { type: string, enum: [cmd, powershell, sh, zsh] }
                 command: { type: string, maxLength: 32768 }
-                machine_ids: { type: array, items: { type: string, format: uuid }, minItems: 1, maxItems: 10000 }
+                machine_ids: { type: array, items: { type: string, format: uuid }, maxItems: 10000 }
+                group_ids: { type: array, items: { type: string, format: uuid }, maxItems: 50, description: Gönderim anındaki üyeler hedeflenir }
+                all_machines: { type: boolean, description: Yetki kapsamındaki tüm aktif makineler }
+                retry_count: { type: integer, minimum: 0, maximum: 5, default: 0, description: Başarısız hedefin yeniden deneme sayısı }
+                retry_delay_minutes: { type: integer, minimum: 1, maximum: 1440, default: 30 }
                 timeout_seconds: { type: integer, minimum: 30, maximum: 86400, default: 3600 }
                 bandwidth_kbps: { type: integer, minimum: 64, description: Genel sınırın üstündeyse genel sınır uygulanır }
                 expires_hours: { type: integer, minimum: 1, maximum: 720 }
@@ -673,7 +818,7 @@ paths:
       x-ber-permission: machines.read
       parameters: [{ $ref: "#/components/parameters/ID" }]
       responses:
-        "200": { description: "action, targets" }
+        "200": { description: "action (retry_count, retry_delay_minutes dahil), targets (attempts, next_attempt_at dahil)" }
   /api/v1/actions/{id}/approve:
     post:
       tags: [Aksiyonlar]
@@ -889,13 +1034,38 @@ paths:
       security: [{ session: [] }]
       x-ber-permission: settings.read
       responses:
-        "200": { description: "per_client_kbps, max_upload_mb, command_approval, default_expiry_hours" }
+        "200": { description: "per_client_kbps, max_upload_mb, command_approval, default_expiry_hours, total_kbps, profiles" }
     put:
       tags: [Ayarlar]
       summary: Aktarım ayarlarını değiştir
       security: [{ session: [] }]
       x-ber-permission: transfer.limits.manage
       parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                per_client_kbps: { type: integer, minimum: 64 }
+                max_upload_mb: { type: integer }
+                command_approval: { type: boolean }
+                default_expiry_hours: { type: integer, minimum: 1, maximum: 720 }
+                total_kbps: { type: integer, minimum: 0, description: "Tüm indirmelerin paylaştığı üst sınır; 0 = sınırsız, aksi halde en az 64" }
+                profiles:
+                  type: array
+                  maxItems: 10
+                  description: "Sunucu yerel saatine göre eşleşen ilk profil istemci başına sınırın yerine geçer. end_minute < start_minute ise aralık gece yarısını aşar."
+                  items:
+                    type: object
+                    required: [name, weekdays, start_minute, end_minute, kbps]
+                    properties:
+                      name: { type: string, maxLength: 60 }
+                      weekdays: { type: array, items: { type: integer, minimum: 0, maximum: 6 }, description: 0 = Pazar }
+                      start_minute: { type: integer, minimum: 0, maximum: 1439 }
+                      end_minute: { type: integer, minimum: 0, maximum: 1439 }
+                      kbps: { type: integer, minimum: 64 }
       responses:
         "200": { description: Kaydedildi }
         "400": { description: Geçersiz değer }

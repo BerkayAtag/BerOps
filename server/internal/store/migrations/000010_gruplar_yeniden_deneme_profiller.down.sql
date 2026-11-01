@@ -1,0 +1,10 @@
+ALTER TABLE transfer_settings DROP COLUMN profiles;
+ALTER TABLE transfer_settings DROP COLUMN total_kbps;
+ALTER TABLE action_targets DROP COLUMN next_attempt_at;
+ALTER TABLE action_targets DROP COLUMN attempts;
+ALTER TABLE actions DROP COLUMN retry_delay_minutes;
+ALTER TABLE actions DROP COLUMN retry_count;
+DROP TABLE machine_tags;
+DROP TABLE machine_group_members;
+DROP TABLE machine_groups;
+DROP FUNCTION berops_version_key(text);

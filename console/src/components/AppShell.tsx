@@ -10,6 +10,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const NAV_ITEMS: { key: string; to?: string; end?: boolean; perm?: string }[] = [
   { key: "dashboard", to: "/", end: true },
   { key: "machines", to: "/makineler" },
+  { key: "groups", to: "/gruplar" },
   { key: "patches", to: "/yamalar" },
   { key: "vulnerabilities", to: "/zafiyetler" },
   { key: "packages", to: "/paketler" },

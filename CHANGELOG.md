@@ -5,6 +5,14 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi
+
+- **Gruplar:** Statik gruplar ve kurallı dinamik gruplar (platform, işletim sistemi, yama seviyesi, makine adı, AD OU, etiket, uygulama ve sürümü, eksik yama, ajan sürümü, risk). Kaydetmeden önizleme.
+- **Etiketler:** Makine detayından etiket ekleme; makineler listesinde grup ve etikete göre süzme.
+- **Hedefleme:** Aksiyonlar gruplara ve tüm filoya gönderilebilir.
+- **Otomatik yeniden deneme:** Başarısız hedefler en çok 5 kez, verilen aralıkla yeniden denenir; aksiyon detayında deneme sayısı ve sonraki deneme zamanı gösterilir.
+- **Hız sınırları:** Toplam sunucu çıkış sınırı, saat bazlı istemci hız profilleri ve relay için `-max-kbps`.
+
 ## [1.1.0] — 2026-11-01
 
 ### Eklendi

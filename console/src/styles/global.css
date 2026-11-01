@@ -1856,3 +1856,36 @@ a.user-chip {
   border-color: color-mix(in srgb, var(--ber-warning) 30%, transparent);
   color: var(--ber-warning);
 }
+
+/* Makine etiketleri */
+.tag a {
+  color: inherit;
+}
+.tag-remove {
+  margin-left: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ber-text-muted);
+  cursor: pointer;
+  line-height: 1;
+}
+.tag-remove:hover {
+  color: var(--ber-danger);
+}
+.inline-form {
+  display: inline-flex;
+}
+.inline-form .input {
+  width: 9rem;
+}
+
+/* Grup kuralı satırı: alanlar tek satırda, dar ekranda alta kayar */
+.rule-row {
+  align-items: center;
+}
+.rule-row .input {
+  width: auto;
+  flex: 1 1 10rem;
+  max-width: 16rem;
+}

@@ -48,9 +48,10 @@ Ekranlar demo verisiyle (sanal ajanlar) gerçek uygulamadan alınmıştır. Kons
 - **Envanter:** Windows Update Agent ve `softwareupdate` ile eksik yamalar, yama seviyesi, üçüncü parti uygulamalar.
 - **CVE motoru:** NVD, MSRC, CISA KEV ve EPSS; 0-100 risk skoru, PDF/Excel/CSV raporlar.
 - **Dağıtım:** İşletim sistemi yamaları, paket kütüphanesi (MSI, EXE, PKG, DMG) ve komutlar. Ed25519 imzalı işler, SHA-256 doğrulama, istemci başına hız sınırı.
-- **Kontrol:** Zamanlanmış başlatma, kademeli dağıtım (pilot halka, başarı eşiği), bakım pencereleri, bildirimli yeniden başlatma, komutlarda dört göz onayı.
+- **Hedefleme:** Statik ve kurallı dinamik gruplar (OU, etiket, uygulama sürümü, eksik yama, risk), makine etiketleri, tüm filo.
+- **Kontrol:** Zamanlanmış başlatma, kademeli dağıtım (pilot halka, başarı eşiği), otomatik yeniden deneme, bakım pencereleri, bildirimli yeniden başlatma, komutlarda dört göz onayı.
 - **Erişim:** LDAPS ile Active Directory, OU kapsamlı roller (Yönetici, Teknisyen, Salt okunur), dış sistemler için API anahtarları, değiştirilemez denetim kaydı.
-- **Ölçek:** Şube relay'leri, e-posta/Teams/Slack bildirimleri, zamanlanmış raporlar, isteğe bağlı uzaktan yönetim.
+- **Ölçek:** Şube relay'leri, toplam ve saat bazlı hız sınırları, e-posta/Teams/Slack bildirimleri, zamanlanmış raporlar, isteğe bağlı uzaktan yönetim.
 
 ## Mimari
 

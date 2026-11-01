@@ -315,12 +315,21 @@ Migration `000009`:
 - `actions.not_before` (zamanlanmış başlatma) ve `action_targets.reboot_required` (3010/1641) eklendi.
 - `api_keys` tablosu eklendi (dış sistemler; yalnızca özet, rol ve OU kapsamı).
 
+### Aşama 10 — Gruplar, yeniden deneme, hız profilleri
+
+Migration `000010`:
+
+- `machine_groups` (statik / dinamik; dinamikte `rule` jsonb), `machine_group_members` ve `machine_tags` tabloları eklendi.
+- `berops_version_key(text) numeric[]` işlevi sürümleri sayı dizisine çevirir; kural koşullarındaki sürüm karşılaştırmaları bunu kullanır.
+- `actions.retry_count`, `actions.retry_delay_minutes`; `action_targets.attempts`, `action_targets.next_attempt_at` eklendi. Başarısız hedef `pending` durumuna döner ve `next_attempt_at` gelene kadar ajana verilmez. Sunucu işi `attempt` alanıyla yeniden imzalar; ajan günlüğünde anahtar `kimlik#deneme` olur.
+- `transfer_settings.total_kbps` ve `transfer_settings.profiles` (jsonb) eklendi.
+
 ### Sonraki aşamalar (plan)
 
-| Aşama | Tablolar |
+| Konu | Not |
 |---|---|
-| Yeniden başlatma politikaları | `restart_policies` |
-| Gruplar | `groups` (statik / OU / dinamik kural), `group_members`, `tags`, `machine_tags` |
+| Ajanın kendini güncellemesi | İmzalı ajan paketi ve aşamalı geçiş |
+| Kurcalama koruması | Kaldırma kodu, servis koruması |
 
 ## 7. Klasör yapısı
 

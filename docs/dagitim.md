@@ -32,13 +32,16 @@ Teknisyen yalnızca kütüphanede **var olan** paketleri gönderebilir; komut ya
 
 ## Aksiyonlar
 
-**Aksiyonlar → Yeni aksiyon** veya makine listesinde seçim yapıp **Paket gönder / Komut çalıştır**:
+**Aksiyonlar → Yeni aksiyon** veya makine listesinde seçim yapıp **Paket gönder / Komut çalıştır**.
+
+Hedef; seçilen makineler, bir veya daha çok [grup](gelismis-dagitim.md#gruplar-ve-etiketler) ve **Tüm filo** seçeneğinin birleşimidir. Grupların üyeleri gönderim anında çözülür; sonradan gruba giren makine aksiyona eklenmez. Tüm seçenekler kullanıcının OU kapsamıyla sınırlıdır.
 
 | Seçenek | Varsayılan | Açıklama |
 |---|---|---|
 | Zaman aşımı | 3600 sn | Aşılırsa komut ve başlattığı tüm alt süreçler sonlandırılır (Windows Job Object, macOS süreç grubu) |
 | İstemci başına hız | Genel sınır (10 Mbps) | Aksiyon için daha düşük bir değer verilebilir; genel sınırın üstüne çıkılamaz |
 | Geçerlilik | 72 saat | Bu süre içinde çevrimiçi olmayan makinelerde iş "süresi doldu" olur |
+| Yeniden deneme | 0 (kapalı) | Başarısız hedef en çok 5 kez, verilen aralıkla (1-1440 dk) yeniden denenir. Her deneme yeniden imzalanır; geçerlilik süresini aşan deneme planlanmaz. |
 
 - Komutlar Windows'ta **SYSTEM**, macOS'ta **root** yetkisiyle çalışır.
 - Komut önce iş dizinine betik dosyası olarak yazılır (`.cmd`, `.ps1`, `.sh`). Böylece tırnak ve satır sonu kaçışlama sorunu olmaz.
@@ -104,7 +107,12 @@ Ajan iş çalışırken yeniden başlarsa iş **başarısız** bildirilir ve tek
 - paket dosyaları
 - çevrimdışı Windows Update kataloğu (`wsusscn2.cab`)
 
-İndirmeler HTTP Range ile kaldığı yerden sürer. Şubeler için önbellekleyen relay ve toplam bant genişliği sınırı Aşama 7'de eklenecek.
+İndirmeler HTTP Range ile kaldığı yerden sürer. Aynı ekranda iki ek ayar vardır:
+
+- **Toplam sunucu çıkış sınırı:** Tüm indirmelerin paylaştığı üst sınır (0 = sınırsız).
+- **Saat bazlı hız profilleri:** Örneğin hafta içi 09:00-18:00 arası istemci başına 2 Mbps. Sunucu saatine göre eşleşen ilk profil istemci başına sınırın yerine geçer; aksiyonda daha düşük bir değer verilmişse o uygulanır. Bitiş başlangıçtan küçükse aralık gece yarısını aşar.
+
+Şubelerde relay de kendi toplam sınırını uygular (`-max-kbps`, bkz. [relay/README.md](../relay/README.md)).
 
 ## Güvenlik
 

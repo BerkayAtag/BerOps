@@ -156,6 +156,9 @@ type MachineFilter struct {
 	Unlimited bool
 	// Scope, kullanıcının OU kapsamıdır (boş: tüm makineler).
 	Scope []string
+	// Group doluysa yalnızca grubun üyeleri; Tag doluysa yalnızca bu etiketi taşıyan makineler.
+	Group *Group
+	Tag   string
 }
 
 // MachineSortColumns, izin verilen sıralama alanlarıdır. Kullanıcı girdisi SQL'e
@@ -205,6 +208,12 @@ func (s *Store) ListMachinesFiltered(ctx context.Context, f MachineFilter) ([]Ma
 	}
 	if c := scopeCond("m.ad_ou", f.Scope, arg); c != "" {
 		where = append(where, c)
+	}
+	if f.Group != nil {
+		where = append(where, GroupCond(f.Group, arg))
+	}
+	if t := strings.TrimSpace(f.Tag); t != "" {
+		where = append(where, "EXISTS (SELECT 1 FROM machine_tags mt WHERE mt.machine_id = m.id AND lower(mt.tag) = lower("+arg(t)+"))")
 	}
 	if f.Online != nil {
 		if *f.Online {

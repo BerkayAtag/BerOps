@@ -6,8 +6,8 @@ BerOps'de her API uç noktası **sunucu tarafında** granüler bir izinle korunu
 
 | İzin | Açıklama | Admin | Teknisyen | Salt Okunur |
 |---|---|:-:|:-:|:-:|
-| `machines.read` | Makineler, envanter, aksiyon listesi ve sonuçları | ✅ | ✅ | ✅ |
-| `machines.manage` | Makine onaylama/reddetme, yeniden tarama | ✅ | — | — |
+| `machines.read` | Makineler, gruplar, etiketler, envanter, aksiyon listesi ve sonuçları | ✅ | ✅ | ✅ |
+| `machines.manage` | Makine onaylama/reddetme, yeniden tarama, grup ve etiket yönetimi | ✅ | — | — |
 | `reports.read` | Gösterge paneli, güvenlik açıkları | ✅ | ✅ | ✅ |
 | `reports.export` | PDF/Excel/CSV rapor indirme | ✅ | ✅ | ✅ |
 | `packages.read` | Paket kütüphanesini görme | ✅ | ✅ | ✅ |

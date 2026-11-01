@@ -100,7 +100,8 @@
     "settingsRelays": "Relays",
     "settingsNotify": "Notifications",
     "agentDownload": "Download agent",
-    "settingsApiKeys": "API keys"
+    "settingsApiKeys": "API keys",
+    "groups": "Groups"
   },
   "home": {
     "title": "Dashboard",
@@ -631,7 +632,14 @@
       "respectWindows": "Respect maintenance windows",
       "respectWindowsHint": "The job is given to a machine only while a matching maintenance window is open. Machines without a window run it immediately.",
       "startAt": "Start time",
-      "startAtHint": "Starts immediately if empty. Validity is counted from this time."
+      "startAtHint": "Starts immediately if empty. Validity is counted from this time.",
+      "groups": "Groups",
+      "allMachines": "Entire fleet",
+      "allMachinesHint": "All active machines within your scope are targeted.",
+      "retry": "Retry (count / minutes)",
+      "retryCount": "Retry count",
+      "retryDelay": "Minutes between attempts",
+      "retryHint": "A failed target is retried up to this many times at the given interval (0 = off)."
     },
     "releaseNext": "Start next stage",
     "releaseConfirm": "Open the next rollout stage now?",
@@ -650,7 +658,11 @@
     "patches": "Updates",
     "scheduledFor": "Scheduled: jobs will be given to machines from {{time}}.",
     "rebootPending": "{{count}} machines are waiting for a restart.",
-    "rebootTag": "Restart pending"
+    "rebootTag": "Restart pending",
+    "attempt": "Retry {{n}}",
+    "nextAttempt": "next attempt {{time}}",
+    "retryPolicy": "Retry",
+    "retryValue": "up to {{count}} times, {{minutes}} min apart"
   },
   "transfer": {
     "title": "Transfer settings",
@@ -660,7 +672,18 @@
     "maxUpload": "Maximum package size (MB)",
     "approval": "Command actions require four-eyes approval",
     "approvalHint": "When enabled, a command created by an administrator does not run until another administrator approves it.",
-    "expiry": "Default action validity (hours)"
+    "expiry": "Default action validity (hours)",
+    "total": "Total server egress limit (kbps)",
+    "totalHint": "Upper limit shared by all downloads. 0 = unlimited.",
+    "profiles": "Time-based rate profiles",
+    "profilesHint": "The first matching profile replaces the per-client limit at that time (server time). If the end is earlier than the start, the range crosses midnight.",
+    "profileName": "Profile name",
+    "from": "From",
+    "to": "To",
+    "profileKbps": "kbps per client",
+    "removeProfile": "Remove profile",
+    "addProfile": "Add profile",
+    "workHours": "Working hours"
   },
   "users": {
     "title": "Users",
@@ -1118,5 +1141,75 @@
     "revoke": "Revoke",
     "revoked": "Revoked",
     "confirmRevoke": "Revoke the {{name}} key? Systems using it will lose access."
+  },
+  "groups": {
+    "title": "Groups",
+    "subtitle": "Group machines with static lists or rules (OU, tag, application version, missing patch…) and send actions to groups.",
+    "new": "New group",
+    "name": "Name",
+    "description": "Description",
+    "kind": "Type",
+    "kindStatic": "Static",
+    "kindDynamic": "Dynamic (rule)",
+    "members": "Machines",
+    "empty": "No groups yet.",
+    "confirmDelete": "Delete group {{name}}? Machines are not affected.",
+    "deploy": "Send action",
+    "staticHint": "Add machines to a static group by selecting them in the Machines list and choosing “Add to group”.",
+    "match": "Match",
+    "matchAll": "All conditions",
+    "matchAny": "Any condition",
+    "field": "Field",
+    "op": "Operator",
+    "value": "Value",
+    "appName": "Application name (e.g. Chrome)",
+    "addCondition": "Add condition",
+    "removeCondition": "Remove condition",
+    "preview": "Preview",
+    "previewCount": "{{count}} machines match",
+    "and": "and",
+    "or": "or",
+    "filter": "Group",
+    "tagFilter": "Tag",
+    "addTo": "Add to group…",
+    "added": "{{count}} machines added to {{name}}.",
+    "tags": "Tags",
+    "newTag": "Add tag",
+    "removeTag": "Remove tag {{tag}}",
+    "fields": {
+      "platform": "Platform",
+      "os_name": "Operating system",
+      "os_build": "Patch level (build)",
+      "hostname": "Host name",
+      "ad_ou": "AD OU",
+      "tag": "Tag",
+      "app": "Application",
+      "missing_patch": "Missing patch",
+      "agent_version": "Agent version",
+      "risk": "Risk score"
+    },
+    "ops": {
+      "eq": "equals",
+      "contains": "contains",
+      "prefix": "starts with",
+      "version_lt": "version lower than",
+      "version_gte": "version at least",
+      "under": "under",
+      "has": "has",
+      "installed": "installed",
+      "missing": "not installed",
+      "gte": "at least"
+    },
+    "placeholders": {
+      "os_name": "Windows 11",
+      "os_build": "10.0.22631.4460",
+      "hostname": "WS-",
+      "ad_ou": "OU=Branches,DC=example,DC=local",
+      "tag": "server",
+      "app": "120",
+      "missing_patch": "KB5046617",
+      "agent_version": "1.1.0",
+      "risk": "80"
+    }
   }
 }

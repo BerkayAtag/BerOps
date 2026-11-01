@@ -50,6 +50,9 @@ type NewAction struct {
 	Patches        []string
 	// NotBefore doluysa işler bu zamandan önce ajana verilmez.
 	NotBefore *time.Time
+	// RetryCount ve RetryDelayMinutes, başarısız hedefin otomatik yeniden denenmesidir.
+	RetryCount        int
+	RetryDelayMinutes int
 }
 
 // Rollout, kademeli dağıtım planıdır.
@@ -95,6 +98,9 @@ type Action struct {
 	Patches []string `json:"patches"`
 	// NotBefore, zamanlanmış başlatma zamanıdır (boşsa hemen).
 	NotBefore *time.Time `json:"not_before"`
+	// RetryCount ve RetryDelayMinutes, otomatik yeniden deneme politikasıdır.
+	RetryCount        int `json:"retry_count"`
+	RetryDelayMinutes int `json:"retry_delay_minutes"`
 }
 
 // CreateAction, aksiyonu ve imzalı hedeflerini tek transaction içinde yazar.
@@ -102,11 +108,12 @@ func (s *Store) CreateAction(ctx context.Context, a NewAction) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO actions (id, name, kind, package_id, shell, command, timeout_seconds, bandwidth_kbps, status,
-				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout, patches, not_before)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
+				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout, patches, not_before,
+				retry_count, retry_delay_minutes)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`,
 			a.ID, a.Name, a.Kind, nullableUUID(a.PackageID), a.Shell, a.Command, a.TimeoutSeconds, a.BandwidthKbps,
 			a.Status, len(a.Targets), nullableUUID(a.CreatedBy), a.CreatedByName, a.CreatedAt, a.ExpiresAt,
-			a.RespectWindows, a.Rollout, nonNilStrings(a.Patches), a.NotBefore); err != nil {
+			a.RespectWindows, a.Rollout, nonNilStrings(a.Patches), a.NotBefore, a.RetryCount, max(a.RetryDelayMinutes, 1)); err != nil {
 			return err
 		}
 		rows := make([][]any, len(a.Targets))
@@ -127,7 +134,7 @@ const actionSelect = `
 	                 WHERE t.action_id = a.id GROUP BY status) c), '{}'),
 	       a.respect_windows, a.rollout, a.paused_reason,
 	       (SELECT count(DISTINCT stage) FROM action_targets t WHERE t.action_id = a.id AND t.released), a.patches,
-	       a.not_before
+	       a.not_before, a.retry_count, a.retry_delay_minutes
 	FROM actions a LEFT JOIN packages p ON p.id = a.package_id`
 
 func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
@@ -135,7 +142,7 @@ func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
 	if err := row.Scan(&a.ID, &a.Name, &a.Kind, &a.PackageID, &a.PackageName, &a.PackageVersion, &a.Shell, &a.Command,
 		&a.TimeoutSeconds, &a.BandwidthKbps, &a.Status, &a.TargetCount, &a.CreatedBy, &a.CreatedByName, &a.CreatedAt,
 		&a.ExpiresAt, &a.ApprovedAt, &a.CompletedAt, &a.Counts, &a.RespectWindows, &a.Rollout, &a.PausedReason,
-		&a.ReleasedStages, &a.Patches, &a.NotBefore); err != nil {
+		&a.ReleasedStages, &a.Patches, &a.NotBefore, &a.RetryCount, &a.RetryDelayMinutes); err != nil {
 		return nil, notFound(err)
 	}
 	return &a, nil
@@ -216,13 +223,17 @@ type ActionTarget struct {
 	Released bool `json:"released"`
 	// RebootRequired, kurulum başarılı ama makine yeniden başlatma bekliyor demektir.
 	RebootRequired bool `json:"reboot_required"`
+	// Attempts, yapılan yeniden deneme sayısıdır; NextAttemptAt doluysa hedef yeniden denemeyi bekler.
+	Attempts      int        `json:"attempts"`
+	NextAttemptAt *time.Time `json:"next_attempt_at"`
 }
 
 // ListActionTargets, aksiyonun hedeflerini döner.
 func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]ActionTarget, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT t.machine_id, m.hostname, m.ad_ou, m.os_platform, t.status, t.exit_code, t.stdout, t.stderr, t.error,
-		       t.started_at, t.finished_at, t.updated_at, t.stage, t.released, t.reboot_required
+		       t.started_at, t.finished_at, t.updated_at, t.stage, t.released, t.reboot_required,
+		       t.attempts, t.next_attempt_at
 		FROM action_targets t JOIN machines m ON m.id = t.machine_id
 		WHERE t.action_id = $1 ORDER BY t.stage, lower(m.hostname)`, actionID)
 	if err != nil {
@@ -233,7 +244,8 @@ func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]Actio
 	for rows.Next() {
 		var t ActionTarget
 		if err := rows.Scan(&t.MachineID, &t.Hostname, &t.OU, &t.Platform, &t.Status, &t.ExitCode, &t.Stdout, &t.Stderr,
-			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt, &t.Stage, &t.Released, &t.RebootRequired); err != nil {
+			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt, &t.Stage, &t.Released, &t.RebootRequired,
+			&t.Attempts, &t.NextAttemptAt); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -278,7 +290,8 @@ func (s *Store) SetActionStatus(ctx context.Context, id, to string, from []strin
 // Çalışan işler yeniden verilmez; ajan yeniden başlarsa yarıda kalan işi kendisi "başarısız"
 // bildirir. Bakım penceresi denetimi çağıran tarafta yapılır.
 const openJobsCond = `t.machine_id = $1 AND t.status IN ('pending', 'downloading') AND t.released
-	AND a.status = 'active' AND a.expires_at > $2 AND (a.not_before IS NULL OR a.not_before <= $2)`
+	AND a.status = 'active' AND a.expires_at > $2 AND (a.not_before IS NULL OR a.not_before <= $2)
+	AND (t.next_attempt_at IS NULL OR t.next_attempt_at <= $2)`
 
 // PendingJob, bekleyen iş ve pencere gereksinimidir.
 type PendingJob struct {
@@ -319,18 +332,45 @@ func truncateOutput(s string) string {
 
 func utf8Start(b byte) bool { return b&0xC0 != 0x80 }
 
+// Retry, başarısız hedef için planlanan yeniden denemedir; API katmanı işi Attempt ile
+// yeniden imzalayıp SetTargetJob ile kaydeder.
+type Retry struct {
+	Attempt int
+	Payload []byte
+}
+
 // UpdateTargetStatus, ajanın bildirdiği durumu yazar. Son duruma ulaşmış hedef değiştirilemez
-// (ErrConflict); aksiyonun tüm hedefleri bittiyse aksiyon tamamlanır.
-func (s *Store) UpdateTargetStatus(ctx context.Context, actionID, machineID string, r protocol.JobStatusRequest, at time.Time) error {
-	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
-		var cur string
-		err := tx.QueryRow(ctx, `SELECT status FROM action_targets WHERE action_id = $1 AND machine_id = $2 FOR UPDATE`,
-			actionID, machineID).Scan(&cur)
+// (ErrConflict); aksiyonun tüm hedefleri bittiyse aksiyon tamamlanır. Başarısız hedefin yeniden
+// deneme hakkı varsa hedef bekleyen duruma döner ve Retry döner.
+func (s *Store) UpdateTargetStatus(ctx context.Context, actionID, machineID string, r protocol.JobStatusRequest, at time.Time) (*Retry, error) {
+	var retry *Retry
+	err := pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
+		var cur, actionStatus string
+		var attempts, retryCount, retryDelay int
+		var expires time.Time
+		var payload []byte
+		err := tx.QueryRow(ctx, `
+			SELECT t.status, t.attempts, t.payload, a.retry_count, a.retry_delay_minutes, a.status, a.expires_at
+			FROM action_targets t JOIN actions a ON a.id = t.action_id
+			WHERE t.action_id = $1 AND t.machine_id = $2 FOR UPDATE OF t`,
+			actionID, machineID).Scan(&cur, &attempts, &payload, &retryCount, &retryDelay, &actionStatus, &expires)
 		if err != nil {
 			return notFound(err)
 		}
 		if protocol.FinalTargetStatus(cur) {
 			return ErrConflict
+		}
+		next := at.Add(time.Duration(retryDelay) * time.Minute)
+		if r.Status == protocol.TargetFailed && attempts < retryCount && actionStatus == "active" && next.Before(expires) {
+			// Son hata görünür kalır; hedef bekleyen duruma döner ve gecikmeden sonra yeniden verilir.
+			_, err := tx.Exec(ctx, `
+				UPDATE action_targets SET status = 'pending', attempts = attempts + 1, next_attempt_at = $3,
+					exit_code = coalesce($4, exit_code), stdout = $5, stderr = $6, error = $7, finished_at = NULL, updated_at = $8
+				WHERE action_id = $1 AND machine_id = $2`,
+				actionID, machineID, next, r.ExitCode, truncateOutput(r.Stdout), truncateOutput(r.Stderr),
+				truncateOutput(r.Error), at)
+			retry = &Retry{Attempt: attempts + 1, Payload: payload}
+			return err
 		}
 		final := protocol.FinalTargetStatus(r.Status)
 		var finished *time.Time
@@ -357,6 +397,14 @@ func (s *Store) UpdateTargetStatus(ctx context.Context, actionID, machineID stri
 			actionID, at)
 		return err
 	})
+	return retry, err
+}
+
+// SetTargetJob, hedefin imzalı iş tanımını değiştirir (yeniden denemede deneme numarasıyla).
+func (s *Store) SetTargetJob(ctx context.Context, actionID, machineID string, payload, signature []byte) error {
+	_, err := s.pool.Exec(ctx, `UPDATE action_targets SET payload = $3, signature = $4 WHERE action_id = $1 AND machine_id = $2`,
+		actionID, machineID, payload, signature)
+	return err
 }
 
 // ExpireActions, süresi dolan aksiyonların açık hedeflerini "süresi doldu" yapar ve

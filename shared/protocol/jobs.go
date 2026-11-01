@@ -116,6 +116,9 @@ type Job struct {
 	// Patches, yama dağıtımında kurulacak güncellemelerin kimlikleridir (bilgi amaçlı; ajan
 	// Command'ı çalıştırır).
 	Patches []string `json:"patches,omitempty"`
+	// Attempt, otomatik yeniden denemede kaçıncı deneme olduğudur (0 = ilk). Ajan aynı işin
+	// tekrar oynatılmasını kimlik ve deneme numarasıyla engeller.
+	Attempt int `json:"attempt,omitempty"`
 	// RescanAfter true ise iş bittikten sonra ajan değişiklik taraması yapar.
 	RescanAfter bool `json:"rescan_after"`
 }
