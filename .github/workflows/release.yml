@@ -38,7 +38,7 @@ jobs:
           cache-dependency-path: console/package-lock.json
       - working-directory: console
         run: npm ci && npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: console-dist
           path: console/dist
@@ -83,7 +83,7 @@ jobs:
             else tar -C work -czf "out/$(basename "$d").tar.gz" "$(basename "$d")"; fi
           done
           ls -lh out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: archives
           path: out/*
@@ -142,7 +142,7 @@ jobs:
       - name: Ajan ikili dosyası (MSI dışı kullanım için)
         shell: pwsh
         run: Compress-Archive -Path dist/berops-agent.exe, LICENSE -DestinationPath "out/berops-agent-$env:VERSION-windows-amd64.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: out/*
@@ -203,7 +203,7 @@ jobs:
           installers/macos/build-pkg.sh "$VERSION" dist/berops-agent "out/BerOps-Agent.pkg"
           cp installers/macos/pppc-berops-agent.mobileconfig out/
           (cd dist && zip -q "../out/berops-agent-$VERSION-darwin-universal.zip" berops-agent)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: out/*

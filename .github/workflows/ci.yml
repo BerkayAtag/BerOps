@@ -151,7 +151,7 @@ jobs:
         run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
       - name: Kurulum günlükleri
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: msi-logs
           path: "*.log"
