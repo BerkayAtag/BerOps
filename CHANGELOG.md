@@ -5,6 +5,22 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+### Eklendi
+
+- **Gösterge paneli:** En çok eksik olan 10 yama, açığı olan uygulama sürümleri ve son işler.
+- **Zamanlanmış başlatma:** Aksiyonlar belirli bir tarih/saatte başlar; geçerlilik ve kademe gecikmeleri bu zamandan sayılır.
+- **Yeniden başlatma yönetimi:**
+  - Çıkış kodu 3010/1641 olan hedefler "yeniden başlatma bekliyor" olarak işaretlenir.
+  - Bildirimli ve süreli yeniden başlatma aksiyonu (`restart`) eklendi.
+- **Ajan günlükleri:** Makine detayından istenir (`collect_logs`); makine detayına iş geçmişi sekmesi eklendi.
+- **Kayıt defteri:** Oturumdaki değişiklikler önceki değerleriyle listelenir ve tek tıkla geri alınır.
+- **Bildirimler:** Başarısız dağıtım, filoda yeni kritik CVE (CVSS 9+) ve 24 saattir çevrimdışı makine.
+- **API anahtarları:** Dış sistemler için rol ve OU kapsamlı Bearer anahtarları; konsolda yönetim sayfası.
+
+### Değişti
+
+- Konsol bağımlılıkları: jsdom 30, vitest 5. TypeScript 7 güncellemesi, typescript-eslint desteğine kadar bekletiliyor.
+
 ## [1.0.1] — 2026-11-01
 
 ### Değişti

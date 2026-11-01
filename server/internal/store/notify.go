@@ -11,10 +11,17 @@ const (
 	EventActionCompleted = "action.completed"
 	EventKEVNew          = "vulnerability.kev_new"
 	EventCVESyncFailed   = "cve.sync_failed"
+	// EventActionFailed, en az bir hedefi başarısız olan veya süresi dolan tamamlanmış aksiyondur.
+	EventActionFailed = "action.failed"
+	// EventCriticalCVE, son 30 günde yayımlanmış, CVSS 9+ ve filoda yeni görülen açıktır.
+	EventCriticalCVE = "vulnerability.critical_new"
+	// EventMachineOffline, 24 saattir (en çok 7 gündür) görülmeyen aktif makinedir.
+	EventMachineOffline = "machine.offline"
 )
 
 // AllEvents, abone olunabilecek olaylardır.
-var AllEvents = []string{EventActionCompleted, EventKEVNew, EventCVESyncFailed}
+var AllEvents = []string{EventActionCompleted, EventActionFailed, EventKEVNew, EventCriticalCVE, EventMachineOffline,
+	EventCVESyncFailed}
 
 // Channel, bildirim kanalıdır. Gizli değer (SMTP parolası, webhook imza anahtarı) şifreli tutulur.
 type Channel struct {
@@ -167,6 +174,72 @@ func (s *Store) RecentKEVInFleet(ctx context.Context, now time.Time) ([]NewKEV, 
 			return nil, err
 		}
 		out = append(out, k)
+	}
+	return out, rows.Err()
+}
+
+// CriticalCVE, filoda yeni görülen kritik açıktır.
+type CriticalCVE struct {
+	CVE       string    `json:"cve_id"`
+	Title     string    `json:"title"`
+	CVSS      float32   `json:"cvss_score"`
+	FirstSeen time.Time `json:"first_seen_at"`
+	Affected  int       `json:"affected_machines"`
+}
+
+// NewCriticalCVEsInFleet, son 30 günde yayımlanmış, CVSS 9 veya üstü ve filoda ilk kez son 24
+// saatte görülen açıkları döner. Yayın tarihi koşulu, ilk eşitlemede eski açıkların toplu
+// bildirim üretmesini önler.
+func (s *Store) NewCriticalCVEsInFleet(ctx context.Context, now time.Time) ([]CriticalCVE, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT c.id, c.title, c.cvss_score, min(mv.first_seen_at), count(DISTINCT mv.machine_id)
+		FROM cves c JOIN machine_vulnerabilities mv ON mv.cve_id = c.id
+		JOIN machines m ON m.id = mv.machine_id AND m.status = 'active'
+		WHERE c.cvss_score >= 9 AND c.published_at >= $1::timestamptz - interval '30 days'
+		GROUP BY c.id, c.title, c.cvss_score
+		HAVING min(mv.first_seen_at) >= $1::timestamptz - interval '24 hours'
+		ORDER BY c.cvss_score DESC LIMIT 20`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CriticalCVE
+	for rows.Next() {
+		var c CriticalCVE
+		if err := rows.Scan(&c.CVE, &c.Title, &c.CVSS, &c.FirstSeen, &c.Affected); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+// OfflineMachine, uzun süredir görülmeyen makinedir.
+type OfflineMachine struct {
+	ID       string    `json:"id"`
+	Hostname string    `json:"hostname"`
+	LastSeen time.Time `json:"last_seen_at"`
+}
+
+// OfflineMachines, 24 saattir görülmeyen ama son 7 günde görülmüş aktif makineleri döner;
+// daha eski makineler her gün yeniden bildirilmez.
+func (s *Store) OfflineMachines(ctx context.Context, now time.Time) ([]OfflineMachine, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, hostname, last_seen_at FROM machines
+		WHERE status = 'active' AND last_seen_at < $1::timestamptz - interval '24 hours'
+		  AND last_seen_at >= $1::timestamptz - interval '7 days'
+		ORDER BY last_seen_at LIMIT 100`, now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []OfflineMachine
+	for rows.Next() {
+		var m OfflineMachine
+		if err := rows.Scan(&m.ID, &m.Hostname, &m.LastSeen); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
 	}
 	return out, rows.Err()
 }

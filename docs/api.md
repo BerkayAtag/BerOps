@@ -22,6 +22,20 @@ Content-Type: application/json
 
 Başarılı yanıt `__Host-ber_session` çerezini ayarlar ve kullanıcı bilgisini, izinlerini ve `csrf_token` değerini döner. Durum değiştiren tüm isteklerde (POST, PUT, PATCH, DELETE) bu değer `X-CSRF-Token` başlığında gönderilmelidir.
 
+### API anahtarları (dış sistemler)
+
+CMDB, SIEM veya betikler gibi dış sistemler çerez yerine API anahtarı kullanır. Anahtar **Ayarlar → API anahtarları** sayfasında, bir rol ve isteğe bağlı OU kapsamıyla oluşturulur. Anahtarın kendisi yalnızca oluşturulduğu anda gösterilir; sunucuda özeti saklanır.
+
+```bash
+curl -H "Authorization: Bearer berops_…" https://ber.ornek.local:8443/api/v1/machines
+```
+
+- Bearer başlığını tarayıcı kendiliğinden göndermediği için CSRF başlığı gerekmez.
+- Anahtar, seçilen rolün izinleri ve OU kapsamıyla çalışır.
+- Anahtarla kullanıcı veya anahtar yönetilemez.
+- Her işlem denetim kaydına `api:<ad>` olarak yazılır.
+- İptal edilen veya süresi dolan anahtar 401 döner.
+
 ### Hata biçimi
 
 Tüm hatalar aynı gövdeyi kullanır:

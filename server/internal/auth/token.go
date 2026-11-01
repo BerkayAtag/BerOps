@@ -35,3 +35,16 @@ func NewRegistrationKey() (key, displayPrefix string, err error) {
 	key = RegistrationKeyPrefix + t
 	return key, key[:len(RegistrationKeyPrefix)+6], nil
 }
+
+// APIKeyPrefix, dış sistemler için API anahtarlarının önekidir.
+const APIKeyPrefix = "berops_"
+
+// NewAPIKey, yeni bir API anahtarı ve konsolda gösterilecek kısa önekini üretir.
+func NewAPIKey() (key, displayPrefix string, err error) {
+	t, err := NewToken()
+	if err != nil {
+		return "", "", err
+	}
+	key = APIKeyPrefix + t
+	return key, key[:len(APIKeyPrefix)+6], nil
+}

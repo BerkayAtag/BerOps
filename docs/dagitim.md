@@ -65,6 +65,17 @@ Bir veya daha fazla güncelleme seçilip **Dağıtımı başlat** denince `deplo
 - **Varsayılan zaman aşımı:** 2 saat.
 - **Yeniden tarama:** Başarılı kurulumdan sonra ajan tam tarama yapar; eksik yama listesi ve açıklar güncellenir.
 
+## Zamanlama, yeniden başlatma ve günlükler
+
+- **Zamanlanmış başlatma:** Sihirbazdaki **Başlangıç zamanı** (en çok 30 gün sonrası) verilirse işler o zamana kadar ajana verilmez. Geçerlilik süresi ve kademeli aşama gecikmeleri bu zamandan itibaren sayılır.
+- **Yeniden başlatma bekliyor:** Çıkış kodu `3010` veya `1641` olan başarılı hedefler bu etiketle işaretlenir.
+- **Bildirimli yeniden başlatma (`restart`):** Aksiyon detayında bekleyen makineler, makine detayında tek makine için **Yeniden başlat** düğmesi vardır.
+  - Windows'ta kullanıcıya geri sayımlı uyarı gösterilir (`shutdown /r /t`). macOS'ta oturumlara duyuru gönderilir (`shutdown -r +dk`).
+  - Süre 0-1440 dakika arasındadır. İleti en çok 200 karakterdir ve tırnak ya da kabuk özel karakteri içeremez.
+  - Bakım penceresi ve zamanlama seçenekleriyle birlikte kullanılabilir.
+- **Ajan günlükleri (`collect_logs`):** Makine detayındaki **Ajan günlüklerini iste** düğmesiyle ajan, günlüğünün son ~60 KB'ını sonuç çıktısı olarak döndürür; komut çalıştırılmaz.
+- **İş geçmişi:** Makine detayında, makineyi hedefleyen aksiyonları gösteren bir sekme vardır.
+
 ### Dört göz onayı
 
 **Ayarlar → Aktarım ayarları → Komut aksiyonları dört göz onayı gerektirsin** açıksa:

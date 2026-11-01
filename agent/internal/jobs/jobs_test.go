@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -249,5 +250,30 @@ func TestRelativeDataDir(t *testing.T) {
 	r.Process(context.Background())
 	if res := e.client.final("goreli"); res.Status != protocol.TargetSucceeded || !strings.Contains(res.Stdout, "tamam") {
 		t.Errorf("göreli veri dizininde komut çalışmalı: %+v", res)
+	}
+}
+
+func TestTailFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "agent.log")
+	var b strings.Builder
+	for i := 0; i < 100; i++ {
+		fmt.Fprintf(&b, "satır %03d\n", i)
+	}
+	if err := os.WriteFile(path, []byte(b.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out, err := tailFile(path, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(out, "satır") || !strings.HasSuffix(out, "satır 099\n") || len(out) > 50 {
+		t.Errorf("son kısım = %q", out)
+	}
+	all, _ := tailFile(path, 1<<20)
+	if all != b.String() {
+		t.Error("küçük dosya tamamen dönmeli")
+	}
+	if _, err := tailFile(filepath.Join(t.TempDir(), "yok.log"), 10); err == nil {
+		t.Error("olmayan dosya hata vermeli")
 	}
 }

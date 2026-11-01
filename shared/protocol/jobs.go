@@ -26,6 +26,11 @@ const (
 	// JobDeployPatch, işletim sistemi güncellemesi kurar (Windows Update Agent / softwareupdate).
 	// Ajan için komut çalıştırmadan farkı yoktur; komutu sunucu üretir ve imzalar.
 	JobDeployPatch = "deploy_patch"
+	// JobRestart, makineyi bildirimle ve süre tanıyarak yeniden başlatır (komutu sunucu üretir).
+	JobRestart = "restart"
+	// JobCollectLogs, ajanın kendi günlük dosyasının son kısmını sonuç çıktısı olarak döndürür;
+	// komut çalıştırılmaz.
+	JobCollectLogs = "collect_logs"
 )
 
 // Komut kabukları.
@@ -159,10 +164,11 @@ func (s SignedJob) Verify(pub ed25519.PublicKey, machineID string, now time.Time
 		if j.Package == nil || len(j.Package.SHA256) != 64 {
 			return nil, ErrInvalidJobDef
 		}
-	case JobRunCommand, JobDeployPatch:
+	case JobRunCommand, JobDeployPatch, JobRestart:
 		if j.Command == "" {
 			return nil, ErrInvalidJobDef
 		}
+	case JobCollectLogs:
 	default:
 		return nil, ErrInvalidJobDef
 	}

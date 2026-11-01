@@ -435,12 +435,18 @@ type createActionRequest struct {
 	Shell     string `json:"shell"`
 	Command   string `json:"command"`
 	// Patches, deploy_patch için kurulacak güncellemelerdir (Windows UpdateID / macOS etiketi).
-	Patches        []string `json:"patches"`
-	MachineIDs     []string `json:"machine_ids"`
-	TimeoutSeconds int      `json:"timeout_seconds"`
-	BandwidthKbps  int      `json:"bandwidth_kbps"`
-	ExpiresHours   int      `json:"expires_hours"`
-	RespectWindows bool     `json:"respect_windows"`
+	Patches []string `json:"patches"`
+	// RestartMessage ve RestartDelayMinutes, restart aksiyonunda kullanıcıya gösterilen ileti ve
+	// yeniden başlatmaya kalan süredir.
+	RestartMessage      string `json:"restart_message"`
+	RestartDelayMinutes int    `json:"restart_delay_minutes"`
+	// NotBefore doluysa işler bu zamandan önce ajana verilmez (zamanlanmış başlatma).
+	NotBefore      *time.Time `json:"not_before"`
+	MachineIDs     []string   `json:"machine_ids"`
+	TimeoutSeconds int        `json:"timeout_seconds"`
+	BandwidthKbps  int        `json:"bandwidth_kbps"`
+	ExpiresHours   int        `json:"expires_hours"`
+	RespectWindows bool       `json:"respect_windows"`
 	// Rollout doluysa hedefler aşamalara bölünür (pilot halka → geri kalanlar).
 	Rollout *store.Rollout `json:"rollout"`
 }
@@ -472,8 +478,10 @@ func kindPermission(kind string) auth.Permission {
 	switch kind {
 	case protocol.JobRunCommand:
 		return auth.PermActionsRunCommand
-	case protocol.JobDeployPatch:
+	case protocol.JobDeployPatch, protocol.JobRestart:
 		return auth.PermActionsDeployPatch
+	case protocol.JobCollectLogs:
+		return auth.PermMachinesManage
 	}
 	return auth.PermActionsDeployPackage
 }
@@ -483,8 +491,11 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	if !decodeJSON(w, r, &req, 2<<20) {
 		return
 	}
-	if req.Kind != protocol.JobDeployPackage && req.Kind != protocol.JobRunCommand && req.Kind != protocol.JobDeployPatch {
-		writeError(w, http.StatusBadRequest, codeInvalidRequest, "Aksiyon türü deploy_package, deploy_patch veya run_command olmalı")
+	switch req.Kind {
+	case protocol.JobDeployPackage, protocol.JobRunCommand, protocol.JobDeployPatch, protocol.JobRestart, protocol.JobCollectLogs:
+	default:
+		writeError(w, http.StatusBadRequest, codeInvalidRequest,
+			"Aksiyon türü deploy_package, deploy_patch, run_command, restart veya collect_logs olmalı")
 		return
 	}
 	// Teknisyen yalnızca kütüphanedeki paketleri gönderebilir; serbest komut ayrı izindir.
@@ -558,9 +569,23 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	}
 
 	now := s.now()
+	// Zamanlanmış başlatmada geçerlilik süresi başlangıç zamanından itibaren sayılır.
+	start := now
+	if req.NotBefore != nil {
+		if req.NotBefore.Before(now.Add(-5*time.Minute)) || req.NotBefore.After(now.Add(30*24*time.Hour)) {
+			writeError(w, http.StatusBadRequest, codeInvalidRequest, "Başlangıç zamanı şimdi ile 30 gün sonrası arasında olmalı")
+			return
+		}
+		if req.NotBefore.After(now) {
+			start = *req.NotBefore
+		} else {
+			req.NotBefore = nil
+		}
+	}
 	job := protocol.Job{
-		Kind: req.Kind, IssuedAt: now.UTC(), ExpiresAt: now.Add(time.Duration(req.ExpiresHours) * time.Hour).UTC(),
-		TimeoutSeconds: req.TimeoutSeconds, RescanAfter: req.Kind != protocol.JobRunCommand,
+		Kind: req.Kind, IssuedAt: now.UTC(), ExpiresAt: start.Add(time.Duration(req.ExpiresHours) * time.Hour).UTC(),
+		TimeoutSeconds: req.TimeoutSeconds,
+		RescanAfter:    req.Kind == protocol.JobDeployPackage || req.Kind == protocol.JobDeployPatch,
 	}
 	var pkg *store.Package
 	switch req.Kind {
@@ -633,6 +658,28 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		if req.Name == "" {
 			req.Name = fmt.Sprintf("Yama dağıtımı (%d güncelleme)", len(req.Patches))
 		}
+	case protocol.JobRestart:
+		platform := platforms[ids[0]].Platform
+		for _, p := range platforms {
+			if p.Platform != platform {
+				writeError(w, http.StatusBadRequest, codeInvalidRequest, "Yeniden başlatma tek platforma gönderilebilir; Windows ve macOS'u ayrı aksiyonlarla hedefleyin")
+				return
+			}
+		}
+		job.Shell, job.Command, err = restartJob(platform, req.RestartMessage, req.RestartDelayMinutes)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, codeInvalidRequest, err.Error())
+			return
+		}
+		job.SuccessCodes = []int{0}
+		if req.Name == "" {
+			req.Name = fmt.Sprintf("Yeniden başlatma (%d dk sonra)", req.RestartDelayMinutes)
+		}
+	case protocol.JobCollectLogs:
+		job.Shell, job.Command = "", ""
+		if req.Name == "" {
+			req.Name = "Ajan günlüklerini getir"
+		}
 	}
 
 	actionID, err := newUUID()
@@ -676,7 +723,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		ID: actionID, Name: req.Name, Kind: req.Kind, PackageID: req.PackageID, Shell: job.Shell, Command: job.Command,
 		TimeoutSeconds: job.TimeoutSeconds, BandwidthKbps: req.BandwidthKbps, Status: status, CreatedBy: sess.User.ID,
 		CreatedByName: sess.User.Username, CreatedAt: now, ExpiresAt: job.ExpiresAt, Targets: targets,
-		RespectWindows: req.RespectWindows, Rollout: req.Rollout, Patches: job.Patches,
+		RespectWindows: req.RespectWindows, Rollout: req.Rollout, Patches: job.Patches, NotBefore: req.NotBefore,
 	})
 	if err != nil {
 		s.log.Error("aksiyon kaydedilemedi", "hata", err)

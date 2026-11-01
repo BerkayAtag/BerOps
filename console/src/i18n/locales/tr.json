@@ -99,7 +99,8 @@
     "settingsWindows": "Bakım pencereleri",
     "settingsRelays": "Relay sunucuları",
     "settingsNotify": "Bildirimler",
-    "agentDownload": "Ajan indir"
+    "agentDownload": "Ajan indir",
+    "settingsApiKeys": "API anahtarları"
   },
   "home": {
     "title": "Gösterge Paneli",
@@ -145,7 +146,10 @@
     "trendHelp": "Eksik yaması olmayan makinelerin günlük oranı",
     "topCves": "En riskli açıklar",
     "topMachines": "En riskli makineler",
-    "noVulns": "Zafiyet verisi henüz yok."
+    "noVulns": "Zafiyet verisi henüz yok.",
+    "topPatches": "En çok eksik olan yamalar",
+    "vulnerableApps": "Açığı olan uygulama sürümleri",
+    "recentActions": "Son işler"
   },
   "status": {
     "active": "Aktif",
@@ -243,7 +247,8 @@
       "missing": "Eksik yamalar ({{count}})",
       "installed": "Kurulu yamalar ({{count}})",
       "apps": "Uygulamalar ({{count}})",
-      "vulns": "Güvenlik açıkları ({{count}})"
+      "vulns": "Güvenlik açıkları ({{count}})",
+      "jobs": "İş geçmişi"
     },
     "missing": {
       "title": "Başlık",
@@ -286,7 +291,8 @@
     "vulnsNone": "Bu makinede bilinen açık bulunamadı.",
     "deploy": "Paket gönder",
     "runCommand": "Komut çalıştır",
-    "actionsTab": "Aksiyonlar"
+    "actionsTab": "Aksiyonlar",
+    "requestLogs": "Ajan günlüklerini iste"
   },
   "severity": {
     "Critical": "Kritik",
@@ -543,7 +549,9 @@
     "kind": {
       "deploy_package": "Paket dağıtımı",
       "run_command": "Komut çalıştırma",
-      "deploy_patch": "Yama dağıtımı"
+      "deploy_patch": "Yama dağıtımı",
+      "restart": "Yeniden başlatma",
+      "collect_logs": "Ajan günlükleri"
     },
     "status": {
       "pending_approval": "Onay bekliyor",
@@ -621,7 +629,9 @@
       "rollout": "Kademeli dağıtım",
       "rolloutHint": "Başarı oranı eşiğin altına düşerse sonraki aşama durdurulur.",
       "respectWindows": "Bakım penceresine uy",
-      "respectWindowsHint": "İş, makineye yalnızca ona uyan bakım penceresi açıkken verilir. Pencere tanımlı olmayan makinelerde hemen çalışır."
+      "respectWindowsHint": "İş, makineye yalnızca ona uyan bakım penceresi açıkken verilir. Pencere tanımlı olmayan makinelerde hemen çalışır.",
+      "startAt": "Başlangıç zamanı",
+      "startAtHint": "Boş bırakılırsa hemen başlar. Geçerlilik süresi bu zamandan itibaren sayılır."
     },
     "releaseNext": "Sonraki aşamayı başlat",
     "releaseConfirm": "Kademeli dağıtımın sonraki aşaması hemen açılsın mı?",
@@ -637,7 +647,10 @@
       "pilot": "Pilot: %10, 24 saat sonra kalanı",
       "rings": "Halkalar: %5 → %25 (1 gün) → %70 (3 gün)"
     },
-    "patches": "Güncellemeler"
+    "patches": "Güncellemeler",
+    "scheduledFor": "Zamanlanmış: işler {{time}} itibarıyla makinelere verilecek.",
+    "rebootPending": "{{count}} makine yeniden başlatma bekliyor.",
+    "rebootTag": "Yeniden başlatma bekliyor"
   },
   "transfer": {
     "title": "Aktarım ayarları",
@@ -862,7 +875,14 @@
       "truncated": "Liste ilk 2000 kayıtla sınırlandı.",
       "written": "Değer yazıldı.",
       "deleted": "Değer silindi.",
-      "readOnly": "Kayıt defteri yazma bu makinede kapalı."
+      "readOnly": "Kayıt defteri yazma bu makinede kapalı.",
+      "history": "Bu oturumdaki değişiklikler (önceki değerleriyle)",
+      "opSet": "Yazıldı",
+      "opDelete": "Silindi",
+      "wasMissing": "önceden yoktu",
+      "undo": "Geri al",
+      "undone": "Değişiklik geri alındı",
+      "confirmUndo": "{{path}}\\{{name}} önceki hâline döndürülsün mü?"
     }
   },
   "remoteSettings": {
@@ -987,7 +1007,10 @@
     "event": {
       "action_completed": "Aksiyon tamamlandı",
       "vulnerability_kev_new": "Filoda aktif istismar edilen yeni açık (KEV)",
-      "cve_sync_failed": "CVE kaynağı eşitlenemedi"
+      "cve_sync_failed": "CVE kaynağı eşitlenemedi",
+      "action_failed": "Başarısız dağıtım",
+      "vulnerability_critical_new": "Filoda yeni kritik açık (CVSS 9+)",
+      "machine_offline": "Makine 24 saattir çevrimdışı"
     },
     "report": {
       "compliance": "Yama uyumluluğu",
@@ -1063,5 +1086,37 @@
     "mixedPlatforms": "Windows ve macOS güncellemeleri aynı aksiyonda dağıtılamaz; tek platform seçin.",
     "macNote": "macOS'ta yeniden başlatma gerektiren güncellemeler kurulur ama makine kendiliğinden yeniden başlatılmaz. Apple silicon'da işletim sistemi sürüm güncellemeleri MDM gerektirebilir.",
     "actionName": "Yama: {{list}}"
+  },
+  "restart": {
+    "button": "Yeniden başlat",
+    "title": "{{count}} makineyi yeniden başlat",
+    "delay": "Süre (dakika)",
+    "delayHint": "Kullanıcıya bu süre boyunca geri sayım gösterilir (0 = hemen).",
+    "message": "Kullanıcıya gösterilecek ileti",
+    "messagePlaceholder": "BT tarafından planlanan bakım için bilgisayarınız yeniden başlatılacak.",
+    "note": "Windows'ta kullanıcı oturumunda geri sayımlı uyarı görünür; macOS'ta oturumlara duyuru gönderilir. İleti tırnak ve özel karakter içeremez.",
+    "submit": "Yeniden başlatmayı planla"
+  },
+  "apiKeys": {
+    "title": "API anahtarları",
+    "subtitle": "Dış sistemlerin (CMDB, SIEM, betikler) REST API'ye erişimi. Anahtar, seçilen rolün ve OU kapsamının yetkileriyle çalışır.",
+    "name": "Ad",
+    "namePlaceholder": "ör. CMDB eşitleme",
+    "role": "Rol",
+    "days": "Geçerlilik (gün)",
+    "daysHint": "0 = süresiz",
+    "scope": "OU kapsamı (isteğe bağlı, her satıra bir OU)",
+    "note": "Anahtar Authorization: Bearer başlığıyla gönderilir. Anahtarlar kullanıcı veya anahtar yönetemez; her işlem denetim kaydına api:<ad> olarak yazılır.",
+    "create": "Anahtar oluştur",
+    "secretOnce": "{{name}} anahtarı yalnızca şimdi gösterilir. Kopyalayıp güvenli bir yerde saklayın.",
+    "secret": "API anahtarı",
+    "example": "Örnek istek",
+    "lastUsed": "Son kullanım",
+    "expires": "Geçerlilik",
+    "noExpiry": "Süresiz",
+    "empty": "Henüz API anahtarı yok.",
+    "revoke": "İptal et",
+    "revoked": "İptal edildi",
+    "confirmRevoke": "{{name}} anahtarı iptal edilsin mi? Bu anahtarı kullanan sistemler erişimini kaybeder."
   }
 }

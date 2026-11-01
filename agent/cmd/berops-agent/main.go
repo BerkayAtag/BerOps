@@ -100,6 +100,9 @@ func dataDirFlag(fs *flag.FlagSet) *string {
 	return fs.String("data-dir", paths.DefaultDataDir(), "veri dizini")
 }
 
+// agentLogFile, veri dizinindeki logs/ altında ajanın günlük dosyasının adıdır.
+const agentLogFile = "agent.log"
+
 // newLogger, döngüsel log dosyasına (10 MB × 5) ve ön planda çalışırken stderr'e yazar.
 func newLogger(dataDir, level string, foreground bool) (*slog.Logger, io.Closer, error) {
 	logDir := filepath.Join(dataDir, "logs")
@@ -107,7 +110,7 @@ func newLogger(dataDir, level string, foreground bool) (*slog.Logger, io.Closer,
 		return nil, nil, err
 	}
 	lj := &lumberjack.Logger{
-		Filename:   filepath.Join(logDir, "agent.log"),
+		Filename:   filepath.Join(logDir, agentLogFile),
 		MaxSize:    10, // MB
 		MaxBackups: 5,
 		MaxAge:     30, // gün
@@ -309,6 +312,7 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	go sc.Run(ctx)
 
 	jr := jobs.New(filepath.Join(dataDir, "jobs"), c, log, st.AgentID, ids.ActionKey)
+	jr.LogFile = filepath.Join(dataDir, "logs", agentLogFile)
 	jr.OnFinished = func(j *protocol.Job) {
 		// Yama kurulumundan sonra eksik yama listesi de yenilenmeli: tam tarama.
 		if j.Kind == protocol.JobDeployPatch {

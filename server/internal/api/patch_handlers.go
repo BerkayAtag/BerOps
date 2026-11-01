@@ -81,6 +81,32 @@ func patchJob(platform string, ids []string) (shell, command string, successCode
 	return "", "", nil, fmt.Errorf("desteklenmeyen platform: %s", platform)
 }
 
+// restartMessage, yeniden başlatma iletisinin güvenli karakter kümesidir (tırnak ve kabuk özel
+// karakterleri yok; Türkçe harfler serbest).
+var restartMessage = regexp.MustCompile(`^[\p{L}\p{N} .,:;!?()/-]{0,200}$`)
+
+// restartJob, platforma göre bildirimli yeniden başlatma komutunu üretir. Windows'ta kullanıcı
+// oturumuna geri sayımlı uyarı gösterilir; macOS'ta oturumlara duyuru gönderilir.
+func restartJob(platform, message string, delayMinutes int) (shell, command string, err error) {
+	if delayMinutes < 0 || delayMinutes > 1440 {
+		return "", "", errors.New("yeniden başlatma süresi 0-1440 dakika olmalı")
+	}
+	message = strings.TrimSpace(message)
+	if message == "" {
+		message = "BT tarafından planlanan bakım için bilgisayarınız yeniden başlatılacak. Lütfen çalışmanızı kaydedin."
+	}
+	if !restartMessage.MatchString(message) {
+		return "", "", errors.New("ileti en fazla 200 karakter olmalı; tırnak ve özel karakter içeremez")
+	}
+	switch platform {
+	case protocol.PlatformWindows:
+		return protocol.ShellPowerShell, fmt.Sprintf("shutdown.exe /r /t %d /d p:0:0 /c '%s'\nexit $LASTEXITCODE", delayMinutes*60, message), nil
+	case protocol.PlatformDarwin:
+		return protocol.ShellSh, fmt.Sprintf("/sbin/shutdown -r +%d '%s'", delayMinutes, message), nil
+	}
+	return "", "", fmt.Errorf("desteklenmeyen platform: %s", platform)
+}
+
 // handleListPatches, filodaki eksik yamaları güncelleme başına gruplar (kullanıcı kapsamına göre).
 func (s *Server) handleListPatches(w http.ResponseWriter, r *http.Request, sess *store.Session) {
 	q := r.URL.Query()
@@ -110,4 +136,22 @@ func (s *Server) handlePatchMachines(w http.ResponseWriter, r *http.Request, ses
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items})
+}
+
+// handleDashboardOps, gösterge panelinin işletim özetidir: en çok eksik yamalar, açığı olan
+// uygulamalar ve son aksiyonlar.
+func (s *Server) handleDashboardOps(w http.ResponseWriter, r *http.Request, sess *store.Session) {
+	ops, err := s.store.GetDashboardOps(r.Context(), sess.User.Scope(), 10)
+	if err != nil {
+		s.log.Error("işletim özeti okunamadı", "hata", err)
+		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+		return
+	}
+	actions, _, err := s.store.ListActions(r.Context(), store.ActionFilter{Limit: 6, Scope: sess.User.Scope(), ViewerID: sess.User.ID})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, codeInternal, "Sunucu hatası")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"top_patches": ops.TopPatches, "vulnerable_apps": ops.VulnerableApps,
+		"recent_actions": actions})
 }

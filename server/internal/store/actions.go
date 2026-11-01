@@ -48,6 +48,8 @@ type NewAction struct {
 	RespectWindows bool
 	Rollout        *Rollout
 	Patches        []string
+	// NotBefore doluysa işler bu zamandan önce ajana verilmez.
+	NotBefore *time.Time
 }
 
 // Rollout, kademeli dağıtım planıdır.
@@ -91,6 +93,8 @@ type Action struct {
 	ReleasedStages int `json:"released_stages"`
 	// Patches, yama dağıtımında kurulan güncellemelerdir.
 	Patches []string `json:"patches"`
+	// NotBefore, zamanlanmış başlatma zamanıdır (boşsa hemen).
+	NotBefore *time.Time `json:"not_before"`
 }
 
 // CreateAction, aksiyonu ve imzalı hedeflerini tek transaction içinde yazar.
@@ -98,11 +102,11 @@ func (s *Store) CreateAction(ctx context.Context, a NewAction) error {
 	return pgx.BeginFunc(ctx, s.pool, func(tx pgx.Tx) error {
 		if _, err := tx.Exec(ctx, `
 			INSERT INTO actions (id, name, kind, package_id, shell, command, timeout_seconds, bandwidth_kbps, status,
-				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout, patches)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
+				target_count, created_by, created_by_name, created_at, expires_at, respect_windows, rollout, patches, not_before)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`,
 			a.ID, a.Name, a.Kind, nullableUUID(a.PackageID), a.Shell, a.Command, a.TimeoutSeconds, a.BandwidthKbps,
 			a.Status, len(a.Targets), nullableUUID(a.CreatedBy), a.CreatedByName, a.CreatedAt, a.ExpiresAt,
-			a.RespectWindows, a.Rollout, nonNilStrings(a.Patches)); err != nil {
+			a.RespectWindows, a.Rollout, nonNilStrings(a.Patches), a.NotBefore); err != nil {
 			return err
 		}
 		rows := make([][]any, len(a.Targets))
@@ -122,7 +126,8 @@ const actionSelect = `
 	       coalesce((SELECT jsonb_object_agg(status, n) FROM (SELECT status, count(*) n FROM action_targets t
 	                 WHERE t.action_id = a.id GROUP BY status) c), '{}'),
 	       a.respect_windows, a.rollout, a.paused_reason,
-	       (SELECT count(DISTINCT stage) FROM action_targets t WHERE t.action_id = a.id AND t.released), a.patches
+	       (SELECT count(DISTINCT stage) FROM action_targets t WHERE t.action_id = a.id AND t.released), a.patches,
+	       a.not_before
 	FROM actions a LEFT JOIN packages p ON p.id = a.package_id`
 
 func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
@@ -130,7 +135,7 @@ func scanAction(row interface{ Scan(...any) error }) (*Action, error) {
 	if err := row.Scan(&a.ID, &a.Name, &a.Kind, &a.PackageID, &a.PackageName, &a.PackageVersion, &a.Shell, &a.Command,
 		&a.TimeoutSeconds, &a.BandwidthKbps, &a.Status, &a.TargetCount, &a.CreatedBy, &a.CreatedByName, &a.CreatedAt,
 		&a.ExpiresAt, &a.ApprovedAt, &a.CompletedAt, &a.Counts, &a.RespectWindows, &a.Rollout, &a.PausedReason,
-		&a.ReleasedStages, &a.Patches); err != nil {
+		&a.ReleasedStages, &a.Patches, &a.NotBefore); err != nil {
 		return nil, notFound(err)
 	}
 	return &a, nil
@@ -209,13 +214,15 @@ type ActionTarget struct {
 	// Stage, kademeli dağıtımdaki aşamadır (0 = ilk); Released false ise aşama henüz açılmamıştır.
 	Stage    int  `json:"stage"`
 	Released bool `json:"released"`
+	// RebootRequired, kurulum başarılı ama makine yeniden başlatma bekliyor demektir.
+	RebootRequired bool `json:"reboot_required"`
 }
 
 // ListActionTargets, aksiyonun hedeflerini döner.
 func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]ActionTarget, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT t.machine_id, m.hostname, m.ad_ou, m.os_platform, t.status, t.exit_code, t.stdout, t.stderr, t.error,
-		       t.started_at, t.finished_at, t.updated_at, t.stage, t.released
+		       t.started_at, t.finished_at, t.updated_at, t.stage, t.released, t.reboot_required
 		FROM action_targets t JOIN machines m ON m.id = t.machine_id
 		WHERE t.action_id = $1 ORDER BY t.stage, lower(m.hostname)`, actionID)
 	if err != nil {
@@ -226,7 +233,7 @@ func (s *Store) ListActionTargets(ctx context.Context, actionID string) ([]Actio
 	for rows.Next() {
 		var t ActionTarget
 		if err := rows.Scan(&t.MachineID, &t.Hostname, &t.OU, &t.Platform, &t.Status, &t.ExitCode, &t.Stdout, &t.Stderr,
-			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt, &t.Stage, &t.Released); err != nil {
+			&t.Error, &t.StartedAt, &t.FinishedAt, &t.UpdatedAt, &t.Stage, &t.Released, &t.RebootRequired); err != nil {
 			return nil, err
 		}
 		out = append(out, t)
@@ -271,7 +278,7 @@ func (s *Store) SetActionStatus(ctx context.Context, id, to string, from []strin
 // Çalışan işler yeniden verilmez; ajan yeniden başlarsa yarıda kalan işi kendisi "başarısız"
 // bildirir. Bakım penceresi denetimi çağıran tarafta yapılır.
 const openJobsCond = `t.machine_id = $1 AND t.status IN ('pending', 'downloading') AND t.released
-	AND a.status = 'active' AND a.expires_at > $2`
+	AND a.status = 'active' AND a.expires_at > $2 AND (a.not_before IS NULL OR a.not_before <= $2)`
 
 // PendingJob, bekleyen iş ve pencere gereksinimidir.
 type PendingJob struct {
@@ -333,7 +340,8 @@ func (s *Store) UpdateTargetStatus(ctx context.Context, actionID, machineID stri
 		if _, err := tx.Exec(ctx, `
 			UPDATE action_targets SET status = $3, exit_code = coalesce($4, exit_code), stdout = $5, stderr = $6, error = $7,
 				started_at = CASE WHEN started_at IS NULL AND $3 <> 'pending' THEN $8 ELSE started_at END,
-				finished_at = $9, updated_at = $8
+				finished_at = $9, updated_at = $8,
+				reboot_required = coalesce($3 = 'succeeded' AND coalesce($4, exit_code) IN (3010, 1641), false)
 			WHERE action_id = $1 AND machine_id = $2`,
 			actionID, machineID, r.Status, r.ExitCode, truncateOutput(r.Stdout), truncateOutput(r.Stderr),
 			truncateOutput(r.Error), at, finished); err != nil {
@@ -437,7 +445,7 @@ type RolloutCandidate struct {
 // RolloutCandidates, açılmamış aşaması olan etkin kademeli aksiyonları döner.
 func (s *Store) RolloutCandidates(ctx context.Context) ([]RolloutCandidate, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT a.id, a.created_at, a.rollout,
+		SELECT a.id, coalesce(a.not_before, a.created_at), a.rollout,
 		       min(t.stage) FILTER (WHERE NOT t.released),
 		       count(*) FILTER (WHERE t.released),
 		       count(*) FILTER (WHERE t.released AND t.status IN ('succeeded', 'failed', 'expired')),

@@ -15,7 +15,7 @@ BerOps'de her API uç noktası **sunucu tarafında** granüler bir izinle korunu
 | `actions.deploy_package` | Kütüphanedeki paketi gönderme | ✅ | ✅ | — |
 | `actions.run_command` | Serbest CMD/PowerShell/sh komutu | ✅ | — | — |
 | `actions.approve` | Dört göz onayı (kendi aksiyonu hariç) | ✅ | — | — |
-| `actions.deploy_patch` | İşletim sistemi yaması dağıtımı (Yamalar sayfası) | ✅ | — | — |
+| `actions.deploy_patch` | İşletim sistemi yaması dağıtımı ve bildirimli yeniden başlatma | ✅ | — | — |
 | `remote.*` | Uzaktan performans, servis, kayıt defteri (Aşama 6) | ✅ | — | — |
 | `settings.read` | Ayarları görme (bakım pencereleri dahil; bildirim ayarları hariç) | ✅ | ✅ | ✅ |
 | `settings.write` | Ajan, CVE, bakım penceresi ve bildirim ayarları; relay iptali | ✅ | — | — |

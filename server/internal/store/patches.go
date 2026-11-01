@@ -104,3 +104,76 @@ func (s *Store) PatchMachines(ctx context.Context, updateID string, scope []stri
 	}
 	return out, rows.Err()
 }
+
+// VulnerableApp, açığı bulunan bir uygulama sürümüdür (gösterge paneli).
+type VulnerableApp struct {
+	App      string  `json:"app"` // "ad sürüm"
+	Machines int     `json:"machines"`
+	CVEs     int     `json:"cves"`
+	MaxRisk  float32 `json:"max_risk"`
+}
+
+// DashboardOps, gösterge panelinin işletim özetidir: en çok makinede eksik olan
+// güncellemeler ve açığı olan (güncel olmayan) uygulama sürümleri.
+type DashboardOps struct {
+	TopPatches     []FleetPatch    `json:"top_patches"`
+	VulnerableApps []VulnerableApp `json:"vulnerable_apps"`
+}
+
+// GetDashboardOps, işletim özetini kullanıcı kapsamına göre üretir.
+func (s *Store) GetDashboardOps(ctx context.Context, scope []string, limit int) (*DashboardOps, error) {
+	out := &DashboardOps{TopPatches: []FleetPatch{}, VulnerableApps: []VulnerableApp{}}
+	args := []any{limit}
+	arg := func(v any) string {
+		args = append(args, v)
+		return "$" + strconv.Itoa(len(args))
+	}
+	sc := ""
+	if c := scopeCond("m.ad_ou", scope, arg); c != "" {
+		sc = " AND " + c
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT p.update_id, max(p.kb), max(p.title), max(p.classification), max(p.severity), max(m.os_platform),
+		       max(p.released_at), bool_or(p.reboot_required), max(cardinality(p.cves)), count(DISTINCT p.machine_id)
+		FROM missing_patches p JOIN machines m ON m.id = p.machine_id
+		WHERE m.status = 'active'`+sc+`
+		GROUP BY p.update_id
+		ORDER BY count(DISTINCT p.machine_id) DESC, max(p.title)
+		LIMIT $1`, args...)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var p FleetPatch
+		if err := rows.Scan(&p.UpdateID, &p.KB, &p.Title, &p.Classification, &p.Severity, &p.Platform, &p.ReleasedAt,
+			&p.RebootRequired, &p.CVECount, &p.Machines); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		out.TopPatches = append(out.TopPatches, p)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	// Uygulama kaynaklı bulgularda refs, "ad sürüm" bilgisini taşır.
+	rows, err = s.pool.Query(ctx, `
+		SELECT ref, count(DISTINCT v.machine_id), count(DISTINCT v.cve_id), max(v.risk_score)
+		FROM machine_vulnerabilities v JOIN machines m ON m.id = v.machine_id, unnest(v.refs) ref
+		WHERE 'app' = ANY(v.sources) AND m.status = 'active'`+sc+`
+		GROUP BY ref
+		ORDER BY count(DISTINCT v.machine_id) DESC, max(v.risk_score) DESC
+		LIMIT $1`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a VulnerableApp
+		if err := rows.Scan(&a.App, &a.Machines, &a.CVEs, &a.MaxRisk); err != nil {
+			return nil, err
+		}
+		out.VulnerableApps = append(out.VulnerableApps, a)
+	}
+	return out, rows.Err()
+}

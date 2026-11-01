@@ -13,6 +13,8 @@ type Session struct {
 	LastSeenAt time.Time
 	ExpiresAt  time.Time
 	User       User
+	// APIKeyID, istek bir API anahtarıyla doğrulandıysa doludur (çerez oturumu yoktur).
+	APIKeyID string
 }
 
 // CreateSession, yeni oturum kaydı ekler. Oluşturma ve son etkinlik zamanı uygulama saatinden

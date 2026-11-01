@@ -156,3 +156,17 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 8.12 | Docker imajı | Sunucu imajı Alpine üzerinde, root olmayan `ber` kullanıcısıyla çalışır; konsol dosyaları imaja gömülüdür. Sunucu adları `BER_HOSTNAMES` ile verilir. | `deploy/Dockerfile` |
 | 8.13 | Ürün adı | Ürün adı **BerOps**'tur: paketler, servisler (`BerOpsServer`, `BerOpsAgent`), ikili dosyalar (`berops-*`), veri klasörleri, Go modülü ve depo adı buna göre adlandırıldı. Geriye dönük uyum ve kısalık için iç tanımlayıcılar korundu: `BER_*` ortam değişkenleri, `--ber-*` tasarım token'ları, `X-Ber-*` başlıkları, `berreg_` anahtar öneki, çerez ve tarayıcı depolama anahtarları. | Tüm depo |
 
+## Aşama 9 — Spesifikasyon tamamlamaları
+
+| # | Konu | Varsayım / Karar | Etkilenen yer |
+|---|---|---|---|
+| 9.1 | Yeniden başlatma ertelemesi | Kullanıcıya ileti ve geri sayım gösterilir; kullanıcının ertelemesi için ayrı bir oturum arayüzü (tepsi uygulaması) yoktur. Zorunlu süre, aksiyonda verilen dakikadır. | `restartJob` |
+| 9.2 | Yeniden başlatma yetkisi | Bildirimli yeniden başlatma `actions.deploy_patch` iznine bağlıdır (yalnızca Yönetici); teknisyen yalnızca paket gönderebilir. | `kindPermission` |
+| 9.3 | Ajan günlükleri | Ayrı bir uç nokta yerine imzalı `collect_logs` işi kullanılır; ajan günlüğünün son ~60 KB'ını döndürür. `machines.manage` izni gerekir. Uzaktan yönetim kapalı olsa da çalışır, çünkü komut çalıştırmaz. | `jobs.tailFile` |
+| 9.4 | Zamanlanmış başlatma | En çok 30 gün sonrası. Geçerlilik ve kademe gecikmeleri başlangıç zamanından sayılır. | `handleCreateAction` |
+| 9.5 | API anahtarları | `berops_` önekli, özet saklanır; rol ve OU kapsamı uygulanır; CSRF gerekmez (Bearer tarayıcıdan otomatik gönderilmez). Anahtarlar kullanıcı/anahtar yönetemez. Hız sınırı oturumlarla aynı ters vekil katmanına bırakıldı. | `loadAPIKey` |
+| 9.6 | Kayıt defteri geri alma | Değişiklik öncesi değer ajan tarafından döndürülür ve denetim kaydına yazılır; konsol oturumdaki değişiklikleri listeler ve tek tıkla geri alır (yeniden yazma veya silme). Anahtarın tamamının yedeği alınmaz; değer düzeyinde geri alma yapılır. | `RemotePanel` |
+| 9.7 | Yeni bildirimler | Başarısız dağıtım (`action.failed`); son 30 günde yayımlanmış ve filoda ilk kez son 24 saatte görülen CVSS 9+ açık (`vulnerability.critical_new`); 24 saattir görülmeyen ama son 7 günde görülmüş makine (`machine.offline`, her kesinti bir kez). | `RunNotifications` |
+| 9.8 | Güncel olmayan uygulamalar | Gösterge panelinde, açığı bulunan uygulama sürümleri gösterilir (CVE eşleşmesi olan "ad sürüm"). Yalnızca daha yeni sürümün varlığına bakılmaz. | `GetDashboardOps` |
+| 9.9 | Kalan işler | Statik/dinamik gruplar ve etiketler, ajanın kendini güncellemesi, kurcalama koruması (kaldırma kodu), toplam/relay/saat bazlı hız profilleri ve otomatik yeniden deneme sonraki sürümlere bırakıldı. | — |
+
