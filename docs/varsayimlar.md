@@ -169,4 +169,5 @@ Spesifikasyonda belirsiz kalan noktalar için yapılan varsayımlar burada tutul
 | 9.7 | Yeni bildirimler | Başarısız dağıtım (`action.failed`); son 30 günde yayımlanmış ve filoda ilk kez son 24 saatte görülen CVSS 9+ açık (`vulnerability.critical_new`); 24 saattir görülmeyen ama son 7 günde görülmüş makine (`machine.offline`, her kesinti bir kez). | `RunNotifications` |
 | 9.8 | Güncel olmayan uygulamalar | Gösterge panelinde, açığı bulunan uygulama sürümleri gösterilir (CVE eşleşmesi olan "ad sürüm"). Yalnızca daha yeni sürümün varlığına bakılmaz. | `GetDashboardOps` |
 | 9.9 | Kalan işler | Statik/dinamik gruplar ve etiketler, ajanın kendini güncellemesi, kurcalama koruması (kaldırma kodu), toplam/relay/saat bazlı hız profilleri ve otomatik yeniden deneme sonraki sürümlere bırakıldı. | — |
+| 9.10 | Bağımlılık ana sürümleri | TypeScript 7 (typescript-eslint desteği yok) ve TanStack Table 9 (API yeniden yazımı; 7 konsol dosyası) Dependabot'ta bekletilir. Geçişler ayrı, testli işler olarak yapılır; küçük ve yama sürümleri gelmeye devam eder. | `.github/dependabot.yml` |
 
