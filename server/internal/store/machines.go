@@ -86,12 +86,12 @@ func (s *Store) CreateMachine(ctx context.Context, n NewMachine) (*Machine, erro
 	return scanMachine(s.pool.QueryRow(ctx, `
 		INSERT INTO machines (id, hostname, status, os_platform, os_name, os_version, os_build, arch,
 			ip_addresses, agent_version, cert_serial, cert_fingerprint, cert_expires_at,
-			registration_key_id, enrolled_at, last_seen_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15)
+			registration_key_id, enrolled_at, last_seen_at, agent_capabilities)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $15, $16)
 		RETURNING `+machineColumns,
 		n.ID, h.Hostname, n.Status, h.OSPlatform, h.OSName, h.OSVersion, h.OSBuild, h.Arch,
 		nonNil(h.IPAddresses), h.AgentVersion, n.CertSerial, n.CertFingerprint, n.CertExpiresAt,
-		n.RegistrationKeyID, n.EnrolledAt))
+		n.RegistrationKeyID, n.EnrolledAt, nonNil(h.Capabilities)))
 }
 
 // GetMachine, makineyi ID ile döner.

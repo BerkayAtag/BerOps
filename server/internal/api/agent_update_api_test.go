@@ -72,6 +72,20 @@ func TestAgentUpdateAction(t *testing.T) {
 		job.Package.Installer != "msi" || job.Package.SHA256 != msi["file_sha256"] {
 		t.Fatalf("imzalı güncelleme işi = %v %+v", err, job)
 	}
+	// Kayıtta bildirilen yetenek, ilk heartbeat beklenmeden geçerlidir.
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	der, _ := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{}, key)
+	newHost := hostInfo("PC-002")
+	newHost.Capabilities = []string{protocol.CapabilityUpdateAgent}
+	r, body := e.postAgent(e.agentClient(nil), protocol.PathEnroll, protocol.EnrollRequest{RegistrationKey: secret,
+		CSRPEM: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: der})), Host: newHost})
+	expectStatus(t, r, 201, "yetenekli kayıt")
+	var er protocol.EnrollResponse
+	_ = json.Unmarshal(body, &er)
+	resp, _ = admin.do("POST", "/api/v1/actions", map[string]any{"kind": "update_agent", "package_id": msi["id"],
+		"machine_ids": []string{er.AgentID}}, true)
+	expectStatus(t, resp, 201, "yeni kaydolan ajana güncelleme")
+
 	// Ajan paketi yalnızca açık aksiyon üzerinden indirebilir.
 	r, _ = e.agentGet(client, "/agent/v1/packages/"+msi["id"].(string)+"/file?action="+act["id"].(string), nil)
 	expectStatus(t, r, 200, "paket indirme")
