@@ -109,7 +109,7 @@ Assert (-not ($sids | Where-Object { $_ -notin @('S-1-5-18', 'S-1-5-32-544') }))
 
 $meta = @{ name = 'BerOps Agent'; version = 'ci-guncelleme'; platform = 'windows'; installer = 'msi' } | ConvertTo-Json
 $pkg = Invoke-RestMethod -Uri "$base/api/v1/packages" -Method Post -WebSession $web -SkipCertificateCheck -Headers $headers `
-  -Form @{ metadata = $meta; file = Get-Item $AgentUpdateMsi }
+  -Form ([ordered]@{ metadata = $meta; file = Get-Item $AgentUpdateMsi }) # sunucu metadata'yı dosyadan önce bekler
 $action = Api POST '/api/v1/actions' @{ kind = 'update_agent'; package_id = $pkg.id; machine_ids = @($script:machine.id) }
 $script:target = $null
 Wait-Until { $script:target = (Api GET "/api/v1/actions/$($action.id)").targets[0]; $script:target.status -in @('succeeded', 'failed') } 300 'ajan güncellemesi sonuçlanmadı'

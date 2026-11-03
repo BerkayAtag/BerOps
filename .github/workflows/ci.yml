@@ -153,14 +153,16 @@ jobs:
       - name: Kurulum, ajan güncellemesi, kaldırma koruması ve temiz kaldırma doğrulaması
         shell: pwsh
         run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-x64.msi) -AgentUpdateMsi (Resolve-Path dist/v2/BerOps-Agent-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
+      - name: Ajan günlüğünü topla
+        if: failure()
+        shell: pwsh
+        run: Copy-Item "$env:ProgramData\BerOps\Agent\logs\agent.log" agent-service.log -ErrorAction SilentlyContinue
       - name: Kurulum günlükleri
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: msi-logs
-          path: |
-            *.log
-            C:\ProgramData\BerOps\Agent\logs\*.log
+          path: "*.log"
 
   installers-macos:
     name: macOS pkg (derleme, kurulum, kaldırma)
