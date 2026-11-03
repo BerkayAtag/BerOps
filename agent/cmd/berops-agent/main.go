@@ -221,20 +221,11 @@ func cmdRun(args []string) error {
 		return err
 	}
 	asService := service.IsService()
-	// Servis olarak varsayılan dizinde çalışırken dizin standart kullanıcılara kapatılır
-	// (anahtar, koruma özeti ve indirilen paketler). Geliştirmedeki özel dizinlere dokunulmaz.
-	var secureErr error
-	if asService && *dataDir == paths.DefaultDataDir() {
-		secureErr = paths.Secure(*dataDir)
-	}
 	log, closer, err := newLogger(*dataDir, cfg.LogLevel, !asService)
 	if err != nil {
 		return err
 	}
 	defer closer.Close()
-	if secureErr != nil {
-		log.Warn("veri dizini izinleri tam uygulanamadı", "hata", secureErr)
-	}
 
 	body := func(ctx context.Context) error {
 		err := agentMain(ctx, *dataDir, cfg, log)
@@ -279,6 +270,12 @@ func waitForRegistrationKey(ctx context.Context, dataDir string, log *slog.Logge
 func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog.Logger) error {
 	started := time.Now().UTC()
 	log.Info("ajan başlatıldı", "sürüm", version.Version, "sunucu", cfg.ServerURL, "veri_dizini", dataDir)
+	// Servis olarak varsayılan dizinde çalışırken dizin standart kullanıcılara kapatılır
+	// (anahtar, koruma özeti ve indirilen paketler). Servis denetleyicisine başladığını
+	// bildirdikten sonra yapılır; geliştirmedeki özel dizinlere dokunulmaz.
+	if service.IsService() && dataDir == paths.DefaultDataDir() {
+		secureDataDir(dataDir, log)
+	}
 	hi := hostinfo.New()
 	ids := identity.Store{Dir: dataDir}
 
@@ -375,6 +372,21 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	r.Run(ctx)
 	log.Info("ajan durduruldu")
 	return nil
+}
+
+// secureDataDir, veri dizini izinlerini uygular; hata ve panik ajanı durdurmaz.
+func secureDataDir(dir string, log *slog.Logger) {
+	defer func() {
+		if p := recover(); p != nil {
+			log.Error("veri dizini izinleri uygulanırken panik", "hata", p)
+		}
+	}()
+	start := time.Now()
+	if err := paths.Secure(dir); err != nil {
+		log.Warn("veri dizini izinleri tam uygulanamadı", "hata", err, "süre", time.Since(start).Round(time.Millisecond))
+		return
+	}
+	log.Info("veri dizini izinleri uygulandı", "süre", time.Since(start).Round(time.Millisecond))
 }
 
 // renewCheckInterval, sertifika yenileme gereğinin denetlenme aralığıdır.
