@@ -33,6 +33,10 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - macOS kaldırma CI adımı, beklenen hatayı `bash -e` altında doğrulamıyordu.
 - Konsolda yalnızca `agents.manage` izni olan kullanıcı "Yeni aksiyon" düğmesini göremiyordu.
 - Bildirim testi sabit bir tarihe bağlı olduğundan 2 Kasım 2026'dan sonra başarısız oluyordu.
+- Sunucunun iç CA'dan ürettiği ajan ve konsol TLS sertifikaları yalnızca açılışta, 90 gün geçerli olarak üretiliyordu. Servis 90 günden uzun kesintisiz çalışınca sertifikanın süresi doluyor ve tüm ajanlar bağlantıyı kaybediyordu. Sertifikalar artık süreleri dolmadan, yeniden başlatma gerekmeden yenilenir.
+- Bakım pencereleri yaz saati geçişi olan günlerde bir saat kayık açılıyordu (başlangıç "gece yarısı + dakika" olarak hesaplanıyordu).
+- macOS'ta ajan güncellemesi, yükleyicinin çıkış kodu dosyası yazılırken okunursa yanlışlıkla başarısız sayılabiliyordu.
+- Depoya `.gitattributes` eklendi: Windows'ta açılan kopyada CRLF satır sonları `npm run lint` ve `gofmt` denetimlerini bozuyordu.
 
 ## [1.2.0] — 2026-11-01
 

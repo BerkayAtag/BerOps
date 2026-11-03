@@ -99,7 +99,9 @@ func (w MaintenanceWindow) Contains(t time.Time) bool {
 		if !match {
 			continue
 		}
-		start := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, loc).Add(time.Duration(w.StartMinute) * time.Minute)
+		// Başlangıç duvar saatiyle kurulur; yaz saati geçişi olan günlerde "gece yarısı + dakika"
+		// pencereyi bir saat kaydırırdı.
+		start := time.Date(day.Year(), day.Month(), day.Day(), int(w.StartMinute)/60, int(w.StartMinute)%60, 0, 0, loc)
 		end := start.Add(time.Duration(w.DurationMinutes) * time.Minute)
 		if !lt.Before(start) && lt.Before(end) {
 			return true

@@ -19,7 +19,8 @@ import (
 const updateLabel = "io.github.berkayatag.berops.agent.update"
 
 // updateScript, installer'ı çalıştırır ve çıkış kodunu dosyaya yazar ($1 paket, $2 günlük, $3 kod).
-const updateScript = `/usr/sbin/installer -pkg "$1" -target / >>"$2" 2>&1; echo $? >"$3"`
+// Kod geçici dosyaya yazılıp taşınır; bekleyen taraf yarım yazılmış (boş) dosyayı okumaz.
+const updateScript = `/usr/sbin/installer -pkg "$1" -target / >>"$2" 2>&1; echo $? >"$3.tmp" && mv -f "$3.tmp" "$3"`
 
 func updatePlistPath(logFile string) string {
 	return filepath.Join(filepath.Dir(logFile), "update.plist")
@@ -29,6 +30,7 @@ func updatePlistPath(logFile string) string {
 func StartUpdate(ctx context.Context, u UpdateSpec) (UpdateWait, error) {
 	exitFile := u.LogFile + ".exit"
 	_ = os.Remove(exitFile)
+	_ = os.Remove(exitFile + ".tmp")
 	_ = exec.Command("launchctl", "bootout", "system/"+updateLabel).Run()
 	args := []string{"/bin/sh", "-c", updateScript, "sh", u.File, u.LogFile, exitFile}
 	var b strings.Builder

@@ -248,13 +248,14 @@ func (s *Server) AgentHandler() http.Handler {
 
 // AgentTLSConfig, ajan dinleyicisinin TLS yapılandırmasıdır. İstemci sertifikası
 // isteğe bağlıdır (kayıt sertifikasız yapılır) ama sunulursa iç CA'ya göre doğrulanır;
-// kimlik gerektiren uç noktalar doğrulanmış zinciri ayrıca zorunlu tutar.
-func (s *Server) AgentTLSConfig(serverCert tls.Certificate) *tls.Config {
+// kimlik gerektiren uç noktalar doğrulanmış zinciri ayrıca zorunlu tutar. Sunucu sertifikası
+// her el sıkışmada getCert'ten alınır (süresi dolmadan yenilenebilir).
+func (s *Server) AgentTLSConfig(getCert func(*tls.ClientHelloInfo) (*tls.Certificate, error)) *tls.Config {
 	return &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.VerifyClientCertIfGiven,
-		ClientCAs:    s.ca.Pool(),
+		MinVersion:     tls.VersionTLS12,
+		GetCertificate: getCert,
+		ClientAuth:     tls.VerifyClientCertIfGiven,
+		ClientCAs:      s.ca.Pool(),
 	}
 }
 

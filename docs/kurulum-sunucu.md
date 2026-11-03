@@ -27,7 +27,7 @@ BerOps sunucusu (`berops-server`) tek bir programdır. Hem konsolu (HTTPS, varsa
    - PostgreSQL bağlantı adresi: `postgres://kullanıcı:parola@sunucu:5432/ber`.
    - Konsol ve ajan portları.
    - Sunucu DNS adları (virgülle ayrılır; ajanların bağlanacağı ad ilk sırada).
-   - İsteğe bağlı konsol TLS sertifikası ve anahtarı (PEM). Boş bırakılırsa iç CA ile kendinden imzalı sertifika üretilir.
+   - İsteğe bağlı konsol TLS sertifikası ve anahtarı (PEM). Boş bırakılırsa iç CA ile sertifika üretilir ve süresi dolmadan kendiliğinden yenilenir. Kendi sertifikanızı verdiyseniz dosyayı yeniledikten sonra servisi yeniden başlatın.
 3. **İlk yönetici:** Kullanıcı adı ve en az 12 karakterlik parola. Bu hesap yerel **kurtarma hesabıdır**; Active Directory erişilemezse de giriş yapılabilir.
 4. **Kurulum.** Sihirbaz şunları yapar:
    - `berops-server setup` ile yapılandırma dosyasını yazar, migration'ları uygular ve ilk yöneticiyi oluşturur.

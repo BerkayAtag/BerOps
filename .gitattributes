@@ -1,0 +1,8 @@
+# Depo LF satır sonlarıyla tutulur ve Windows'ta da LF ile açılır: gofmt ve Prettier
+# denetimleri, macOS betikleri ve Docker derlemesi CRLF ile bozulur.
+* text=auto eol=lf
+
+*.webp binary
+*.png binary
+*.ico binary
+*.woff2 binary

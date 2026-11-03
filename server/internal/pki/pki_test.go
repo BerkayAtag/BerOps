@@ -96,6 +96,41 @@ func TestIssueServerCert_VerifiesAgainstCA(t *testing.T) {
 	}
 }
 
+func TestServerCertSource_RenewsBeforeExpiry(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	ca, _, err := newCA("Test CA", func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, err := ca.NewServerCertSource([]string{"ber.example.test"}, 90*24*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := src.GetCertificate(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(50 * 24 * time.Hour)
+	if c, _ := src.GetCertificate(nil); c != first {
+		t.Fatal("ömrünün üçte ikisi dolmadan sertifika yenilenmemeliydi")
+	}
+	now = now.Add(15 * 24 * time.Hour) // 65. gün: kalan süre 30 günden az
+	renewed, err := src.GetCertificate(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if renewed == first || !renewed.Leaf.NotAfter.After(first.Leaf.NotAfter) {
+		t.Fatal("ömrünün son üçte birinde sertifika yenilenmeliydi")
+	}
+	if len(renewed.Certificate) != 2 {
+		t.Fatal("yenilenen sertifikanın zincirinde CA olmalı")
+	}
+	opts := x509.VerifyOptions{Roots: ca.Pool(), DNSName: "ber.example.test", CurrentTime: now.Add(80 * 24 * time.Hour)}
+	if _, err := renewed.Leaf.Verify(opts); err != nil {
+		t.Fatalf("yenilenen sertifika ilk sertifikanın bitişinden sonra da geçerli olmalı: %v", err)
+	}
+}
+
 func TestSignAgentCSR_OverridesSubjectAndSetsClientAuth(t *testing.T) {
 	ca, err := NewInMemoryCA("Test CA")
 	if err != nil {

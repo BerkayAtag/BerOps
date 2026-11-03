@@ -65,7 +65,9 @@ func newEnv(t *testing.T) *env {
 		t.Fatal(err)
 	}
 	e.agent = httptest.NewUnstartedServer(srv.AgentHandler())
-	e.agent.TLS = srv.AgentTLSConfig(serverCert)
+	e.agent.TLS = srv.AgentTLSConfig(func(*tls.ClientHelloInfo) (*tls.Certificate, error) { return &serverCert, nil })
+	// httptest, sertifika listesi boşsa kendi sertifikasını ekler; ajanlar iç CA zincirini bekler.
+	e.agent.TLS.Certificates = []tls.Certificate{serverCert}
 	e.agent.StartTLS()
 	t.Cleanup(e.agent.Close)
 	return e
