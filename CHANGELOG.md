@@ -5,6 +5,35 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.3.0] — 2026-11-03
+
+### Eklendi
+
+- **Konsoldan ajan güncellemesi:** Yeni "Ajan güncellemesi" aksiyonu, kütüphanedeki `BerOps-Agent-x64.msi` (Windows) veya `BerOps-Agent.pkg` (macOS) paketini makinelere ve gruplara gönderir. Ajan yükleyiciyi kendinden bağımsız çalıştırır, yeniden başlar ve sonucu yeni sürüm bildirir. Makineler listesinde seçili makineler için "Ajanı güncelle" düğmesi.
+- **Kaldırma koruması:** Ayarlar → Ajan sayfasından açılan filo geneli kaldırma kodu. Açıkken ajan yalnızca `msiexec /x … UNINSTALLCODE=…` veya `sudo berops-agent-uninstall -code …` ile kaldırılabilir; yükseltmeler kod istemez. Kod saklanmaz, yalnızca tuzlu PBKDF2-SHA256 özeti tutulur.
+- **Ajan sertifikası yenileme:** Ajan, sertifikasının ömrünün yarısı geçince mevcut anahtarıyla yeni sertifika ister; önceki sertifika süresi bitene kadar geçerli kalır. Önceden bir yıl sonra ajanların yeniden kayıt olması gerekiyordu.
+- Yeni `agents.manage` izni (yalnızca Yönetici).
+- CI: Windows ve macOS'ta kayıt → uzaktan güncelleme → kaldırma koruması uçtan uca testi.
+
+### Güvenlik
+
+- Windows'ta ajan veri dizini (`%ProgramData%\BerOps\Agent`) artık `ProgramData` izinlerini devralmıyor; yalnızca SYSTEM ve Administrators erişebilir. Önceden standart kullanıcılar dizini okuyabiliyor ve paket önbelleğine dosya yerleştirebiliyordu. Ajan servisi her açılışta izinleri düzeltir.
+- Kaldırma kodu en az 12 karakter; özet yalnızca onaylı ajanlara gönderilir.
+
+### Değişti
+
+- Konsol tabloları TanStack Table 9'a taşındı.
+- Ajan MSI'ı aynı sürüm yeniden kurulduğunda ikinci bir kayıt oluşturmaz.
+- Denetim kaydı filtresine gruplar, uzaktan yönetim, kayıt anahtarları, API anahtarları, relay ve CVE kaynakları eklendi.
+
+### Düzeltildi
+
+- Aksiyon detayında yeniden başlatma ve ajan günlüğü aksiyonları için var olmayan bir izin denetlendiğinden iptal ve "sonraki aşamayı başlat" düğmeleri yetkili kullanıcıya da gösterilmiyordu.
+- Aksiyon oluşturma denetim kaydında grup, tüm filo, yeniden deneme ve zamanlanmış başlangıç parametreleri eksikti.
+- macOS kaldırma CI adımı, beklenen hatayı `bash -e` altında doğrulamıyordu.
+- Konsolda yalnızca `agents.manage` izni olan kullanıcı "Yeni aksiyon" düğmesini göremiyordu.
+- Bildirim testi sabit bir tarihe bağlı olduğundan 2 Kasım 2026'dan sonra başarısız oluyordu.
+
 ## [1.2.0] — 2026-11-01
 
 ### Eklendi
@@ -221,7 +250,8 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 - Konsol: giriş ekranı, gösterge paneli iskeleti, Türkçe/İngilizce, açık/karanlık tema; ortak tasarım token'ları (`design/tokens.css`).
 - GitHub Actions: Go lint/test/govulncheck, Windows ve macOS ajan testleri, çapraz derleme, konsol lint/test/derleme, CodeQL, bağımlılık incelemesi, Dependabot.
 
-[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.2.0...HEAD
+[Yayımlanmamış]: https://github.com/BerkayAtag/BerOps/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/BerkayAtag/BerOps/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/BerkayAtag/BerOps/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/BerkayAtag/BerOps/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/BerkayAtag/BerOps/compare/v1.0.0...v1.0.1
