@@ -1,4 +1,4 @@
-import { createColumnHelper, type PaginationState, type SortingState } from "@tanstack/react-table";
+import { type PaginationState, type SortingState } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
@@ -6,12 +6,13 @@ import type { Page, VulnListItem } from "../api/client";
 import { useApi } from "../api/useApi";
 import { CvssBadge, KevBadge, RiskBadge } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
+import { columnHelper } from "../components/tableFeatures";
 import { PAGE_SIZES } from "../components/pageSizes";
 import { formatDate, formatNumber, formatPercent } from "../format";
 import { useListParams } from "../hooks/useListParams";
 import { reportUrl } from "../reports";
 
-const col = createColumnHelper<VulnListItem>();
+const col = columnHelper<VulnListItem>();
 
 export function SourceTags({ os, app }: { os: boolean; app: boolean }) {
   const { t } = useTranslation();

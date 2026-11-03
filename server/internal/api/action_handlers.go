@@ -521,6 +521,8 @@ func kindPermission(kind string) auth.Permission {
 		return auth.PermActionsDeployPatch
 	case protocol.JobCollectLogs:
 		return auth.PermMachinesManage
+	case protocol.JobUpdateAgent:
+		return auth.PermAgentsManage
 	}
 	return auth.PermActionsDeployPackage
 }
@@ -531,10 +533,11 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		return
 	}
 	switch req.Kind {
-	case protocol.JobDeployPackage, protocol.JobRunCommand, protocol.JobDeployPatch, protocol.JobRestart, protocol.JobCollectLogs:
+	case protocol.JobDeployPackage, protocol.JobRunCommand, protocol.JobDeployPatch, protocol.JobRestart, protocol.JobCollectLogs,
+		protocol.JobUpdateAgent:
 	default:
 		writeError(w, http.StatusBadRequest, codeInvalidRequest,
-			"Aksiyon türü deploy_package, deploy_patch, run_command, restart veya collect_logs olmalı")
+			"Aksiyon türü deploy_package, deploy_patch, run_command, restart, collect_logs veya update_agent olmalı")
 		return
 	}
 	// Teknisyen yalnızca kütüphanedeki paketleri gönderebilir; serbest komut ayrı izindir.
@@ -659,7 +662,7 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 	}
 	var pkg *store.Package
 	switch req.Kind {
-	case protocol.JobDeployPackage:
+	case protocol.JobDeployPackage, protocol.JobUpdateAgent:
 		if !validUUID(req.PackageID) {
 			writeError(w, http.StatusBadRequest, codeInvalidRequest, "Paket seçilmeli")
 			return
@@ -679,13 +682,38 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 				return
 			}
 		}
-		job.Shell, job.Command = pkg.Shell, pkg.InstallCommand
-		for _, c := range pkg.SuccessCodes {
-			job.SuccessCodes = append(job.SuccessCodes, int(c))
-		}
 		job.Package = &protocol.JobPackage{
 			ID: pkg.ID, Name: pkg.Name, Version: pkg.Version, FileName: pkg.FileName, Size: pkg.FileSize,
 			SHA256: pkg.FileSHA256, Installer: pkg.Installer,
+		}
+		if req.Kind == protocol.JobUpdateAgent {
+			// Ajan kendi yükleyicisini bilir: komut gönderilmez, yalnızca MSI (Windows) / PKG (macOS) kabul edilir.
+			if pkg.Installer != protocol.AgentUpdateInstaller(pkg.Platform) {
+				writeError(w, http.StatusBadRequest, codeInvalidRequest,
+					"Ajan güncellemesi için Windows'ta MSI, macOS'ta PKG paketi seçilmeli (BerOps-Agent-x64.msi / BerOps-Agent.pkg)")
+				return
+			}
+			old := 0
+			for _, p := range platforms {
+				if !slices.Contains(p.Capabilities, protocol.CapabilityUpdateAgent) {
+					old++
+				}
+			}
+			if old > 0 {
+				writeError(w, http.StatusBadRequest, codeInvalidRequest, fmt.Sprintf(
+					"%d makinenin ajanı uzaktan güncellemeyi desteklemiyor (BerOps 1.3 öncesi); bu makineleri bir kez "+
+						"kurulum paketiyle (GPO/MDM veya elle) yükseltin", old))
+				return
+			}
+			job.SuccessCodes = []int{0, 3010, 1641}
+			if req.Name == "" {
+				req.Name = "Ajan güncellemesi: " + pkg.Name + " " + pkg.Version
+			}
+			break
+		}
+		job.Shell, job.Command = pkg.Shell, pkg.InstallCommand
+		for _, c := range pkg.SuccessCodes {
+			job.SuccessCodes = append(job.SuccessCodes, int(c))
 		}
 		if req.Name == "" {
 			req.Name = pkg.Name + " " + pkg.Version
@@ -781,7 +809,9 @@ func (s *Server) handleCreateAction(w http.ResponseWriter, r *http.Request, sess
 		Params: map[string]any{
 			"kind": req.Kind, "name": req.Name, "package_id": req.PackageID, "shell": job.Shell, "command": job.Command,
 			"machine_ids": ids, "timeout_seconds": req.TimeoutSeconds, "bandwidth_kbps": req.BandwidthKbps, "status": status,
-			"respect_windows": req.RespectWindows, "rollout": req.Rollout,
+			"respect_windows": req.RespectWindows, "rollout": req.Rollout, "group_ids": req.GroupIDs,
+			"all_machines": req.AllMachines, "retry_count": req.RetryCount, "retry_delay_minutes": req.RetryDelayMinutes,
+			"not_before": req.NotBefore,
 		},
 	}
 	if err := s.store.AppendAudit(r.Context(), entry); err != nil {

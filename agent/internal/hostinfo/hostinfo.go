@@ -49,6 +49,10 @@ func (c *Collector) Collect() protocol.HostInfo {
 	c.mu.Unlock()
 
 	hostname, _ := os.Hostname()
+	var caps []string
+	if protocol.AgentUpdateInstaller(c.platform) != "" {
+		caps = append(caps, protocol.CapabilityUpdateAgent)
+	}
 	return protocol.HostInfo{
 		Hostname:     hostname,
 		OSPlatform:   c.platform,
@@ -58,6 +62,7 @@ func (c *Collector) Collect() protocol.HostInfo {
 		Arch:         runtime.GOARCH,
 		IPAddresses:  IPAddresses(),
 		AgentVersion: version.Version,
+		Capabilities: caps,
 	}
 }
 

@@ -110,6 +110,39 @@ func (s Store) SaveEnrollment(resp *protocol.EnrollResponse, at time.Time) error
 	return writeAtomic(s.path(stateFile), b, 0o600)
 }
 
+// SaveCertificate, yenilenen sertifikayı kaydeder ve mTLS için yükler. Sertifika ajanın
+// anahtarıyla eşleşmiyorsa kaydedilmez; eski sertifika yerinde kalır.
+func (s Store) SaveCertificate(certPEM []byte) (*tls.Certificate, error) {
+	key, err := os.ReadFile(s.path(keyFile))
+	if err != nil {
+		return nil, err
+	}
+	cert, err := tls.X509KeyPair(certPEM, key)
+	if err != nil {
+		return nil, fmt.Errorf("yenilenen sertifika geçersiz: %w", err)
+	}
+	if err := writeAtomic(s.path(certFile), certPEM, 0o644); err != nil {
+		return nil, err
+	}
+	return &cert, nil
+}
+
+// RenewDue, sertifikanın yenilenmesi gerekip gerekmediğini döner: ömrünün yarısından azı
+// kaldıysa (sunucu da daha erken yenilemez).
+func RenewDue(cert *tls.Certificate, now time.Time) bool {
+	leaf := cert.Leaf
+	if leaf == nil {
+		if len(cert.Certificate) == 0 {
+			return false
+		}
+		var err error
+		if leaf, err = x509.ParseCertificate(cert.Certificate[0]); err != nil {
+			return false
+		}
+	}
+	return leaf.NotAfter.Sub(now) <= leaf.NotAfter.Sub(leaf.NotBefore)/2
+}
+
 // Load, kayıtlı kimliği ve mTLS için istemci sertifikasını döner.
 func (s Store) Load() (*State, *tls.Certificate, error) {
 	b, err := os.ReadFile(s.path(stateFile))

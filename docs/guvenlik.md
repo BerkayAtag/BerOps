@@ -49,7 +49,8 @@ Webhook istekleri isteğe bağlı olarak `X-Ber-Signature: sha256=<HMAC>` başl�
 
 ## Bilinen sınırlar
 
-- **Kurcalama koruması:** Ajanı yerel yönetici durdurabilir veya kaldırabilir. Sunucu tarafında kaldırma onayı yoktur. Makine çevrimdışı olduğunda konsolda görünür.
+- **Kurcalama koruması:** Konsolda kaldırma koruması açıksa ajan yalnızca kodla kaldırılabilir (MSI `UNINSTALLCODE`, macOS `-code`). Kodun kendisi saklanmaz; sunucu ve ajanlar tuzlu PBKDF2-SHA256 özetini (200.000 tur) tutar ve kod denetim kaydına yazılmaz. Koruma, yerel yöneticinin dosyaları elle silmesini engellemez; makine çevrimdışı olduğunda konsolda görünür.
+- **Ajan sertifikası yenileme:** Ajan, sertifikasının ömrünün yarısı geçince mevcut anahtarıyla yeni sertifika ister (`/agent/v1/renew`, mTLS). Önceki sertifika kendi süresi bitene kadar geçerli kalır; iptal edilen makine yenileyemez.
 - **Sertifika iptali:** CRL/OCSP yoktur. Ajan ve relay sertifikaları veritabanındaki iptal kaydıyla reddedilir.
 - **Kod imzalama:** Release paketleri yalnızca imza sırları tanımlıysa imzalanır. İmzasız paketleri `SHA256SUMS.txt` ile doğrulayın.
 - **Tek sunucu:** Uzaktan yönetim istek aracısı bellek içidir; çok örnekli kurulumda yapışkan yönlendirme gerekir.

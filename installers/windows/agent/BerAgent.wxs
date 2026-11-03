@@ -7,6 +7,10 @@
 
   REGKEY verilmezse servis kurulur ve yapılandırma bekler (sonradan: berops-agent configure ...).
   Kaldırmada (yükseltme hariç) %ProgramData%\BerOps\Agent klasörü de silinir.
+
+  Kaldırma koruması konsolda açıksa kaldırma kod ister:
+    msiexec /x BerOps-Agent-x64.msi /qn UNINSTALLCODE=...
+  Yükseltmede (ajan güncellemesi dahil) kod istenmez.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
@@ -20,7 +24,8 @@
            InstallerVersion="500">
     <SummaryInformation Description="BerOps Agent" Manufacturer="Berkay Atağ" Codepage="1254" />
 
-    <MajorUpgrade DowngradeErrorMessage="Bu ürünün daha yeni bir sürümü zaten kurulu." />
+    <!-- Aynı sürüm yeniden kurulursa ikinci bir kayıt oluşmaz; eski kurulum kaldırılır. -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="Bu ürünün daha yeni bir sürümü zaten kurulu." />
     <MediaTemplate EmbedCab="yes" />
 
     <Property Id="ARPCONTACT" Value="Berkay Atağ" />
@@ -33,6 +38,7 @@
     <Property Id="SERVER" Secure="yes" />
     <Property Id="REGKEY" Secure="yes" Hidden="yes" />
     <Property Id="CAHASH" Secure="yes" />
+    <Property Id="UNINSTALLCODE" Secure="yes" Hidden="yes" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="ManufacturerFolder" Name="BerOps">
@@ -75,6 +81,14 @@
     <CustomAction Id="ConfigureAgent" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
                   Execute="deferred" Return="check" Impersonate="no" HideTarget="yes" />
 
+    <!-- Kaldırma koruması: kurulu ajan kodu doğrular; yanlışsa kaldırma geri alınır (yükseltmede çalışmaz). -->
+    <SetProperty Id="CheckUninstallCode"
+                 Value="&quot;[INSTALLFOLDER]berops-agent.exe&quot; uninstall-check -code &quot;[UNINSTALLCODE]&quot;"
+                 Before="CheckUninstallCode" Sequence="execute"
+                 Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
+    <CustomAction Id="CheckUninstallCode" BinaryRef="Wix4UtilCA_X64" DllEntry="WixQuietExec"
+                  Execute="deferred" Return="check" Impersonate="no" HideTarget="yes" />
+
     <!-- Temiz kaldırma: kimlik, yapılandırma ve günlükler silinir; yükseltmede korunur. -->
     <SetProperty Id="CleanupAgentData"
                  Value="&quot;[System64Folder]cmd.exe&quot; /c rmdir /s /q &quot;[CommonAppDataFolder]BerOps\Agent&quot;"
@@ -84,6 +98,7 @@
                   Execute="deferred" Return="ignore" Impersonate="no" />
 
     <InstallExecuteSequence>
+      <Custom Action="CheckUninstallCode" After="InstallInitialize" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
       <Custom Action="ConfigureAgent" Before="StartServices" Condition="REGKEY AND SERVER AND NOT REMOVE" />
       <Custom Action="CleanupAgentData" After="RemoveFiles" Condition="REMOVE=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
     </InstallExecuteSequence>

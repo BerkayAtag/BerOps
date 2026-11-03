@@ -458,11 +458,13 @@ func (s *Store) GrantDownload(ctx context.Context, actionID, machineID, packageI
 type TargetMachine struct {
 	Platform string
 	OU       string
+	// Capabilities, ajanın son heartbeat'te bildirdiği isteğe bağlı iş türleridir.
+	Capabilities []string
 }
 
 // ActiveMachines, kimliklerden aktif olanları platform ve OU bilgisiyle döner.
 func (s *Store) ActiveMachines(ctx context.Context, ids []string) (map[string]TargetMachine, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id, os_platform, ad_ou FROM machines WHERE id = ANY($1::uuid[]) AND status = 'active'`, ids)
+	rows, err := s.pool.Query(ctx, `SELECT id, os_platform, ad_ou, agent_capabilities FROM machines WHERE id = ANY($1::uuid[]) AND status = 'active'`, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +473,7 @@ func (s *Store) ActiveMachines(ctx context.Context, ids []string) (map[string]Ta
 	for rows.Next() {
 		var id string
 		var t TargetMachine
-		if err := rows.Scan(&id, &t.Platform, &t.OU); err != nil {
+		if err := rows.Scan(&id, &t.Platform, &t.OU, &t.Capabilities); err != nil {
 			return nil, err
 		}
 		out[strings.ToLower(id)] = t

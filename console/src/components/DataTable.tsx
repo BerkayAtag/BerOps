@@ -1,23 +1,22 @@
 import {
   flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+  useTable,
   type ColumnDef,
   type OnChangeFn,
   type PaginationState,
+  type RowData,
   type RowSelectionState,
   type SortingState,
 } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { PAGE_SIZES } from "./pageSizes";
+import { features, type Features } from "./tableFeatures";
 
-interface DataTableProps<T> {
+interface DataTableProps<T extends RowData> {
   data: T[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  columns: ColumnDef<T, any>[];
+  columns: ColumnDef<Features, T, any>[];
   getRowId: (row: T) => string;
   sorting: SortingState;
   onSortingChange: OnChangeFn<SortingState>;
@@ -37,14 +36,15 @@ interface DataTableProps<T> {
  * Tüm listelerde kullanılan tablo: sütun başlığına tıklayarak sıralama, sayfalama ve
  * (isteğe bağlı) toplu seçim. serverTotal verilirse sıralama ve sayfalama sunucuda yapılır.
  */
-export function DataTable<T>(props: DataTableProps<T>) {
+export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const { t } = useTranslation();
   const manual = props.serverTotal !== undefined;
   const selectable = props.rowSelection !== undefined;
 
-  const columns = useMemo<ColumnDef<T>[]>(() => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const columns = useMemo<ColumnDef<Features, T, any>[]>(() => {
     if (!selectable) return props.columns;
-    const select: ColumnDef<T> = {
+    const select: ColumnDef<Features, T, unknown> = {
       id: "_select",
       enableSorting: false,
       header: ({ table }) => (
@@ -54,7 +54,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
           aria-label={t("table.selectAll")}
           checked={table.getIsAllPageRowsSelected()}
           ref={(el) => {
-            if (el) el.indeterminate = table.getIsSomePageRowsSelected();
+            // v9'da "some" en az birini, tümü seçili durumu da kapsar.
+            if (el) el.indeterminate = table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected();
           }}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
         />
@@ -73,9 +74,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     return [select, ...props.columns];
   }, [props.columns, selectable, t]);
 
-  // TanStack Table kendi içinde önbellekleme yaptığı için React Compiler bu bileşeni atlar; davranış etkilenmez.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features,
     data: props.data,
     columns,
     getRowId: props.getRowId,
@@ -92,9 +92,6 @@ export function DataTable<T>(props: DataTableProps<T>) {
     manualPagination: manual,
     rowCount: manual ? props.serverTotal : undefined,
     enableSortingRemoval: false,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: manual ? undefined : getSortedRowModel(),
-    getPaginationRowModel: manual ? undefined : getPaginationRowModel(),
   });
 
   const total = manual ? (props.serverTotal ?? 0) : props.data.length;
@@ -156,7 +153,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                 className={`${props.onRowClick ? "clickable" : ""}${row.getIsSelected() ? " selected" : ""}`}
                 onClick={props.onRowClick ? () => props.onRowClick!(row.original) : undefined}
               >
-                {row.getVisibleCells().map((cell) => (
+                {row.getAllCells().map((cell) => (
                   <td key={cell.id} className={cell.column.id === "_select" ? "col-select" : undefined}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>

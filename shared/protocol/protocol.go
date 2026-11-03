@@ -9,6 +9,8 @@ import "time"
 const (
 	PathEnroll    = "/agent/v1/enroll"
 	PathHeartbeat = "/agent/v1/heartbeat"
+	// PathRenew, ajan sertifikasının yenilenmesidir (POST, mevcut sertifikayla mTLS).
+	PathRenew = "/agent/v1/renew"
 )
 
 // Platform değerleri.
@@ -36,7 +38,13 @@ type HostInfo struct {
 	Arch         string   `json:"arch"`
 	IPAddresses  []string `json:"ip_addresses"`
 	AgentVersion string   `json:"agent_version"`
+	// Capabilities, ajanın desteklediği isteğe bağlı iş türleridir (ör. update_agent). Eski
+	// ajanlar alanı göndermez; sunucu onlara desteklemedikleri işi vermez.
+	Capabilities []string `json:"capabilities,omitempty"`
 }
+
+// CapabilityUpdateAgent, ajanın kendini güncelleme işini (JobUpdateAgent) desteklediğini bildirir.
+const CapabilityUpdateAgent = "update_agent"
 
 // EnrollRequest, ilk kayıt isteğidir. İstemci sertifikası olmadan gönderilir.
 type EnrollRequest struct {
@@ -89,6 +97,9 @@ type HeartbeatResponse struct {
 	// RemoteUntil doluysa konsolda açık bir uzaktan oturum vardır; ajan bu zamana kadar
 	// PathRemotePoll üzerinden uzun yoklama yapar.
 	RemoteUntil *time.Time `json:"remote_until,omitempty"`
+	// UninstallProtection, kaldırma koruması ayarıdır. nil ise (eski sunucu) ajan elindekini
+	// korur; Enabled false ise ajan koruma dosyasını siler.
+	UninstallProtection *UninstallProtection `json:"uninstall_protection,omitempty"`
 }
 
 // ErrorResponse, tüm API hatalarının ortak gövdesidir. Code makine tarafından okunur
@@ -96,4 +107,14 @@ type HeartbeatResponse struct {
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// RenewRequest, ajan sertifikası yenileme isteğidir; CSR ajanın mevcut anahtarıyla üretilir.
+type RenewRequest struct {
+	CSRPEM string `json:"csr_pem"`
+}
+
+// RenewResponse, yeni ajan sertifikasıdır.
+type RenewResponse struct {
+	CertificatePEM string `json:"certificate_pem"`
 }

@@ -11,18 +11,20 @@ import (
 
 // Machine, kayıtlı bir ajanın sunucudaki kaydıdır.
 type Machine struct {
-	ID              string     `json:"id"`
-	Hostname        string     `json:"hostname"`
-	Status          string     `json:"status"`
-	OSPlatform      string     `json:"os_platform"`
-	OSName          string     `json:"os_name"`
-	OSVersion       string     `json:"os_version"`
-	OSBuild         string     `json:"os_build"`
-	Arch            string     `json:"arch"`
-	IPAddresses     []string   `json:"ip_addresses"`
-	AgentVersion    string     `json:"agent_version"`
-	ADOU            string     `json:"ad_ou"`
-	CertSerial      string     `json:"-"`
+	ID           string   `json:"id"`
+	Hostname     string   `json:"hostname"`
+	Status       string   `json:"status"`
+	OSPlatform   string   `json:"os_platform"`
+	OSName       string   `json:"os_name"`
+	OSVersion    string   `json:"os_version"`
+	OSBuild      string   `json:"os_build"`
+	Arch         string   `json:"arch"`
+	IPAddresses  []string `json:"ip_addresses"`
+	AgentVersion string   `json:"agent_version"`
+	ADOU         string   `json:"ad_ou"`
+	CertSerial   string   `json:"-"`
+	// PrevCertSerial, yenilemeden önceki sertifikanın seri numarasıdır (geçiş süresi).
+	PrevCertSerial  string     `json:"-"`
 	CertFingerprint string     `json:"cert_fingerprint"`
 	CertExpiresAt   time.Time  `json:"cert_expires_at"`
 	EnrolledAt      time.Time  `json:"enrolled_at"`
@@ -45,16 +47,30 @@ type NewMachine struct {
 
 const machineColumns = `id, hostname, status, os_platform, os_name, os_version, os_build, arch,
 	ip_addresses, agent_version, ad_ou, cert_serial, cert_fingerprint, cert_expires_at,
-	enrolled_at, last_seen_at, agent_started_at, last_errors`
+	enrolled_at, last_seen_at, agent_started_at, last_errors, prev_cert_serial`
 
 func scanMachine(row interface{ Scan(...any) error }) (*Machine, error) {
 	var m Machine
-	if err := row.Scan(&m.ID, &m.Hostname, &m.Status, &m.OSPlatform, &m.OSName, &m.OSVersion, &m.OSBuild,
-		&m.Arch, &m.IPAddresses, &m.AgentVersion, &m.ADOU, &m.CertSerial, &m.CertFingerprint, &m.CertExpiresAt,
-		&m.EnrolledAt, &m.LastSeenAt, &m.AgentStartedAt, &m.LastErrors); err != nil {
+	dest, done := machineDest(&m)
+	if err := row.Scan(dest...); err != nil {
 		return nil, notFound(err)
 	}
+	done()
 	return &m, nil
+}
+
+// machineDest, machineColumns sırasıyla tarama hedeflerini döner; done tarama sonrası boş
+// olabilen sütunları alanlara aktarır.
+func machineDest(m *Machine) (dest []any, done func()) {
+	var prev *string
+	return []any{&m.ID, &m.Hostname, &m.Status, &m.OSPlatform, &m.OSName, &m.OSVersion, &m.OSBuild,
+			&m.Arch, &m.IPAddresses, &m.AgentVersion, &m.ADOU, &m.CertSerial, &m.CertFingerprint, &m.CertExpiresAt,
+			&m.EnrolledAt, &m.LastSeenAt, &m.AgentStartedAt, &m.LastErrors, &prev},
+		func() {
+			if prev != nil {
+				m.PrevCertSerial = *prev
+			}
+		}
 }
 
 func nonNil(s []string) []string {
@@ -94,11 +110,24 @@ func (s *Store) RecordHeartbeat(ctx context.Context, id string, req protocol.Hea
 		UPDATE machines SET
 			hostname = $2, os_name = $3, os_version = $4, os_build = $5, arch = $6,
 			ip_addresses = $7, agent_version = $8, agent_started_at = $9, last_errors = $10,
-			last_seen_at = $11
+			last_seen_at = $11, agent_capabilities = $12
 		WHERE id = $1
 		RETURNING `+machineColumns,
 		id, h.Hostname, h.OSName, h.OSVersion, h.OSBuild, h.Arch, nonNil(h.IPAddresses), h.AgentVersion,
-		started, nonNil(req.Errors), at))
+		started, nonNil(req.Errors), at, nonNil(h.Capabilities)))
+}
+
+// RenewMachineCert, makinenin sertifikasını yenisiyle değiştirir. Ajanın yenilemede sunduğu
+// sertifikanın seri numarası (presented) geçiş için saklanır. Sunulan sertifika bu arada
+// geçersiz olduysa (eşzamanlı yenileme) ErrNotFound döner.
+func (s *Store) RenewMachineCert(ctx context.Context, id, presented, serial, fingerprint string, expires time.Time) error {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE machines SET prev_cert_serial = $2, cert_serial = $3, cert_fingerprint = $4, cert_expires_at = $5
+		WHERE id = $1 AND (cert_serial = $2 OR prev_cert_serial = $2)`, id, presented, serial, fingerprint, expires)
+	if err == nil && tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return err
 }
 
 // SetMachineStatus, makine durumunu değiştirir (onay, reddetme, iptal).
@@ -263,14 +292,13 @@ func (s *Store) ListMachinesFiltered(ctx context.Context, f MachineFilter) ([]Ma
 	out := []MachineListItem{}
 	for rows.Next() {
 		var it MachineListItem
-		m := &it.Machine
-		if err := rows.Scan(&m.ID, &m.Hostname, &m.Status, &m.OSPlatform, &m.OSName, &m.OSVersion, &m.OSBuild,
-			&m.Arch, &m.IPAddresses, &m.AgentVersion, &m.ADOU, &m.CertSerial, &m.CertFingerprint, &m.CertExpiresAt,
-			&m.EnrolledAt, &m.LastSeenAt, &m.AgentStartedAt, &m.LastErrors,
-			&it.Online, &it.InventoryAt, &it.MissingCount, &it.MissingCriticalCount, &it.MissingSecurityCount,
-			&it.AppCount, &it.RebootPending, &it.VulnCount, &it.KEVCount, &it.MaxRisk); err != nil {
+		dest, done := machineDest(&it.Machine)
+		dest = append(dest, &it.Online, &it.InventoryAt, &it.MissingCount, &it.MissingCriticalCount, &it.MissingSecurityCount,
+			&it.AppCount, &it.RebootPending, &it.VulnCount, &it.KEVCount, &it.MaxRisk)
+		if err := rows.Scan(dest...); err != nil {
 			return nil, 0, err
 		}
+		done()
 		out = append(out, it)
 	}
 	return out, total, rows.Err()

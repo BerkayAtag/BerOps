@@ -31,7 +31,21 @@ const (
 	// JobCollectLogs, ajanın kendi günlük dosyasının son kısmını sonuç çıktısı olarak döndürür;
 	// komut çalıştırılmaz.
 	JobCollectLogs = "collect_logs"
+	// JobUpdateAgent, ajanın kendi kurulum paketini (Windows MSI / macOS PKG) indirip ajandan
+	// bağımsız bir süreçle kurar. Kurulum servisi yeniden başlatır; sonucu yeni ajan bildirir.
+	JobUpdateAgent = "update_agent"
 )
+
+// AgentUpdateInstaller, platformda ajan güncellemesi için kabul edilen paket türüdür.
+func AgentUpdateInstaller(platform string) string {
+	switch platform {
+	case PlatformWindows:
+		return InstallerMSI
+	case PlatformDarwin:
+		return InstallerPKG
+	}
+	return ""
+}
 
 // Komut kabukları.
 const (
@@ -172,6 +186,11 @@ func (s SignedJob) Verify(pub ed25519.PublicKey, machineID string, now time.Time
 			return nil, ErrInvalidJobDef
 		}
 	case JobCollectLogs:
+	case JobUpdateAgent:
+		if j.Package == nil || len(j.Package.SHA256) != 64 ||
+			(j.Package.Installer != InstallerMSI && j.Package.Installer != InstallerPKG) {
+			return nil, ErrInvalidJobDef
+		}
 	default:
 		return nil, ErrInvalidJobDef
 	}

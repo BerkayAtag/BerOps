@@ -9,6 +9,23 @@ import { PlatformIcon } from "../components/Badges";
 import { RestartForm } from "../components/RestartForm";
 import { formatDateTime, formatRelative } from "../format";
 
+// kindPermission, aksiyon türünün gerektirdiği izindir (sunucudaki kindPermission ile aynı).
+function kindPermission(kind: Action["kind"]): string {
+  switch (kind) {
+    case "run_command":
+      return "actions.run_command";
+    case "deploy_patch":
+    case "restart":
+      return "actions.deploy_patch";
+    case "collect_logs":
+      return "machines.manage";
+    case "update_agent":
+      return "agents.manage";
+    default:
+      return "actions.deploy_package";
+  }
+}
+
 export function ActionDetailPage() {
   const { id = "" } = useParams();
   const { t, i18n } = useTranslation();
@@ -42,7 +59,7 @@ export function ActionDetailPage() {
   }
   const { action: a, targets } = detail.data;
   const mine = state.status === "authenticated" && a.created_by === state.me.user.id;
-  const kindPerm = `actions.${a.kind}`;
+  const kindPerm = kindPermission(a.kind);
 
   async function releaseNext() {
     if (!window.confirm(t("actions.releaseConfirm"))) return;
@@ -171,7 +188,7 @@ export function ActionDetailPage() {
               <dd className="mono small">{a.patches.join(", ")}</dd>
             </div>
           )}
-          {a.kind === "deploy_package" && (
+          {(a.kind === "deploy_package" || a.kind === "update_agent") && (
             <div className="field-row">
               <dt>{t("actions.package")}</dt>
               <dd>
@@ -185,13 +202,15 @@ export function ActionDetailPage() {
               </dd>
             </div>
           )}
-          <div className="field-row">
-            <dt>{t("actions.command")}</dt>
-            <dd>
-              <pre className="output-block">{a.command || "—"}</pre>
-              {a.shell && <span className="tag">{a.shell}</span>}
-            </dd>
-          </div>
+          {a.command && (
+            <div className="field-row">
+              <dt>{t("actions.command")}</dt>
+              <dd>
+                <pre className="output-block">{a.command}</pre>
+                {a.shell && <span className="tag">{a.shell}</span>}
+              </dd>
+            </div>
+          )}
           <div className="field-row">
             <dt>{t("actions.timeout")}</dt>
             <dd>{t("common.seconds", { n: a.timeout_seconds })}</dd>

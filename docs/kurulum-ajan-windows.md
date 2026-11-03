@@ -52,10 +52,25 @@ Aynı kayıt anahtarını birçok makinede kullanabilirsiniz. Kullanım sınır�
 
 ## Güncelleme ve kaldırma
 
-- **Güncelleme:** Yeni MSI'ı aynı şekilde kurun. Kimlik ve yapılandırma korunur, ajan yeniden kayıt yapmaz.
+- **Konsoldan güncelleme (1.3 ve üstü ajanlar):** Yeni `BerOps-Agent-x64.msi` dosyasını paket kütüphanesine yükleyin, ardından **Yeni aksiyon → Ajan güncellemesi** ile makinelere veya gruplara gönderin. Ajan MSI'ı kendisi kurar ve yeniden başlar; sonucu yeni sürüm bildirir. `agents.manage` izni gerekir. 1.3 öncesi ajanlar bir kez elle (veya GPO ile) yükseltilmelidir.
+- **Elle güncelleme:** Yeni MSI'ı aynı şekilde kurun. Kimlik ve yapılandırma korunur, ajan yeniden kayıt yapmaz.
 - **Kaldırma:** Programlar ve Özellikler'den ya da `msiexec /x BerOps-Agent-x64.msi /qn` ile. Servis, program dosyaları ve `C:\ProgramData\BerOps\Agent` (kimlik, günlükler) silinir; iz kalmaz. Makine konsolda çevrimdışı görünür ve oradan silinebilir.
 
-Kaldırma için yerel yönetici yetkisi gerekir. Sunucu tarafında ayrı bir kurcalama koruması yoktur; bkz. [varsayimlar.md](varsayimlar.md) 8.4.
+Kaldırma için yerel yönetici yetkisi gerekir.
+
+### Kaldırma koruması
+
+Konsolda **Ayarlar → Ajan → Kaldırma koruması** açıksa ajan yalnızca kodla kaldırılabilir:
+
+```powershell
+msiexec /x BerOps-Agent-x64.msi /qn UNINSTALLCODE=<kod>
+```
+
+- Kod yanlışsa veya verilmezse kaldırma geri alınır; ajan çalışmaya devam eder. Kod MSI günlüğüne yazılmaz.
+- Programlar ve Özellikler'de kod girilecek bir pencere yoktur; bu yüzden kaldırma oradan reddedilir.
+- Yükseltmede (elle veya konsoldan) kod istenmez.
+- Koruma ayarı ajana heartbeat ile ulaşır; çevrimdışı makinede son bilinen ayar geçerlidir.
+- Yerel yönetici dosyaları elle silerek korumayı aşabilir; koruma kazara veya kullanıcı kaynaklı kaldırmayı önlemek içindir. Bkz. [varsayimlar.md](varsayimlar.md) 11.4.
 
 ## Ağ
 

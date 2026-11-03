@@ -1,4 +1,4 @@
-import { createColumnHelper, type PaginationState, type SortingState } from "@tanstack/react-table";
+import { type PaginationState, type SortingState } from "@tanstack/react-table";
 import { useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
@@ -7,9 +7,10 @@ import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { PlatformIcon } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
+import { columnHelper } from "../components/tableFeatures";
 import { formatBytes, formatDate, formatPercent } from "../format";
 
-const col = createColumnHelper<Package>();
+const col = columnHelper<Package>();
 
 const INSTALLERS: Record<"windows" | "darwin", Installer[]> = {
   windows: ["msi", "exe", "file"],

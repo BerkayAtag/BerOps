@@ -60,6 +60,11 @@ type journalEntry struct {
 	Report   *protocol.JobStatusRequest `json:"report,omitempty"`
 	Reported bool                       `json:"reported"`
 	At       time.Time                  `json:"at"`
+	// UpdateFrom, ajan güncellemesi başlatıldığında çalışan ajan sürümüdür; ajan yeniden
+	// başladığında sonuç sürüm karşılaştırmasıyla belirlenir.
+	UpdateFrom string `json:"update_from,omitempty"`
+	UpdateLog  string `json:"update_log,omitempty"`
+	PackageSHA string `json:"package_sha,omitempty"`
 }
 
 const journalFile = "journal.json"
@@ -81,6 +86,14 @@ type Runner struct {
 	OnFinished func(j *protocol.Job)
 	// LogFile, ajanın günlük dosyasıdır; collect_logs işi bu dosyanın son kısmını döndürür.
 	LogFile string
+	// Version, çalışan ajanın sürümüdür (ajan güncellemesinin sonucunu belirlemek için).
+	Version string
+	// StartUpdate, ajan güncellemesi yükleyicisini ajandan bağımsız başlatır; nil ise ajan
+	// güncellemesi desteklenmez.
+	StartUpdate func(ctx context.Context, u UpdateSpec) (UpdateWait, error)
+	// FinishUpdate, güncelleme sonuçlandıktan sonra geçici kaynakları temizler (argüman
+	// yükleyici günlüğüdür). Bloklamamalıdır.
+	FinishUpdate func(logFile string)
 
 	now     func() time.Time
 	mu      sync.Mutex
@@ -96,7 +109,7 @@ func New(dir string, c Client, log *slog.Logger, machineID string, key func() ed
 		dir = abs
 	}
 	return &Runner{Dir: dir, Client: c, Log: log, MachineID: machineID, Key: key, Exec: Execute,
-		now: time.Now, wake: make(chan struct{}, 1)}
+		StartUpdate: StartUpdate, FinishUpdate: FinishUpdate, now: time.Now, wake: make(chan struct{}, 1)}
 }
 
 // Notify, heartbeat'te bekleyen iş bildirildiğinde çağrılır.
@@ -121,6 +134,11 @@ func (r *Runner) load() {
 	// Ajan iş çalışırken durduysa sonuç bilinemez; iş başarısız sayılır ve tekrar çalıştırılmaz
 	// (yükleyicinin iki kez çalışması daha büyük sorun yaratabilir).
 	for _, e := range r.journal {
+		if !protocol.FinalTargetStatus(e.Status) && e.UpdateFrom != "" {
+			// Ajan güncellemesi sırasında yeniden başlama beklenen durumdur.
+			r.resolveUpdate(e)
+			continue
+		}
 		if !protocol.FinalTargetStatus(e.Status) {
 			e.Status = protocol.TargetFailed
 			e.Report = &protocol.JobStatusRequest{Status: protocol.TargetFailed, Error: "ajan iş sürerken yeniden başladı"}
@@ -293,21 +311,15 @@ func (r *Runner) run(ctx context.Context, job *protocol.Job) {
 		return
 	}
 
+	if job.Kind == protocol.JobUpdateAgent {
+		r.runUpdate(ctx, job)
+		return
+	}
+
 	spec := Spec{Shell: job.Shell, Command: job.Command, Timeout: time.Duration(job.TimeoutSeconds) * time.Second, WorkDir: work}
 	if job.Kind == protocol.JobDeployPackage {
-		r.setJournal(job, protocol.TargetDownloading, nil, false)
-		_ = r.report(ctx, job.ID, protocol.JobStatusRequest{Status: protocol.TargetDownloading})
-		file, err := r.fetch(ctx, job)
-		if err != nil {
-			if ctx.Err() != nil {
-				// Ajan durduruluyor: iş sunucuda "indiriliyor" kalır ve sonraki açılışta sürdürülür.
-				r.mu.Lock()
-				delete(r.journal, journalKey(job))
-				r.mu.Unlock()
-				r.save()
-				return
-			}
-			r.finish(ctx, job, protocol.JobStatusRequest{Status: protocol.TargetFailed, Error: "indirme: " + err.Error()})
+		file, ok := r.download(ctx, job)
+		if !ok {
 			return
 		}
 		spec.File, spec.Installer = file, job.Package.Installer
@@ -336,6 +348,27 @@ func (r *Runner) run(ctx context.Context, job *protocol.Job) {
 		_ = os.RemoveAll(filepath.Join(r.Dir, "cache", job.Package.SHA256))
 	}
 	r.finish(context.WithoutCancel(ctx), job, rep)
+}
+
+// download, paketi indirir ve durumunu bildirir. İndirme başarısızsa sonucu bildirir; ajan
+// durduruluyorsa işi günlükten siler (iş sonraki açılışta sürdürülür). ok false ise iş bitmiştir.
+func (r *Runner) download(ctx context.Context, job *protocol.Job) (string, bool) {
+	r.setJournal(job, protocol.TargetDownloading, nil, false)
+	_ = r.report(ctx, job.ID, protocol.JobStatusRequest{Status: protocol.TargetDownloading})
+	file, err := r.fetch(ctx, job)
+	if err == nil {
+		return file, true
+	}
+	if ctx.Err() != nil {
+		// Ajan durduruluyor: iş sunucuda "indiriliyor" kalır ve sonraki açılışta sürdürülür.
+		r.mu.Lock()
+		delete(r.journal, journalKey(job))
+		r.mu.Unlock()
+		r.save()
+		return "", false
+	}
+	r.finish(ctx, job, protocol.JobStatusRequest{Status: protocol.TargetFailed, Error: "indirme: " + err.Error()})
+	return "", false
 }
 
 // fetch, paketi önbelleğe indirir (kesilirse kaldığı yerden sürer) ve boyutunu ve SHA-256

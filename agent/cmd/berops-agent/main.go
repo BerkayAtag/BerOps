@@ -4,11 +4,13 @@
 //	berops-agent enroll    -server https://ber.example.test:52311 -key berreg_... -ca-hash sha256:...
 //	berops-agent run
 //	berops-agent status
+//	berops-agent uninstall-check -code ...
 //	berops-agent version
 package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -33,6 +35,7 @@ import (
 	"github.com/BerkayAtag/BerOps/agent/internal/inventory"
 	"github.com/BerkayAtag/BerOps/agent/internal/jobs"
 	"github.com/BerkayAtag/BerOps/agent/internal/paths"
+	"github.com/BerkayAtag/BerOps/agent/internal/protection"
 	"github.com/BerkayAtag/BerOps/agent/internal/remote"
 	"github.com/BerkayAtag/BerOps/agent/internal/runner"
 	"github.com/BerkayAtag/BerOps/agent/internal/scanner"
@@ -58,6 +61,8 @@ Komutlar:
   enroll     Yapılandırmayı kaydeder ve hemen kaydolur
   status     Kayıt durumunu gösterir
   inventory  Envanteri bu makinede toplar ve yazdırır (sunucuya göndermez)
+  uninstall-check
+             Kaldırma korumasında kodu doğrular (kurulum paketleri kaldırmadan önce çalıştırır)
   version    Sürümü yazdırır
 `)
 }
@@ -84,6 +89,8 @@ func run(args []string) error {
 		return cmdStatus(args)
 	case "inventory":
 		return cmdInventory(args)
+	case "uninstall-check":
+		return cmdUninstallCheck(args)
 	case "version":
 		fmt.Printf("berops-agent %s (%s)\n", version.Version, version.Commit)
 		return nil
@@ -214,11 +221,20 @@ func cmdRun(args []string) error {
 		return err
 	}
 	asService := service.IsService()
+	// Servis olarak varsayılan dizinde çalışırken dizin standart kullanıcılara kapatılır
+	// (anahtar, koruma özeti ve indirilen paketler). Geliştirmedeki özel dizinlere dokunulmaz.
+	var secureErr error
+	if asService && *dataDir == paths.DefaultDataDir() {
+		secureErr = paths.Secure(*dataDir)
+	}
 	log, closer, err := newLogger(*dataDir, cfg.LogLevel, !asService)
 	if err != nil {
 		return err
 	}
 	defer closer.Close()
+	if secureErr != nil {
+		log.Warn("veri dizini izinleri tam uygulanamadı", "hata", secureErr)
+	}
 
 	body := func(ctx context.Context) error {
 		err := agentMain(ctx, *dataDir, cfg, log)
@@ -313,6 +329,7 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 
 	jr := jobs.New(filepath.Join(dataDir, "jobs"), c, log, st.AgentID, ids.ActionKey)
 	jr.LogFile = filepath.Join(dataDir, "logs", agentLogFile)
+	jr.Version = version.Version
 	jr.OnFinished = func(j *protocol.Job) {
 		// Yama kurulumundan sonra eksik yama listesi de yenilenmeli: tam tarama.
 		if j.Kind == protocol.JobDeployPatch {
@@ -324,6 +341,7 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	go jr.Run(ctx)
 
 	rs := remote.New(c, log, st.AgentID, ids.ActionKey)
+	go renewLoop(ctx, ids, c, cert, log)
 
 	keyWarned := false
 	r := &runner.Runner{
@@ -341,6 +359,13 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 					keyWarned = true
 				}
 			}
+			if resp.UninstallProtection != nil {
+				if changed, err := protection.Apply(dataDir, resp.UninstallProtection); err != nil {
+					log.Error("kaldırma koruması kaydedilemedi", "hata", err)
+				} else if changed {
+					log.Info("kaldırma koruması güncellendi", "etkin", resp.UninstallProtection.Enabled)
+				}
+			}
 			jr.Notify(resp.PendingJobs)
 			rs.Apply(ctx, resp)
 			// Heartbeat'ler arasında soket açık tutulmaz; binlerce ajan sunucuda bağlantı biriktirmez.
@@ -350,6 +375,53 @@ func agentMain(ctx context.Context, dataDir string, cfg config.Config, log *slog
 	r.Run(ctx)
 	log.Info("ajan durduruldu")
 	return nil
+}
+
+// renewCheckInterval, sertifika yenileme gereğinin denetlenme aralığıdır.
+const renewCheckInterval = 12 * time.Hour
+
+// renewLoop, ajan sertifikasının ömrünün yarısı geçince yenisini ister. Yeni sertifika
+// kaydedilemezse eski sertifika kendi süresi bitene kadar sunucuda geçerli kalır.
+func renewLoop(ctx context.Context, ids identity.Store, c *client.Client, cert *tls.Certificate, log *slog.Logger) {
+	wait := time.Minute
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(runner.Jitter(wait, 0.2, rand.Float64)):
+		}
+		wait = renewCheckInterval
+		if !identity.RenewDue(cert, time.Now()) {
+			continue
+		}
+		next, err := renewCert(ctx, ids, c)
+		if err != nil {
+			if ctx.Err() == nil {
+				log.Warn("ajan sertifikası yenilenemedi, yeniden denenecek", "hata", err)
+				wait = time.Hour
+			}
+			continue
+		}
+		cert = next
+		c.SetCertificate(cert)
+		log.Info("ajan sertifikası yenilendi")
+	}
+}
+
+func renewCert(ctx context.Context, ids identity.Store, c *client.Client) (*tls.Certificate, error) {
+	key, err := ids.LoadOrCreateKey()
+	if err != nil {
+		return nil, err
+	}
+	csr, err := identity.NewCSR(key)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.Renew(ctx, protocol.RenewRequest{CSRPEM: string(csr)})
+	if err != nil {
+		return nil, err
+	}
+	return ids.SaveCertificate([]byte(resp.CertificatePEM))
 }
 
 func cmdStatus(args []string) error {
@@ -375,6 +447,34 @@ func cmdStatus(args []string) error {
 	fmt.Println("Ajan ID      :", st.AgentID)
 	fmt.Println("Kayıt durumu :", st.Status)
 	fmt.Println("Kayıt tarihi :", st.EnrolledAt.Local().Format(time.RFC3339))
+	return nil
+}
+
+// uninstallCodeEnv, kaldırma kodunun komut satırı yerine ortam değişkeniyle verilebildiği addır
+// (kod süreç listesinde görünmez).
+const uninstallCodeEnv = "BEROPS_UNINSTALL_CODE"
+
+// cmdUninstallCheck, kaldırma koruması etkinse kodu doğrular; yanlışsa sıfır olmayan kodla çıkar.
+// Kod kurulum paketinin komut satırına kullanıcının verdiği değerle eklendiğinden veri dizini
+// seçilemez ve fazladan argüman reddedilir (ör. tırnakla "-data-dir" eklenerek korumanın
+// olmayan bir dizine yöneltilmesi).
+func cmdUninstallCheck(args []string) error {
+	fs := flag.NewFlagSet("uninstall-check", flag.ContinueOnError)
+	code := fs.String("code", "", "kaldırma kodu (veya "+uninstallCodeEnv+" ortam değişkeni)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() > 0 {
+		return protection.ErrWrongCode
+	}
+	c := strings.TrimSpace(*code)
+	if c == "" {
+		c = strings.TrimSpace(os.Getenv(uninstallCodeEnv))
+	}
+	if err := protection.Check(paths.DefaultDataDir(), c); err != nil {
+		return err
+	}
+	fmt.Println("Kaldırmaya izin verildi.")
 	return nil
 }
 
