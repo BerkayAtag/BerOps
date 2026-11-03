@@ -174,6 +174,8 @@ func (a simAgent) run(ctx context.Context, log *slog.Logger, server, caHash, reg
 		time.Sleep(time.Duration(500+mrand.IntN(2500)) * time.Millisecond)
 		return jobs.Result{Stdout: fmt.Sprintf("[sanal ajan] %s kabuğunda çalıştırıldı:\n%s\n", s.Shell, s.Command)}
 	}
+	// Sanal ajan kendini güncelleyemez; gerçek yükleyici hiçbir koşulda çalıştırılmaz.
+	jr.StartUpdate, jr.FinishUpdate = nil, nil
 	go jr.Run(ctx)
 
 	r := &runner.Runner{

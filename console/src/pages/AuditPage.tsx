@@ -14,6 +14,12 @@ const ACTION_GROUPS = [
   "settings.",
   "machine.",
   "report.",
+  "group.",
+  "remote.",
+  "regkey.",
+  "apikey.",
+  "relay.",
+  "cve.",
   "authz.denied",
   "agent.",
 ];

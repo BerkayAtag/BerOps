@@ -404,7 +404,7 @@ export type TargetStatus =
 export interface Action {
   id: string;
   name: string;
-  kind: "deploy_package" | "run_command" | "deploy_patch" | "restart" | "collect_logs";
+  kind: "deploy_package" | "run_command" | "deploy_patch" | "restart" | "collect_logs" | "update_agent";
   package_id: string | null;
   package_name: string;
   package_version: string;

@@ -16,6 +16,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/BerkayAtag/BerOps/shared/tlspin"
@@ -203,6 +204,46 @@ func (ca *CA) IssueServerCert(hosts []string, validity time.Duration) (tls.Certi
 		PrivateKey:  key,
 		Leaf:        leaf,
 	}, nil
+}
+
+// ServerCertSource, iç CA'dan üretilen sunucu sertifikasını ömrünün son üçte birine girince
+// yeniler. Sunucu yeniden başlatılmadan aylarca çalıştığında sertifikanın süresi dolmaz.
+type ServerCertSource struct {
+	ca       *CA
+	hosts    []string
+	validity time.Duration
+
+	mu   sync.Mutex
+	cert *tls.Certificate
+}
+
+// NewServerCertSource, ilk sertifikayı hemen üretir (ana makine adı hatası açılışta görünür).
+func (ca *CA) NewServerCertSource(hosts []string, validity time.Duration) (*ServerCertSource, error) {
+	c, err := ca.IssueServerCert(hosts, validity)
+	if err != nil {
+		return nil, err
+	}
+	return &ServerCertSource{ca: ca, hosts: hosts, validity: validity, cert: &c}, nil
+}
+
+// GetCertificate, tls.Config.GetCertificate için geçerli sertifikayı döner. Yenileme başarısız
+// olursa süresi dolana kadar mevcut sertifika kullanılır.
+func (s *ServerCertSource) GetCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	now := s.ca.now()
+	if s.cert.Leaf.NotAfter.Sub(now) > s.validity/3 {
+		return s.cert, nil
+	}
+	c, err := s.ca.IssueServerCert(s.hosts, s.validity)
+	if err != nil {
+		if now.Before(s.cert.Leaf.NotAfter) {
+			return s.cert, nil
+		}
+		return nil, err
+	}
+	s.cert = &c
+	return s.cert, nil
 }
 
 // AgentCert, imzalanmış ajan sertifikasının özetidir.

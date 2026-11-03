@@ -110,7 +110,7 @@ func TestRolePermissions(t *testing.T) {
 		PermMachinesManage, PermPackagesUpload, PermPackagesDelete,
 		PermActionsDeployPatch, PermActionsRunCommand, PermActionsApprove,
 		PermRemotePerformance, PermRemoteServices, PermRemoteRegistryRead, PermRemoteRegistryWrite, PermRemoteSettings,
-		PermSettingsWrite, PermUsersManage, PermADConfigure, PermRegKeysManage, PermRateLimitManage,
+		PermSettingsWrite, PermUsersManage, PermADConfigure, PermRegKeysManage, PermRateLimitManage, PermAgentsManage,
 	}
 
 	for _, p := range AllPermissions {

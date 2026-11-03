@@ -204,7 +204,8 @@
     "noInventory": "Waiting for inventory",
     "rebootPending": "Restart pending",
     "deploySelected": "Deploy package",
-    "runCommandSelected": "Run command"
+    "runCommandSelected": "Run command",
+    "updateAgentSelected": "Update agent"
   },
   "machine": {
     "notFound": "Machine not found.",
@@ -552,7 +553,8 @@
       "run_command": "Run command",
       "deploy_patch": "Patch deployment",
       "restart": "Restart",
-      "collect_logs": "Agent logs"
+      "collect_logs": "Agent logs",
+      "update_agent": "Agent update"
     },
     "status": {
       "pending_approval": "Awaiting approval",
@@ -639,7 +641,9 @@
       "retry": "Retry (count / minutes)",
       "retryCount": "Retry count",
       "retryDelay": "Minutes between attempts",
-      "retryHint": "A failed target is retried up to this many times at the given interval (0 = off)."
+      "retryHint": "A failed target is retried up to this many times at the given interval (0 = off).",
+      "updateAgentHint": "Upload BerOps-Agent-x64.msi (Windows) or BerOps-Agent.pkg (macOS) from the GitHub release to the package library and select it here. The agent installs the package itself and restarts; the new version reports the result.",
+      "noAgentPackage": "No agent package in the library; upload BerOps-Agent-x64.msi or BerOps-Agent.pkg first."
     },
     "releaseNext": "Start next stage",
     "releaseConfirm": "Open the next rollout stage now?",
@@ -802,7 +806,13 @@
       "machine.": "Machines",
       "report.": "Reports",
       "authz.denied": "Permission denied",
-      "agent.": "Agent"
+      "agent.": "Agent",
+      "group.": "Groups",
+      "remote.": "Remote management",
+      "regkey.": "Registration keys",
+      "apikey.": "API keys",
+      "relay.": "Relays",
+      "cve.": "CVE sources"
     },
     "params": "Parameters",
     "export": "Export",
@@ -1211,5 +1221,21 @@
       "agent_version": "1.1.0",
       "risk": "80"
     }
+  },
+  "protection": {
+    "title": "Uninstall protection",
+    "subtitle": "When on, the agent can only be uninstalled with this code. Only a hash of the code is stored and sent to agents with the heartbeat. Agent updates do not require the code.",
+    "on": "On",
+    "off": "Off",
+    "updatedAt": "last changed {{time}}",
+    "code": "Uninstall code",
+    "newCode": "New uninstall code (to change it)",
+    "codeHint": "12-128 characters; use a long, hard-to-guess code. Keep the code somewhere safe; it cannot be shown later.",
+    "enable": "Turn on protection",
+    "changeCode": "Change code",
+    "disable": "Turn off protection",
+    "confirmDisable": "Turn off uninstall protection? Agents can then be uninstalled without a code.",
+    "saved": "Uninstall protection saved; agents receive it with their next heartbeat.",
+    "disabled": "Uninstall protection turned off."
   }
 }

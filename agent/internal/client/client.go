@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/BerkayAtag/BerOps/shared/protocol"
@@ -37,6 +38,8 @@ func (e *APIError) Error() string {
 type Client struct {
 	base *url.URL
 	http *http.Client
+	// cert, mTLS istemci sertifikasıdır; yenilemeden sonra SetCertificate ile değiştirilir.
+	cert atomic.Pointer[tls.Certificate]
 }
 
 // New, istemci oluşturur. cert nil ise istemci sertifikası gönderilmez (yalnızca kayıt için).
@@ -49,8 +52,12 @@ func New(serverURL, caHash string, cert *tls.Certificate) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	c := &Client{base: u}
 	if cert != nil {
-		tc.Certificates = []tls.Certificate{*cert}
+		c.cert.Store(cert)
+		tc.GetClientCertificate = func(*tls.CertificateRequestInfo) (*tls.Certificate, error) {
+			return c.cert.Load(), nil
+		}
 	}
 	tr := &http.Transport{
 		TLSClientConfig:     tc,
@@ -59,7 +66,24 @@ func New(serverURL, caHash string, cert *tls.Certificate) (*Client, error) {
 		IdleConnTimeout:     5 * time.Minute,
 		TLSHandshakeTimeout: 15 * time.Second,
 	}
-	return &Client{base: u, http: &http.Client{Transport: tr, Timeout: 60 * time.Second}}, nil
+	c.http = &http.Client{Transport: tr, Timeout: 60 * time.Second}
+	return c, nil
+}
+
+// SetCertificate, istemci sertifikasını değiştirir ve açık bağlantıları kapatır; sonraki
+// istekler yeni sertifikayla el sıkışır.
+func (c *Client) SetCertificate(cert *tls.Certificate) {
+	c.cert.Store(cert)
+	c.http.CloseIdleConnections()
+}
+
+// Renew, ajan sertifikasını yeniler (mevcut sertifikayla mTLS).
+func (c *Client) Renew(ctx context.Context, req protocol.RenewRequest) (*protocol.RenewResponse, error) {
+	var out protocol.RenewResponse
+	if err := c.post(ctx, protocol.PathRenew, req, http.StatusOK, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // Enroll, kayıt isteği gönderir.

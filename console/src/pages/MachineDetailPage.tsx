@@ -1,4 +1,4 @@
-import { createColumnHelper, type PaginationState, type SortingState } from "@tanstack/react-table";
+import { type PaginationState, type SortingState } from "@tanstack/react-table";
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
@@ -25,6 +25,7 @@ import {
   StatusPill,
 } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
+import { columnHelper } from "../components/tableFeatures";
 import { formatBytes, formatDate, formatDateTime, formatNumber, formatRelative } from "../format";
 import { ActionStatusPill } from "../components/ActionBadges";
 import { RemotePanel } from "../components/RemotePanel";
@@ -349,7 +350,7 @@ export function MachineDetailPage() {
   );
 }
 
-const vcol = createColumnHelper<MachineVuln>();
+const vcol = columnHelper<MachineVuln>();
 
 function VulnTable({ rows }: { rows: MachineVuln[] }) {
   const { t, i18n } = useTranslation();
@@ -433,7 +434,7 @@ function VulnTable({ rows }: { rows: MachineVuln[] }) {
   );
 }
 
-const mcol = createColumnHelper<MissingPatch>();
+const mcol = columnHelper<MissingPatch>();
 
 function MissingTable({ rows }: { rows: MissingPatch[] }) {
   const { t, i18n } = useTranslation();
@@ -522,7 +523,7 @@ function MissingTable({ rows }: { rows: MissingPatch[] }) {
   );
 }
 
-const icol = createColumnHelper<InstalledPatch>();
+const icol = columnHelper<InstalledPatch>();
 
 function InstalledTable({ rows }: { rows: InstalledPatch[] }) {
   const { t, i18n } = useTranslation();
@@ -558,7 +559,7 @@ function InstalledTable({ rows }: { rows: InstalledPatch[] }) {
   );
 }
 
-const acol = createColumnHelper<InstalledApp>();
+const acol = columnHelper<InstalledApp>();
 
 function AppsTable({ rows }: { rows: InstalledApp[] }) {
   const { t, i18n } = useTranslation();

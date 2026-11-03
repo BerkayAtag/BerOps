@@ -390,7 +390,9 @@ func TestNotifications(t *testing.T) {
 	resp, _ = admin.do("POST", "/api/v1/notifications/schedules", map[string]any{"report": "compliance", "format": "csv",
 		"hour": 7, "channel_id": chID}, true)
 	expectStatus(t, resp, 400, "webhook'a zamanlanmış rapor")
-	at := time.Date(2026, 11, 2, 7, 5, 0, 0, time.UTC)
+	// Rapor zamanı her zaman gelecekte olmalı (oturumlar veritabanı saatiyle yazılır): yarın 07:05 UTC.
+	today := time.Now().UTC()
+	at := time.Date(today.Year(), today.Month(), today.Day()+1, 7, 5, 0, 0, time.UTC)
 	resp, _ = admin.do("POST", "/api/v1/notifications/schedules", map[string]any{"report": "compliance", "format": "csv",
 		"lang": "tr", "hour": 7, "weekday": int(at.Weekday()), "timezone": "UTC", "channel_id": mailCh["id"]}, true)
 	expectStatus(t, resp, 201, "zamanlanmış rapor")

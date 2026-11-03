@@ -17,7 +17,9 @@ import { useAuth } from "../auth/AuthProvider";
 import { PlatformIcon } from "../components/Badges";
 import { ROLLOUT_PRESETS, type RolloutPreset } from "../rollout";
 
-type Kind = "deploy_package" | "run_command";
+type Kind = "deploy_package" | "run_command" | "update_agent";
+
+const KINDS: Kind[] = ["deploy_package", "run_command", "update_agent"];
 type Target = { id: string; hostname: string; os_platform: "windows" | "darwin" };
 
 function MachinePicker({ selected, onAdd }: { selected: Target[]; onAdd: (m: Target) => void }) {
@@ -71,10 +73,18 @@ export function NewActionPage() {
   const [params] = useSearchParams();
   const canPkg = can("actions.deploy_package");
   const canCmd = can("actions.run_command");
-  const initialKind = (params.get("kind") as Kind) ?? (canPkg ? "deploy_package" : "run_command");
+  const canUpdate = can("agents.manage");
+  const kindAllowed = (k: Kind) =>
+    k === "deploy_package" ? canPkg : k === "run_command" ? canCmd : canUpdate;
+  // İstenen tür yoksa veya izin verilmiyorsa kullanıcının yapabildiği ilk tür seçilir.
+  const requested = params.get("kind") as Kind | null;
   const [kind, setKind] = useState<Kind>(
-    initialKind === "run_command" && canCmd ? "run_command" : "deploy_package",
+    requested && KINDS.includes(requested) && kindAllowed(requested)
+      ? requested
+      : (KINDS.find(kindAllowed) ?? "deploy_package"),
   );
+  // Ajan güncellemesi de kütüphanedeki bir paketi (ajanın MSI/PKG'si) kullanır.
+  const usesPackage = kind !== "run_command";
   const [packageId, setPackageId] = useState(params.get("package") ?? "");
   const [shell, setShell] = useState<Shell>("powershell");
   const [command, setCommand] = useState("");
@@ -115,12 +125,18 @@ export function NewActionPage() {
     [packages, packageId],
   );
   const platforms = new Set(targets.map((m) => m.os_platform));
-  const mismatch = kind === "deploy_package" && pkg && targets.some((m) => m.os_platform !== pkg.platform);
+  const mismatch = usesPackage && pkg && targets.some((m) => m.os_platform !== pkg.platform);
   const shellOptions: Shell[] =
     platforms.size === 1 && platforms.has("darwin") ? ["zsh", "sh"] : ["powershell", "cmd"];
   const effectiveShell = shellOptions.includes(shell) ? shell : shellOptions[0]!;
   const limit = settings.status === "ok" ? settings.data.per_client_kbps : 0;
-  const allowed = kind === "deploy_package" ? canPkg : canCmd;
+  const allowed = kindAllowed(kind);
+  const packageOptions =
+    packages.status !== "ok"
+      ? []
+      : kind === "update_agent"
+        ? packages.data.items.filter((p) => p.installer === (p.platform === "windows" ? "msi" : "pkg"))
+        : packages.data.items;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -138,7 +154,7 @@ export function NewActionPage() {
       if (retryCount > 0) Object.assign(body, { retry_count: retryCount, retry_delay_minutes: retryDelay });
       if (bandwidth > 0) body.bandwidth_kbps = bandwidth;
       if (expires > 0) body.expires_hours = expires;
-      if (kind === "deploy_package") body.package_id = packageId;
+      if (usesPackage) body.package_id = packageId;
       else Object.assign(body, { shell: effectiveShell, command });
       if (respectWindows) body.respect_windows = true;
       // datetime-local yerel saattir; sunucuya ISO (UTC) olarak gönderilir.
@@ -173,8 +189,8 @@ export function NewActionPage() {
           </div>
           <div className="card-body stack">
             <div className="choice-row" role="radiogroup">
-              {(["deploy_package", "run_command"] as const).map((k) => {
-                const ok = k === "deploy_package" ? canPkg : canCmd;
+              {KINDS.map((k) => {
+                const ok = kindAllowed(k);
                 return (
                   <label
                     key={k}
@@ -188,31 +204,41 @@ export function NewActionPage() {
                       value={k}
                       checked={kind === k}
                       disabled={!ok}
-                      onChange={() => setKind(k)}
+                      onChange={() => {
+                        setKind(k);
+                        setPackageId("");
+                      }}
                     />
                     {t(`actions.kind.${k}`)}
                   </label>
                 );
               })}
             </div>
-            {kind === "deploy_package" ? (
-              <label className="field-inline">
-                <span className="muted small">{t("actions.wizard.package")}</span>
-                <select
-                  className="select"
-                  required
-                  value={packageId}
-                  onChange={(e) => setPackageId(e.target.value)}
-                >
-                  <option value="">{t("actions.wizard.pickPackage")}</option>
-                  {packages.status === "ok" &&
-                    packages.data.items.map((p) => (
+            {usesPackage ? (
+              <>
+                <label className="field-inline">
+                  <span className="muted small">{t("actions.wizard.package")}</span>
+                  <select
+                    className="select"
+                    required
+                    value={packageId}
+                    onChange={(e) => setPackageId(e.target.value)}
+                  >
+                    <option value="">{t("actions.wizard.pickPackage")}</option>
+                    {packageOptions.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} {p.version} ({t(`machines.platform.${p.platform}`)})
                       </option>
                     ))}
-                </select>
-              </label>
+                  </select>
+                </label>
+                {kind === "update_agent" && <p className="hint">{t("actions.wizard.updateAgentHint")}</p>}
+                {kind === "update_agent" && packages.status === "ok" && packageOptions.length === 0 && (
+                  <div className="alert alert-warning" role="status">
+                    {t("actions.wizard.noAgentPackage")}
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 <label className="field-inline">
@@ -442,7 +468,7 @@ export function NewActionPage() {
               !allowed ||
               (targets.length === 0 && groupIds.length === 0 && !allMachines) ||
               Boolean(mismatch) ||
-              (kind === "deploy_package" ? !packageId : !command.trim())
+              (usesPackage ? !packageId : !command.trim())
             }
           >
             {busy ? t("actions.wizard.submitting") : t("actions.wizard.submit")}

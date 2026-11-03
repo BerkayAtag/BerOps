@@ -136,19 +136,27 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           go build -trimpath -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.0-ci" -o dist/berops-agent.exe ./agent/cmd/berops-agent
+          go build -trimpath -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.1-ci" -o dist/v2/berops-agent.exe ./agent/cmd/berops-agent
           go build -trimpath -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.0-ci" -o dist/berops-server.exe ./server/cmd/berops-server
       - name: MSI paketleri
         shell: pwsh
-        run: ./installers/windows/build.ps1 -Version 0.0.0-ci -AgentExe dist/berops-agent.exe -ServerExe dist/berops-server.exe -ConsoleDir console/dist -OutDir dist
+        run: |
+          ./installers/windows/build.ps1 -Version 0.0.0-ci -AgentExe dist/berops-agent.exe -ServerExe dist/berops-server.exe -ConsoleDir console/dist -OutDir dist
+          # Ajan güncellemesi testi için daha yeni sürüm ajan paketi.
+          ./installers/windows/build.ps1 -Version 0.0.1-ci -AgentExe dist/v2/berops-agent.exe -ServerExe dist/berops-server.exe -ConsoleDir console/dist -OutDir dist/v2
       - name: PostgreSQL (runner imajındaki)
         shell: pwsh
         run: |
           $svc = Get-Service -Name 'postgresql*'
           Set-Service $svc.Name -StartupType Manual
           Start-Service $svc.Name
-      - name: Kurulum, Yayımcı alanı ve temiz kaldırma doğrulaması
+      - name: Kurulum, ajan güncellemesi, kaldırma koruması ve temiz kaldırma doğrulaması
         shell: pwsh
-        run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
+        run: ./installers/windows/test-msi.ps1 -AgentMsi (Resolve-Path dist/BerOps-Agent-x64.msi) -AgentUpdateMsi (Resolve-Path dist/v2/BerOps-Agent-x64.msi) -ServerMsi (Resolve-Path dist/BerOps-Server-x64.msi) -DatabaseUrl 'postgres://postgres:root@localhost:5432/postgres?sslmode=disable'
+      - name: Ajan günlüğünü topla
+        if: failure()
+        shell: pwsh
+        run: Copy-Item "$env:ProgramData\BerOps\Agent\logs\agent.log" agent-service.log -ErrorAction SilentlyContinue
       - name: Kurulum günlükleri
         if: failure()
         uses: actions/upload-artifact@v7
@@ -173,8 +181,13 @@ jobs:
           GOARCH=amd64 go build -trimpath -ldflags "$LD" -o dist/berops-agent-amd64 ./agent/cmd/berops-agent
           lipo -create -output dist/berops-agent dist/berops-agent-arm64 dist/berops-agent-amd64
           lipo -archs dist/berops-agent
+          # Ajan güncellemesi testi: daha yeni sürüm ajan ve sunucu.
+          go build -trimpath -ldflags "-X github.com/BerkayAtag/BerOps/shared/version.Version=0.0.1-ci" -o dist/v2/berops-agent ./agent/cmd/berops-agent
+          go build -trimpath -o dist/berops-server ./server/cmd/berops-server
       - name: Paket
-        run: installers/macos/build-pkg.sh 0.0.0-ci dist/berops-agent dist/BerOps-Agent.pkg
+        run: |
+          installers/macos/build-pkg.sh 0.0.0-ci dist/berops-agent dist/BerOps-Agent.pkg
+          installers/macos/build-pkg.sh 0.0.1-ci dist/v2/berops-agent dist/v2/BerOps-Agent.pkg
       - name: Kurulum ve daemon doğrulaması
         run: |
           sudo installer -pkg dist/BerOps-Agent.pkg -target /
@@ -182,13 +195,35 @@ jobs:
           sudo launchctl print system/io.github.berkayatag.berops.agent | grep -E "state = running"
           /usr/local/bin/berops-agent version
           pkgutil --pkg-info io.github.berkayatag.berops.agent.pkg
+      - name: PostgreSQL
+        run: |
+          brew install postgresql@17
+          brew services start postgresql@17
+          for _ in $(seq 30); do "$(brew --prefix postgresql@17)/bin/pg_isready" -h localhost && break || sleep 1; done
+          "$(brew --prefix postgresql@17)/bin/createdb" -h localhost berops
+      - name: Ajan güncellemesi (uçtan uca)
+        run: installers/macos/test-update.sh dist/berops-server dist/v2/BerOps-Agent.pkg 0.0.1-ci "postgres://$(whoami)@localhost:5432/berops?sslmode=disable"
+      - name: Kaldırma koruması
+        run: |
+          # Konsolun gönderdiği özetin eşdeğeri elle yazılır (PBKDF2-SHA256).
+          sudo python3 - <<'PY'
+          import hashlib, json, base64, os
+          salt = os.urandom(16)
+          h = hashlib.pbkdf2_hmac("sha256", b"Ci-Kod-12345", salt, 10000, 32)
+          p = {"enabled": True, "salt": base64.b64encode(salt).decode(), "hash": base64.b64encode(h).decode(), "iterations": 10000}
+          open("/Library/Application Support/BerOps/Agent/protection.json", "w").write(json.dumps(p))
+          PY
+          # "! komut" bash -e altında adımı düşürmez; "|| exit 1" ile beklenen ret zorunlu kılınır.
+          ! sudo /usr/local/bin/berops-agent-uninstall || exit 1
+          ! sudo /usr/local/bin/berops-agent-uninstall -code yanlis-kod || exit 1
+          test -e /usr/local/bin/berops-agent
       - name: Temiz kaldırma
         run: |
-          sudo /usr/local/bin/berops-agent-uninstall
-          ! sudo launchctl print system/io.github.berkayatag.berops.agent 2>/dev/null
+          sudo /usr/local/bin/berops-agent-uninstall -code Ci-Kod-12345
+          ! sudo launchctl print system/io.github.berkayatag.berops.agent 2>/dev/null || exit 1
           test ! -e /usr/local/bin/berops-agent
           test ! -e "/Library/Application Support/BerOps"
-          ! pkgutil --pkg-info io.github.berkayatag.berops.agent.pkg 2>/dev/null
+          ! pkgutil --pkg-info io.github.berkayatag.berops.agent.pkg 2>/dev/null || exit 1
 
   docker:
     name: Sunucu Docker imajı

@@ -204,7 +204,8 @@
     "noInventory": "Envanter bekleniyor",
     "rebootPending": "Yeniden başlatma bekliyor",
     "deploySelected": "Paket gönder",
-    "runCommandSelected": "Komut çalıştır"
+    "runCommandSelected": "Komut çalıştır",
+    "updateAgentSelected": "Ajanı güncelle"
   },
   "machine": {
     "notFound": "Makine bulunamadı.",
@@ -552,7 +553,8 @@
       "run_command": "Komut çalıştırma",
       "deploy_patch": "Yama dağıtımı",
       "restart": "Yeniden başlatma",
-      "collect_logs": "Ajan günlükleri"
+      "collect_logs": "Ajan günlükleri",
+      "update_agent": "Ajan güncellemesi"
     },
     "status": {
       "pending_approval": "Onay bekliyor",
@@ -639,7 +641,9 @@
       "retry": "Yeniden deneme (sayı / dakika)",
       "retryCount": "Yeniden deneme sayısı",
       "retryDelay": "Denemeler arası dakika",
-      "retryHint": "Başarısız hedef en çok bu kadar kez, verilen aralıkla yeniden denenir (0 = kapalı)."
+      "retryHint": "Başarısız hedef en çok bu kadar kez, verilen aralıkla yeniden denenir (0 = kapalı).",
+      "updateAgentHint": "Paket kütüphanesine GitHub sürümündeki BerOps-Agent-x64.msi (Windows) veya BerOps-Agent.pkg (macOS) dosyasını yükleyip burada seçin. Ajan paketi kendisi kurar ve yeniden başlar; sonucu yeni sürüm bildirir.",
+      "noAgentPackage": "Kütüphanede ajan paketi yok; önce BerOps-Agent-x64.msi veya BerOps-Agent.pkg yükleyin."
     },
     "releaseNext": "Sonraki aşamayı başlat",
     "releaseConfirm": "Kademeli dağıtımın sonraki aşaması hemen açılsın mı?",
@@ -802,7 +806,13 @@
       "machine.": "Makineler",
       "report.": "Raporlar",
       "authz.denied": "Yetki reddi",
-      "agent.": "Ajan"
+      "agent.": "Ajan",
+      "group.": "Gruplar",
+      "remote.": "Uzaktan yönetim",
+      "regkey.": "Kayıt anahtarları",
+      "apikey.": "API anahtarları",
+      "relay.": "Relay",
+      "cve.": "CVE kaynakları"
     },
     "params": "Parametreler",
     "export": "Dışa aktar",
@@ -1211,5 +1221,21 @@
       "agent_version": "1.1.0",
       "risk": "80"
     }
+  },
+  "protection": {
+    "title": "Kaldırma koruması",
+    "subtitle": "Açıkken ajan, ancak bu kodla kaldırılabilir. Kod yalnızca özet olarak saklanır ve ajanlara heartbeat ile ulaşır. Ajan güncellemeleri kod istemez.",
+    "on": "Açık",
+    "off": "Kapalı",
+    "updatedAt": "son değişiklik {{time}}",
+    "code": "Kaldırma kodu",
+    "newCode": "Yeni kaldırma kodu (değiştirmek için)",
+    "codeHint": "12-128 karakter; uzun ve tahmin edilmesi zor bir kod seçin. Kodu güvenli bir yerde saklayın; sonradan görüntülenemez.",
+    "enable": "Korumayı aç",
+    "changeCode": "Kodu değiştir",
+    "disable": "Korumayı kapat",
+    "confirmDisable": "Kaldırma koruması kapatılsın mı? Ajanlar kodsuz kaldırılabilir hâle gelir.",
+    "saved": "Kaldırma koruması kaydedildi; ajanlara bir sonraki heartbeat'te ulaşır.",
+    "disabled": "Kaldırma koruması kapatıldı."
   }
 }

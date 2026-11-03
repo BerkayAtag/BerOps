@@ -204,11 +204,11 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	}
 	srv.SetSecretBox(box)
 
-	agentCert, err := ca.IssueServerCert(cfg.Agent.Hostnames, 90*24*time.Hour)
+	agentCerts, err := ca.NewServerCertSource(cfg.Agent.Hostnames, serverCertValidity)
 	if err != nil {
 		return err
 	}
-	consoleCert, err := consoleCertificate(cfg, ca)
+	consoleTLS, err := consoleTLSConfig(cfg, ca)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		{
 			Addr:              cfg.Console.Listen,
 			Handler:           srv.ConsoleHandler(),
-			TLSConfig:         &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{consoleCert}},
+			TLSConfig:         consoleTLS,
 			ReadHeaderTimeout: 10 * time.Second,
 			ReadTimeout:       60 * time.Second,
 			WriteTimeout:      120 * time.Second,
@@ -226,7 +226,7 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 		{
 			Addr:              cfg.Agent.Listen,
 			Handler:           srv.AgentHandler(),
-			TLSConfig:         srv.AgentTLSConfig(agentCert),
+			TLSConfig:         srv.AgentTLSConfig(agentCerts.GetCertificate),
 			ReadHeaderTimeout: 10 * time.Second,
 			ReadTimeout:       60 * time.Second,
 			WriteTimeout:      120 * time.Second,
@@ -262,18 +262,30 @@ func serve(ctx context.Context, cfg config.Config, log *slog.Logger) error {
 	return nil
 }
 
-// consoleCertificate, yapılandırılmış sertifikayı yükler; yoksa iç CA'dan üretir.
-// İç CA'dan üretilen sertifikaya tarayıcıların güvenmesi için CA'nın (data/pki/ca.crt)
-// yönetici bilgisayarlarına dağıtılması gerekir.
-func consoleCertificate(cfg config.Config, ca *pki.CA) (tls.Certificate, error) {
+// serverCertValidity, iç CA'dan üretilen sunucu sertifikalarının ömrüdür; sertifikalar
+// süre dolmadan çalışma sırasında yenilenir.
+const serverCertValidity = 90 * 24 * time.Hour
+
+// consoleTLSConfig, konsol dinleyicisinin TLS yapılandırmasıdır. Yapılandırılmış sertifika
+// yüklenir; yoksa iç CA'dan üretilir ve kendiliğinden yenilenir. İç CA'dan üretilen
+// sertifikaya tarayıcıların güvenmesi için CA'nın (data/pki/ca.crt) yönetici bilgisayarlarına
+// dağıtılması gerekir.
+func consoleTLSConfig(cfg config.Config, ca *pki.CA) (*tls.Config, error) {
+	tc := &tls.Config{MinVersion: tls.VersionTLS12}
 	if cfg.Console.TLSCertFile != "" {
 		c, err := tls.LoadX509KeyPair(cfg.Console.TLSCertFile, cfg.Console.TLSKeyFile)
 		if err != nil {
-			return c, fmt.Errorf("konsol sertifikası yüklenemedi: %w", err)
+			return nil, fmt.Errorf("konsol sertifikası yüklenemedi: %w", err)
 		}
-		return c, nil
+		tc.Certificates = []tls.Certificate{c}
+		return tc, nil
 	}
-	return ca.IssueServerCert(cfg.Console.Hostnames, 90*24*time.Hour)
+	src, err := ca.NewServerCertSource(cfg.Console.Hostnames, serverCertValidity)
+	if err != nil {
+		return nil, err
+	}
+	tc.GetCertificate = src.GetCertificate
+	return tc, nil
 }
 
 func cmdMigrate(args []string) error {

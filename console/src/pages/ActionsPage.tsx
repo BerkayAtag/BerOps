@@ -1,4 +1,4 @@
-import { createColumnHelper, type PaginationState } from "@tanstack/react-table";
+import { type PaginationState } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
@@ -7,9 +7,10 @@ import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { ActionProgress, ActionStatusPill } from "../components/ActionBadges";
 import { DataTable } from "../components/DataTable";
+import { columnHelper } from "../components/tableFeatures";
 import { formatDateTime } from "../format";
 
-const col = createColumnHelper<Action>();
+const col = columnHelper<Action>();
 
 export function ActionsPage() {
   const { t, i18n } = useTranslation();
@@ -25,7 +26,7 @@ export function ActionsPage() {
     page_size: String(pagination.pageSize),
   });
   const [list] = useApi<Page<Action>>(`/api/v1/actions?${q}`);
-  const canCreate = can("actions.deploy_package") || can("actions.run_command");
+  const canCreate = can("actions.deploy_package") || can("actions.run_command") || can("agents.manage");
 
   const columns = useMemo(
     () => [
@@ -119,6 +120,7 @@ export function ActionsPage() {
             <option value="deploy_patch">{t("actions.kind.deploy_patch")}</option>
             <option value="restart">{t("actions.kind.restart")}</option>
             <option value="collect_logs">{t("actions.kind.collect_logs")}</option>
+            <option value="update_agent">{t("actions.kind.update_agent")}</option>
           </select>
         </div>
         <DataTable

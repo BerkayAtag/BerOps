@@ -43,8 +43,10 @@ Paket kurulunca daemon başlar ve yapılandırma bekler. `configure` komutu yap�
 
 ## Güncelleme ve kaldırma
 
-- **Güncelleme:** Yeni paketi kurun. Kimlik korunur.
+- **Konsoldan güncelleme (1.3 ve üstü ajanlar):** Yeni `BerOps-Agent.pkg` dosyasını paket kütüphanesine yükleyin, ardından **Yeni aksiyon → Ajan güncellemesi** ile gönderin. Ajan paketi ayrı, tek seferlik bir launchd işiyle kurar ve yeniden başlar; sonucu yeni sürüm bildirir. `agents.manage` izni gerekir.
+- **Elle güncelleme:** Yeni paketi kurun. Kimlik korunur.
 - **Kaldırma:** `sudo /usr/local/bin/berops-agent-uninstall`. Daemon durdurulur; program, launchd tanımı, veri klasörü ve paket kaydı (`pkgutil --forget`) silinir.
+- **Kaldırma koruması açıksa:** `sudo /usr/local/bin/berops-agent-uninstall -code <kod>`. Kodun süreç listesinde görünmemesi için `sudo BEROPS_UNINSTALL_CODE=<kod> /usr/local/bin/berops-agent-uninstall` de kullanılabilir. Kod yanlışsa hiçbir şey silinmez.
 
 ## Yama dağıtımı
 

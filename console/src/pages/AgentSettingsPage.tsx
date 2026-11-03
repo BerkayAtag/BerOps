@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { api, errorKey, type AgentSettings, type AgentSettingsResponse } from "../api/client";
 import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
+import { UninstallProtection } from "../components/UninstallProtection";
 import { formatBytes, formatDateTime } from "../format";
 
 export function AgentSettingsPage() {
@@ -169,6 +170,7 @@ export function AgentSettingsPage() {
           </button>
         </div>
       </form>
+      <UninstallProtection />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: BerOps API
-  version: 1.2.0
+  version: 1.3.0
   description: |
     BerOps konsol ve ajan API'si.
 
@@ -172,6 +172,11 @@ components:
         arch: { type: string }
         ip_addresses: { type: array, items: { type: string } }
         agent_version: { type: string }
+        capabilities:
+          type: array
+          maxItems: 32
+          items: { type: string, maxLength: 64 }
+          description: "İsteğe bağlı iş türleri (ör. update_agent); eski ajanlar göndermez"
     MissingPatch:
       type: object
       properties:
@@ -765,7 +770,7 @@ paths:
       x-ber-permission: machines.read
       parameters:
         - { name: status, in: query, schema: { type: string, enum: [pending_approval, active, completed, cancelled, rejected] } }
-        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, deploy_patch, run_command, restart, collect_logs] } }
+        - { name: kind, in: query, schema: { type: string, enum: [deploy_package, deploy_patch, run_command, restart, collect_logs, update_agent] } }
         - { name: machine_id, in: query, schema: { type: string, format: uuid } }
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
@@ -779,6 +784,8 @@ paths:
         deploy_patch → actions.deploy_patch (patches: Windows UpdateID veya macOS etiketleri; tek platform),
         restart → actions.deploy_patch (restart_delay_minutes 0-1440, restart_message; tek platform),
         collect_logs → machines.manage (ajan günlüğünün son kısmı hedefin stdout'unda döner),
+        update_agent → agents.manage (package_id: Windows'ta MSI, macOS'ta PKG ajan paketi; komut gönderilmez,
+        hedeflerin ajanı update_agent yeteneğini bildirmiş olmalı),
         run_command → actions.run_command. not_before verilirse işler o zamana kadar ajana verilmez
         (geçerlilik süresi başlangıçtan itibaren sayılır). Her hedef için iş tanımı sunucunun Ed25519 anahtarıyla imzalanır.
         Denetim kaydı yazılamazsa aksiyon oluşturulmaz (503).
@@ -793,7 +800,7 @@ paths:
               description: "Hedef: machine_ids, group_ids ve all_machines birleşimidir; en az biri verilmelidir."
               required: [kind]
               properties:
-                kind: { type: string, enum: [deploy_package, run_command] }
+                kind: { type: string, enum: [deploy_package, run_command, deploy_patch, restart, collect_logs, update_agent] }
                 name: { type: string, maxLength: 200 }
                 package_id: { type: string, format: uuid }
                 shell: { type: string, enum: [cmd, powershell, sh, zsh] }
@@ -1161,6 +1168,36 @@ paths:
       responses:
         "200": { description: Kaydedildi }
         "400": { description: Geçersiz değerler }
+  /api/v1/settings/agent-protection:
+    get:
+      tags: [Ayarlar]
+      summary: Kaldırma koruması durumu
+      security: [{ session: [] }]
+      x-ber-permission: settings.read
+      responses:
+        "200": { description: "enabled, updated_at (kod ve özeti dönmez)" }
+    put:
+      tags: [Ayarlar]
+      summary: Kaldırma korumasını aç, kodunu değiştir veya kapat
+      description: |
+        Kod sunucuda saklanmaz; tuzlu PBKDF2-SHA256 özeti saklanır ve ajanlara heartbeat ile ulaşır.
+        Koruma açıkken code boş gönderilirse mevcut kod korunur. Kod denetim kaydına yazılmaz.
+      security: [{ session: [] }]
+      x-ber-permission: agents.manage
+      parameters: [{ $ref: "#/components/parameters/CSRF" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+                code: { type: string, minLength: 12, maxLength: 128, description: Başında/sonunda boşluk olmamalı }
+      responses:
+        "200": { description: "enabled, updated_at" }
+        "400": { description: Kod eksik veya geçersiz }
   /api/v1/machines/{id}/approve:
     post:
       tags: [Makineler]
@@ -1402,8 +1439,46 @@ paths:
                   status: { type: string }
                   heartbeat_seconds: { type: integer }
                   server_time: { type: string, format: date-time }
+                  uninstall_protection:
+                    type: object
+                    description: "Kaldırma koruması; kodun yalnızca tuzlu PBKDF2-SHA256 özeti gönderilir"
+                    properties:
+                      enabled: { type: boolean }
+                      salt: { type: string, format: byte }
+                      hash: { type: string, format: byte }
+                      iterations: { type: integer }
         "401": { description: Sertifika yok, tanınmıyor veya yenilenmiş }
         "403": { description: Makine reddedilmiş veya iptal edilmiş }
+  /agent/v1/renew:
+    post:
+      tags: [Ajan]
+      summary: Ajan sertifikasını yenile
+      description: |
+        Ajan, mevcut anahtarıyla ürettiği CSR'ı mevcut sertifikasıyla (mTLS) gönderir. Sertifika ancak
+        ömrünün yarısından azı kaldığında yenilenir. Önceki sertifika kendi süresi bitene kadar kabul
+        edilmeye devam eder (ajan yeni sertifikayı kaydedemezse kilitlenmez).
+      security: [{ agentCert: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csr_pem]
+              properties:
+                csr_pem: { type: string }
+      responses:
+        "200":
+          description: Yeni sertifika
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  certificate_pem: { type: string }
+        "400": { description: Geçersiz CSR }
+        "401": { description: Sertifika yok veya tanınmıyor }
+        "409": { description: Sertifika henüz yenilenecek kadar eski değil }
   /agent/v1/inventory:
     post:
       tags: [Ajan]

@@ -34,6 +34,7 @@ const (
 	PermRegKeysManage   Permission = "regkeys.manage"
 	PermAuditRead       Permission = "audit.read"
 	PermRateLimitManage Permission = "transfer.limits.manage"
+	PermAgentsManage    Permission = "agents.manage" // ajan güncellemesi ve kaldırma koruması
 )
 
 // Role, yerleşik rol adıdır. Aşama 5'te veritabanında tanımlı özel roller eklenecek.
@@ -64,7 +65,7 @@ var AllPermissions = []Permission{
 	PermActionsDeployPackage, PermActionsDeployPatch, PermActionsRunCommand, PermActionsApprove,
 	PermRemotePerformance, PermRemoteServices, PermRemoteRegistryRead, PermRemoteRegistryWrite, PermRemoteSettings,
 	PermSettingsRead, PermSettingsWrite, PermUsersManage, PermADConfigure, PermRegKeysManage, PermAuditRead,
-	PermRateLimitManage,
+	PermRateLimitManage, PermAgentsManage,
 }
 
 var rolePermissions = map[Role]map[Permission]bool{

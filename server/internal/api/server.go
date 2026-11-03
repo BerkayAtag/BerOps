@@ -31,6 +31,8 @@ type Server struct {
 	now   func() time.Time
 
 	settings settingsCache
+	// protection, kaldırma korumasının heartbeat önbelleğidir.
+	protection protectionCache
 
 	vulns       *vuln.Engine
 	cveSync     *cve.Syncer
@@ -198,6 +200,8 @@ func (s *Server) ConsoleHandler() http.Handler {
 
 	mux.Handle("GET /api/v1/settings/agent", s.authed(auth.PermSettingsRead, s.handleGetAgentSettings))
 	mux.Handle("PUT /api/v1/settings/agent", s.authed(auth.PermSettingsWrite, s.handlePutAgentSettings))
+	mux.Handle("GET /api/v1/settings/agent-protection", s.authed(auth.PermSettingsRead, s.handleGetAgentProtection))
+	mux.Handle("PUT /api/v1/settings/agent-protection", s.authed(auth.PermAgentsManage, s.handlePutAgentProtection))
 
 	mux.Handle("GET /api/v1/dashboard/risk", s.authed(auth.PermReportsRead, s.handleRiskSummary))
 	mux.Handle("GET /api/v1/dashboard/ops", s.authed(auth.PermMachinesRead, s.handleDashboardOps))
@@ -227,6 +231,7 @@ func (s *Server) AgentHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /agent/v1/enroll", s.handleEnroll)
 	mux.HandleFunc("POST /agent/v1/heartbeat", s.handleHeartbeat)
+	mux.HandleFunc("POST /agent/v1/renew", s.handleRenew)
 	mux.HandleFunc("POST /agent/v1/inventory", s.handleInventory)
 	mux.HandleFunc("GET /agent/v1/files/wsusscn2.cab", s.handleWSUSCab)
 	mux.HandleFunc("GET /agent/v1/jobs", s.handleAgentJobs)
@@ -243,13 +248,14 @@ func (s *Server) AgentHandler() http.Handler {
 
 // AgentTLSConfig, ajan dinleyicisinin TLS yapılandırmasıdır. İstemci sertifikası
 // isteğe bağlıdır (kayıt sertifikasız yapılır) ama sunulursa iç CA'ya göre doğrulanır;
-// kimlik gerektiren uç noktalar doğrulanmış zinciri ayrıca zorunlu tutar.
-func (s *Server) AgentTLSConfig(serverCert tls.Certificate) *tls.Config {
+// kimlik gerektiren uç noktalar doğrulanmış zinciri ayrıca zorunlu tutar. Sunucu sertifikası
+// her el sıkışmada getCert'ten alınır (süresi dolmadan yenilenebilir).
+func (s *Server) AgentTLSConfig(getCert func(*tls.ClientHelloInfo) (*tls.Certificate, error)) *tls.Config {
 	return &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{serverCert},
-		ClientAuth:   tls.VerifyClientCertIfGiven,
-		ClientCAs:    s.ca.Pool(),
+		MinVersion:     tls.VersionTLS12,
+		GetCertificate: getCert,
+		ClientAuth:     tls.VerifyClientCertIfGiven,
+		ClientCAs:      s.ca.Pool(),
 	}
 }
 

@@ -23,6 +23,7 @@ BerOps'de her API uç noktası **sunucu tarafında** granüler bir izinle korunu
 | `users.manage` | Kullanıcı yönetimi | ✅ | — | — |
 | `ad.configure` | Active Directory ayarları ve eşlemeler | ✅ | — | — |
 | `regkeys.manage` | Ajan kayıt anahtarları | ✅ | — | — |
+| `agents.manage` | Ajan güncellemesi aksiyonu (`update_agent`) ve kaldırma koruması (kodu açma, değiştirme, kapatma) | ✅ | — | — |
 | `audit.read` | Denetim kaydı ve dışa aktarma | ✅ | ✅ | ✅ |
 
 - **Teknisyen** yalnızca kütüphanede var olan paketleri gönderebilir. Paket yükleyemez, komut yazamaz, ayar değiştiremez.

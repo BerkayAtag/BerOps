@@ -1,9 +1,4 @@
-import {
-  createColumnHelper,
-  type PaginationState,
-  type RowSelectionState,
-  type SortingState,
-} from "@tanstack/react-table";
+import { type PaginationState, type RowSelectionState, type SortingState } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
@@ -19,11 +14,12 @@ import { useApi } from "../api/useApi";
 import { useAuth } from "../auth/AuthProvider";
 import { OnlinePill, PlatformIcon, RiskBadge, StatusPill } from "../components/Badges";
 import { DataTable } from "../components/DataTable";
+import { columnHelper } from "../components/tableFeatures";
 import { PAGE_SIZES } from "../components/pageSizes";
 import { formatRelative } from "../format";
 import { useListParams } from "../hooks/useListParams";
 
-const col = createColumnHelper<MachineListItem>();
+const col = columnHelper<MachineListItem>();
 
 export function MachinesPage() {
   const { t, i18n } = useTranslation();
@@ -328,6 +324,14 @@ export function MachinesPage() {
                   to={`/aksiyonlar/yeni?kind=run_command&machines=${selectedIds.join(",")}`}
                 >
                   {t("machines.runCommandSelected")}
+                </Link>
+              )}
+              {can("agents.manage") && (
+                <Link
+                  className="btn btn-ghost btn-sm"
+                  to={`/aksiyonlar/yeni?kind=update_agent&machines=${selectedIds.join(",")}`}
+                >
+                  {t("machines.updateAgentSelected")}
                 </Link>
               )}
               {can("actions.deploy_package") && (
