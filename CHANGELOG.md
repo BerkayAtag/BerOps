@@ -19,6 +19,10 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 - Kayıt değişimi, geç gelen yanıt, başarısız çıkıştan sonra yeniden deneme, JSON gövde sınırı ve katalog indirme kurtarması için regresyon testleri eklendi.
 
+### Güvenlik
+
+- Go derleyicisinin asgari sürümü 1.27.4'e yükseltildi. Güvenlik taramasının saptadığı `GO-2026-6859` (`net/http` istek gövdesi sınırı sırasında sunucu çökmesi) giderildi.
+
 ## [1.3.0] — 2026-11-03
 
 ### Eklendi

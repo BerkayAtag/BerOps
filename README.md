@@ -77,7 +77,7 @@ Tam envanter taraması 17–26 sn sürer; bu sürenin çoğu Apple sunucularına
 
 ## Geliştirme
 
-Go 1.27+, Node.js 24+ ve Docker gerekir:
+Go 1.27.4+, Node.js 24+ ve Docker gerekir:
 
 ```bash
 docker compose -f deploy/docker-compose.dev.yml up -d --wait
