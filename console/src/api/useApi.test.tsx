@@ -11,7 +11,9 @@ it("makine değişirken önceki makinenin verisini göstermez", async () => {
     vi.fn((path: string) =>
       path === "/a"
         ? Promise.resolve(new Response(JSON.stringify({ name: "A" })))
-        : new Promise<Response>((resolve) => { complete = resolve; }),
+        : new Promise<Response>((resolve) => {
+            complete = resolve;
+          }),
     ),
   );
   const { result, rerender } = renderHook(({ path }) => useApi<{ name: string }>(path), {
@@ -28,9 +30,16 @@ it("makine değişirken önceki makinenin verisini göstermez", async () => {
 
 it("eski isteğin geç gelen yanıtını yeni kayda uygulamaz", async () => {
   let complete!: (response: Response) => void;
-  vi.stubGlobal("fetch", vi.fn((path: string) => path === "/a"
-    ? new Promise<Response>((resolve) => { complete = resolve; })
-    : Promise.resolve(new Response(JSON.stringify("B")))));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((path: string) =>
+      path === "/a"
+        ? new Promise<Response>((resolve) => {
+            complete = resolve;
+          })
+        : Promise.resolve(new Response(JSON.stringify("B"))),
+    ),
+  );
   const { result, rerender } = renderHook(({ path }) => useApi<string>(path), {
     initialProps: { path: "/a" },
   });

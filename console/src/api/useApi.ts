@@ -13,8 +13,7 @@ export function useApi<T>(path: string | null): [Load<T>, () => void] {
     api<T>(path)
       .then((data) => !cancelled && setResult({ path, state: { status: "ok", data } }))
       .catch(
-        (err: unknown) =>
-          !cancelled && setResult({ path, state: { status: "error", error: errorKey(err) } }),
+        (err: unknown) => !cancelled && setResult({ path, state: { status: "error", error: errorKey(err) } }),
       );
     return () => {
       cancelled = true;

@@ -78,7 +78,12 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
             <span className={`role-badge role-${me.user.role}`}>{t(`roles.${me.user.role}`)}</span>
           </span>
         </NavLink>
-        <button type="button" className="btn btn-ghost btn-sm" disabled={loggingOut} onClick={() => void handleLogout()}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={loggingOut}
+          onClick={() => void handleLogout()}
+        >
           {t("common.logout")}
         </button>
       </header>

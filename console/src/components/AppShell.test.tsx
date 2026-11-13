@@ -49,7 +49,9 @@ describe("menü", () => {
   it("çıkış başarısızsa oturumu korur ve yeniden denemeye izin verir", async () => {
     renderAs("admin", ["machines.read"]);
     await screen.findByRole("heading", { name: "Hesabım" });
-    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ code: "internal" }), { status: 500 }));
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: "internal" }), { status: 500 }),
+    );
     await userEvent.click(screen.getByRole("button", { name: "Çıkış yap" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Hesabım" })).toBeInTheDocument();
