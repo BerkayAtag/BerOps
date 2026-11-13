@@ -5,6 +5,20 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.3.1] — 2026-11-14
+
+### Düzeltildi
+
+- Konsolda makine, filtre veya detay adresi değiştiğinde önceki kaydın verileri yeni kayıt altında gösterilmiyor. Geç gelen eski yanıtlar yeni ekranı değiştirmiyor.
+- Sunucuya ulaşılamadığında veya çıkış isteği reddedildiğinde konsol artık çıkış yapılmış gibi davranmıyor; hata gösteriliyor ve yeniden denenebiliyor.
+- Çevrimdışı Windows güncelleme kataloğunun kesilen indirmeleri `If-Range` ile katalog sürümü doğrulanarak sürdürülüyor. Katalog değiştiğinde baştan indiriliyor; HTTP 416 yanıtı sonraki taramaları kilitlemiyor.
+- JSON API, ilk değerden sonraki ikinci değerleri ve bozuk ek veriyi reddediyor; gövde boyut sınırı sondaki boşluklara da uygulanıyor.
+- İstek günlüğü ara katmanı artık bağlantı denetimini alt katmana iletiyor; büyük paket yükleme ve indirmelerinde özel zaman aşımı ayarları gerçekten uygulanıyor.
+
+### Testler
+
+- Kayıt değişimi, geç gelen yanıt, başarısız çıkıştan sonra yeniden deneme, JSON gövde sınırı ve katalog indirme kurtarması için regresyon testleri eklendi.
+
 ## [1.3.0] — 2026-11-03
 
 ### Eklendi

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -166,14 +167,19 @@ func (c *Client) UploadInventory(ctx context.Context, r *protocol.InventoryRepor
 // kaldığı yerden sürdürülür.
 func (c *Client) DownloadWSUSCab(ctx context.Context, dest string) error {
 	part := dest + ".part"
+	validatorPath := part + ".validator"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.base.JoinPath(protocol.PathWSUSCab).String(), nil)
 	if err != nil {
 		return err
 	}
 	var offset int64
 	if st, err := os.Stat(part); err == nil {
-		offset = st.Size()
-		req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+		// Katalog indirme sırasında değişebilir. Doğrulayıcı yoksa eski parçayı birleştirme.
+		if validator, err := os.ReadFile(validatorPath); err == nil && len(validator) > 0 && st.Size() > 0 {
+			offset = st.Size()
+			req.Header.Set("Range", fmt.Sprintf("bytes=%d-", offset))
+			req.Header.Set("If-Range", string(validator))
+		}
 	} else if st, err := os.Stat(dest); err == nil {
 		req.Header.Set("If-Modified-Since", st.ModTime().UTC().Format(http.TimeFormat))
 	}
@@ -191,14 +197,29 @@ func (c *Client) DownloadWSUSCab(ctx context.Context, dest string) error {
 	case http.StatusNotModified:
 		return nil
 	case http.StatusPartialContent:
+		if offset == 0 || !strings.HasPrefix(resp.Header.Get("Content-Range"), fmt.Sprintf("bytes %d-", offset)) {
+			return fmt.Errorf("katalog yanıtındaki bayt aralığı geçersiz")
+		}
 		flags |= os.O_APPEND
 	case http.StatusOK:
 		flags |= os.O_TRUNC
+	case http.StatusRequestedRangeNotSatisfiable:
+		// Sonraki tarama aynı geçersiz aralıkta sonsuza kadar takılmasın.
+		_ = os.Remove(validatorPath)
+		return fmt.Errorf("katalog parçası geçersiz, sonraki indirme baştan başlayacak")
 	default:
 		return readAPIError(resp)
 	}
 	f, err := os.OpenFile(part, flags, 0o600)
 	if err != nil {
+		return err
+	}
+	validator := resp.Header.Get("ETag")
+	if validator == "" || strings.HasPrefix(validator, "W/") {
+		validator = resp.Header.Get("Last-Modified")
+	}
+	if err := os.WriteFile(validatorPath, []byte(validator), 0o600); err != nil {
+		f.Close()
 		return err
 	}
 	if _, err := io.Copy(f, resp.Body); err != nil {
@@ -211,7 +232,11 @@ func (c *Client) DownloadWSUSCab(ctx context.Context, dest string) error {
 	if lm, err := http.ParseTime(resp.Header.Get("Last-Modified")); err == nil {
 		_ = os.Chtimes(part, lm, lm)
 	}
-	return os.Rename(part, dest)
+	if err := os.Rename(part, dest); err != nil {
+		return err
+	}
+	_ = os.Remove(validatorPath)
+	return nil
 }
 
 func readAPIError(resp *http.Response) error {

@@ -20,6 +20,8 @@
 
 Ajanlar eksik yamaları, üçüncü parti uygulamaları ve CVE'leri toplar. Siz riske göre önceliklendirir, imzalı ve kademeli dağıtımlarla kapatırsınız. Veriler kendi sunucunuzda kalır.
 
+**1.3.1 bakım sürümü:** Konsolda kayıt geçişleri ve çıkış hataları, ajan katalog indirmelerinin kesinti sonrası kurtarılması ve API gövde doğrulaması düzeltildi. Ayrıntılar: [sürüm notları](CHANGELOG.md#131--2026-11-14).
+
 ## Kurulum: İleri → Kur → Bitir
 
 1. [BerOps-Server-x64.msi](https://github.com/BerkayAtag/BerOps/releases/latest/download/BerOps-Server-x64.msi) dosyasını Windows Server'da **yönetici olarak çalıştırın**. Linux için [Docker Compose](docs/kurulum-sunucu.md#docker-compose-linux).

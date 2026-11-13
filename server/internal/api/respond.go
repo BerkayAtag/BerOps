@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net"
 	"net/http"
@@ -66,6 +67,16 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, v any, limit int64) bool
 			return false
 		}
 		writeError(w, http.StatusBadRequest, codeInvalidRequest, "İstek gövdesi geçersiz: "+err.Error())
+		return false
+	}
+	// İlk değerden sonra yalnızca boşluk kabul edilir; boyut sınırı tüm gövdeye uygulanır.
+	if err := dec.Decode(new(any)); !errors.Is(err, io.EOF) {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, http.StatusRequestEntityTooLarge, codeInvalidRequest, "İstek gövdesi çok büyük")
+		} else {
+			writeError(w, http.StatusBadRequest, codeInvalidRequest, "İstek gövdesi tek bir JSON değeri olmalı")
+		}
 		return false
 	}
 	return true
