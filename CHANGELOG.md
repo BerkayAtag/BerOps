@@ -22,6 +22,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 ### Güvenlik
 
 - Go derleyicisinin asgari sürümü 1.27.4'e yükseltildi. Güvenlik taramasının saptadığı `GO-2026-6859` (`net/http` istek gövdesi sınırı sırasında sunucu çökmesi) giderildi.
+- Konsolun geliştirme araçlarında kullanılan `minimatch`, `GHSA-g3hv-75wg-m249` kaynak tüketimi açığını kapatan 11.0.1 ve üzeri sürüme sabitlendi; üretim bağımlılıkları değiştirilmedi.
 
 ## [1.3.0] — 2026-11-03
 
