@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router";
 import i18n from "../i18n";
@@ -45,6 +46,20 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("menü", () => {
+  it("çıkış başarısızsa oturumu korur ve yeniden denemeye izin verir", async () => {
+    renderAs("admin", ["machines.read"]);
+    await screen.findByRole("heading", { name: "Hesabım" });
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: "internal" }), { status: 500 }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Çıkış yap" }));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hesabım" })).toBeInTheDocument();
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(null, { status: 204 }));
+    await userEvent.click(screen.getByRole("button", { name: "Çıkış yap" }));
+    expect(await screen.findByRole("heading", { name: "Oturum açın" })).toBeInTheDocument();
+  });
+
   it("yönetim sayfalarını yalnızca yetkili kullanıcıya gösterir", async () => {
     renderAs("readonly", ["machines.read", "audit.read"]);
     await screen.findByRole("heading", { name: "Hesabım" });

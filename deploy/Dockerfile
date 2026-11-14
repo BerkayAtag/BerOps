@@ -9,7 +9,7 @@ COPY console/ ./
 COPY design/ /src/design/
 RUN npm run build
 
-FROM golang:1.27-alpine AS server
+FROM golang:1.27.4-alpine AS server
 ARG VERSION=0.0.0-dev
 ARG COMMIT=unknown
 WORKDIR /src

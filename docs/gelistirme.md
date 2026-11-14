@@ -4,7 +4,7 @@ BerOps'u kaynak koddan çalıştırmak, ajan kaydetmek ve testleri koşmak için
 
 ## Hızlı başlangıç
 
-Gereksinimler: Go 1.27+, Node.js 24+, Docker.
+Gereksinimler: Go 1.27.4+, Node.js 24+, Docker.
 
 PostgreSQL'i başlatın:
 

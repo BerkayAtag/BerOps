@@ -5,6 +5,26 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 
 ## [Yayımlanmamış]
 
+## [1.3.1] — 2026-11-14
+
+### Düzeltildi
+
+- Konsolda makine, filtre veya detay adresi değiştiğinde önceki kaydın verileri yeni kayıt altında gösterilmiyor. Geç gelen eski yanıtlar yeni ekranı değiştirmiyor.
+- Sunucuya ulaşılamadığında veya çıkış isteği reddedildiğinde konsol artık çıkış yapılmış gibi davranmıyor; hata gösteriliyor ve yeniden denenebiliyor.
+- Çevrimdışı Windows güncelleme kataloğunun kesilen indirmeleri `If-Range` ile katalog sürümü doğrulanarak sürdürülüyor. Katalog değiştiğinde baştan indiriliyor; HTTP 416 yanıtı sonraki taramaları kilitlemiyor.
+- JSON API, ilk değerden sonraki ikinci değerleri ve bozuk ek veriyi reddediyor; gövde boyut sınırı sondaki boşluklara da uygulanıyor.
+- İstek günlüğü ara katmanı artık bağlantı denetimini alt katmana iletiyor; büyük paket yükleme ve indirmelerinde özel zaman aşımı ayarları gerçekten uygulanıyor.
+
+### Testler
+
+- Kayıt değişimi, geç gelen yanıt, başarısız çıkıştan sonra yeniden deneme, JSON gövde sınırı ve katalog indirme kurtarması için regresyon testleri eklendi.
+- Windows MSI güncelleme testi, yeni ajan servisi başladıktan sonra yükleyicinin uygulama kaydını tamamlamasını bekliyor; erken denetimden kaynaklanan aralıklı hata giderildi.
+
+### Güvenlik
+
+- Go derleyicisinin asgari sürümü 1.27.4'e yükseltildi. Güvenlik taramasının saptadığı `GO-2026-6859` (`net/http` istek gövdesi sınırı sırasında sunucu çökmesi) giderildi.
+- Konsolun geliştirme araçlarında kullanılan `minimatch`, `GHSA-g3hv-75wg-m249` kaynak tüketimi açığını kapatan 11.0.1 ve üzeri sürüme sabitlendi; üretim bağımlılıkları değiştirilmedi.
+
 ## [1.3.0] — 2026-11-03
 
 ### Eklendi

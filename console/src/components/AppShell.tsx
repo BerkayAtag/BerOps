@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
-import type { Me } from "../api/client";
+import { errorKey, type Me } from "../api/client";
 import { useAuth } from "../auth/AuthProvider";
 import { LanguageToggle } from "./LanguageToggle";
 import { Logo } from "./Logo";
@@ -35,7 +35,21 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
   const { t } = useTranslation();
   const { logout, can } = useAuth();
   const [navOpen, setNavOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
   const name = me.user.display_name || me.user.username;
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    setLogoutError(null);
+    try {
+      await logout();
+    } catch (err) {
+      setLogoutError(errorKey(err));
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <div className="shell">
@@ -64,7 +78,12 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
             <span className={`role-badge role-${me.user.role}`}>{t(`roles.${me.user.role}`)}</span>
           </span>
         </NavLink>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => void logout()}>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          disabled={loggingOut}
+          onClick={() => void handleLogout()}
+        >
           {t("common.logout")}
         </button>
       </header>
@@ -91,7 +110,10 @@ export function AppShell({ me, children }: { me: Me; children: ReactNode }) {
           ))}
         </ul>
       </nav>
-      <main className="content">{children}</main>
+      <main className="content">
+        {logoutError && <p role="alert">{t(logoutError, { defaultValue: t("errors.unknown") })}</p>}
+        {children}
+      </main>
     </div>
   );
 }

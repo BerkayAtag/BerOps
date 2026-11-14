@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api("/api/v1/auth/logout", { method: "POST" });
     } catch (err) {
       // Oturum zaten geçersizse yerel durumu yine de temizle.
-      if (!(err instanceof ApiError)) throw err;
+      if (!(err instanceof ApiError) || err.status !== 401) throw err;
     }
     setCsrfToken(null);
     setState({ status: "anonymous" });
