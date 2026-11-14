@@ -116,6 +116,12 @@ Wait-Until { $script:target = (Api GET "/api/v1/actions/$($action.id)").targets[
 if ($script:target.status -ne 'succeeded') { Write-Host ($script:target | ConvertTo-Json -Depth 4) }
 Assert ($script:target.status -eq 'succeeded') "Ajan güncellemesi başarılı ($($script:target.status): $($script:target.error))"
 Write-Host $script:target.stdout
+# Yeni servis MSI işlemi tamamlanmadan başlayabilir; uygulama kaydı RegisterProduct
+# aşamasında yazılır. Ajanın başarı bildirimi tek başına bu kaydın hazır olduğunu göstermez.
+Wait-Until {
+  $entries = @(Get-Arp 'BerOps Agent')
+  $entries.Count -eq 1 -and $entries[0].DisplayVersion -eq '0.0.1'
+} 60 'MSI güncellemesinden sonra tek ajan kaydı ve 0.0.1 sürümü oluşmadı'
 $arps = @(Get-Arp 'BerOps Agent')
 Assert ($arps.Count -eq 1) "Programlar ve Özellikler'de tek ajan kaydı ($($arps.Count))"
 Assert ($arps[0].DisplayVersion -eq '0.0.1') "Ajan sürümü 0.0.1 (bulunan: $($arps[0].DisplayVersion))"

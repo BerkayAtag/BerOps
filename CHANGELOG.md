@@ -18,6 +18,7 @@ Biçim [Keep a Changelog](https://keepachangelog.com/tr-TR/1.1.0/) esas alınara
 ### Testler
 
 - Kayıt değişimi, geç gelen yanıt, başarısız çıkıştan sonra yeniden deneme, JSON gövde sınırı ve katalog indirme kurtarması için regresyon testleri eklendi.
+- Windows MSI güncelleme testi, yeni ajan servisi başladıktan sonra yükleyicinin uygulama kaydını tamamlamasını bekliyor; erken denetimden kaynaklanan aralıklı hata giderildi.
 
 ### Güvenlik
 
